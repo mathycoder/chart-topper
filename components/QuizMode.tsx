@@ -1,73 +1,62 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
-import type { SimpleAction, PokerRange, Position, StackSize, Scenario, RangeData } from '@/types';
+import { useState, useEffect, useCallback } from 'react';
+import type { PokerRange, RangeData, Scenario, SimpleAction } from '@/types';
 import { isSimpleAction } from '@/types';
 import { ALL_HANDS } from '@/data/hands';
+import { useUrlState, useRangeSelections, usePainting } from '@/hooks';
+import { Card, PageHeader } from './shared';
 import { RangeChart } from './RangeChart';
 import { ActionPalette } from './ActionPalette';
 import { ResultsDisplay } from './ResultsDisplay';
 import { RangeDropdowns } from './RangeDropdowns';
 
+const SCENARIO_NAMES: Record<Scenario, string> = {
+  'rfi': 'Raise First In',
+  'vs-raise': 'vs Raise',
+  'vs-3bet': 'vs 3-Bet',
+  'vs-4bet': 'vs 4-Bet',
+  'after-limp': 'After Limp',
+};
+
 /**
- * Main container for the range builder quiz mode.
+ * Quiz Mode - Test your poker range knowledge.
  * Desktop: Two-column layout (controls left, grid right)
  * Mobile: Single column stacked layout
  */
-export function RangeBuilder() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
+export function QuizMode() {
+  const { position, stackSize, scenario, setPosition, setStackSize, setScenario } = useUrlState('/');
+  const { userSelections, setCell, clearSelections, filledCount, totalCells, allFilled } = useRangeSelections();
 
-  const [position, setPosition] = useState<Position>(
-    (searchParams.get('position') as Position) || 'UTG'
-  );
-  const [stackSize, setStackSize] = useState<StackSize>(
-    (searchParams.get('stackSize') as StackSize) || '80bb'
-  );
-  const [scenario, setScenario] = useState<Scenario>(
-    (searchParams.get('scenario') as Scenario) || 'rfi'
-  );
-
-  // Sync state to URL
-  useEffect(() => {
-    const params = new URLSearchParams();
-    params.set('position', position);
-    params.set('stackSize', stackSize);
-    params.set('scenario', scenario);
-    router.replace(`/?${params.toString()}`, { scroll: false });
-  }, [position, stackSize, scenario, router]);
-  
   const [range, setRange] = useState<PokerRange | null>(null);
   const [rangeExists, setRangeExists] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
-
-  const [userSelections, setUserSelections] = useState<Record<string, SimpleAction | null>>(() => {
-    const initial: Record<string, SimpleAction | null> = {};
-    ALL_HANDS.forEach(hand => {
-      initial[hand] = null;
-    });
-    return initial;
-  });
-
-  const [selectedAction, setSelectedAction] = useState<SimpleAction | null>(null);
-  const [isPainting, setIsPainting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+
+  // Painting state
+  const painting = usePainting();
+
+  // Paint cell callback
+  const paintCell = useCallback((hand: string) => {
+    if (painting.selectedAction && !isSubmitted) {
+      setCell(hand, painting.selectedAction);
+    }
+  }, [painting.selectedAction, isSubmitted, setCell]);
+
+  // Start painting and paint the initial cell
+  const handlePaintStart = useCallback((hand: string) => {
+    painting.handlePaintStart();
+    if (painting.selectedAction && !isSubmitted) {
+      setCell(hand, painting.selectedAction);
+    }
+  }, [painting, isSubmitted, setCell]);
 
   // Load range when dropdowns change
   useEffect(() => {
     const loadRange = async () => {
       setIsLoading(true);
       setIsSubmitted(false);
-      
-      // Reset selections when changing ranges
-      setUserSelections(() => {
-        const reset: Record<string, SimpleAction | null> = {};
-        ALL_HANDS.forEach(hand => {
-          reset[hand] = null;
-        });
-        return reset;
-      });
+      clearSelections();
 
       try {
         const params = new URLSearchParams({ stackSize, position, scenario });
@@ -75,20 +64,12 @@ export function RangeBuilder() {
         const result = await response.json();
 
         if (result.exists && result.data) {
-          const scenarioNames: Record<Scenario, string> = {
-            'rfi': 'Raise First In',
-            'vs-raise': 'vs Raise',
-            'vs-3bet': 'vs 3-Bet',
-            'vs-4bet': 'vs 4-Bet',
-            'after-limp': 'After Limp',
-          };
-          
           setRange({
             meta: {
               stackSize,
               position,
               scenario,
-              displayName: `${stackSize}+ ${position} - ${scenarioNames[scenario]}`,
+              displayName: `${stackSize}+ ${position} - ${SCENARIO_NAMES[scenario]}`,
             },
             data: result.data as RangeData,
           });
@@ -107,31 +88,7 @@ export function RangeBuilder() {
     };
 
     loadRange();
-  }, [position, stackSize, scenario]);
-
-  const paintCell = useCallback((hand: string) => {
-    if (selectedAction && !isSubmitted) {
-      setUserSelections(prev => ({
-        ...prev,
-        [hand]: selectedAction,
-      }));
-    }
-  }, [selectedAction, isSubmitted]);
-
-  const handlePaintStart = useCallback((hand: string) => {
-    setIsPainting(true);
-    paintCell(hand);
-  }, [paintCell]);
-
-  useEffect(() => {
-    const handleMouseUp = () => setIsPainting(false);
-    document.addEventListener('mouseup', handleMouseUp);
-    return () => document.removeEventListener('mouseup', handleMouseUp);
-  }, []);
-
-  const filledCount = Object.values(userSelections).filter(v => v !== null).length;
-  const totalCells = ALL_HANDS.length;
-  const allFilled = filledCount === totalCells;
+  }, [position, stackSize, scenario, clearSelections]);
 
   const calculateResults = () => {
     if (!range) return { correct: 0, total: totalCells };
@@ -154,30 +111,21 @@ export function RangeBuilder() {
 
   const handleReset = () => {
     setIsSubmitted(false);
-    setUserSelections(() => {
-      const reset: Record<string, SimpleAction | null> = {};
-      ALL_HANDS.forEach(hand => {
-        reset[hand] = null;
-      });
-      return reset;
-    });
-    setSelectedAction(null);
+    clearSelections();
+    painting.setSelectedAction(null);
   };
 
   return (
-    <div className={`p-4 lg:p-8 ${isPainting ? 'select-none' : ''}`}>
-      {/* Two-column layout on desktop */}
+    <main className={`min-h-screen p-4 lg:p-8 ${painting.isPainting ? 'select-none' : ''} max-w-[1050px] mx-auto`}>
       <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 max-w-6xl mx-auto">
         {/* Left column - Controls */}
         <div className="flex flex-col gap-4 lg:w-80 lg:flex-shrink-0">
-          {/* Title */}
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
-            <h1 className="text-xl font-bold text-slate-900">Quiz Mode</h1>
-            <p className="text-slate-600 text-sm mt-1">Test your poker range knowledge</p>
-          </div>
+          <PageHeader
+            title="Quiz Mode"
+            description="Test your poker range knowledge"
+          />
 
-          {/* Dropdowns */}
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+          <Card>
             <RangeDropdowns
               position={position}
               stackSize={stackSize}
@@ -187,20 +135,18 @@ export function RangeBuilder() {
               onScenarioChange={setScenario}
               disabled={isSubmitted}
             />
-          </div>
+          </Card>
 
-          {/* Action palette - only show when range exists */}
           {rangeExists && (
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+            <Card>
               <ActionPalette
-                selectedAction={selectedAction}
-                onSelectAction={setSelectedAction}
+                selectedAction={painting.selectedAction}
+                onSelectAction={painting.setSelectedAction}
                 disabled={isSubmitted || !rangeExists}
               />
-            </div>
+            </Card>
           )}
 
-          {/* Submit/Reset buttons - only show when range exists */}
           {rangeExists && (
             <div className="flex flex-col gap-2">
               {!isSubmitted ? (
@@ -216,7 +162,7 @@ export function RangeBuilder() {
                     }
                   `}
                 >
-                  {allFilled ? 'Submit' : `Fill all cells`}
+                  {allFilled ? 'Submit' : 'Fill all cells'}
                 </button>
               ) : (
                 <button
@@ -229,7 +175,6 @@ export function RangeBuilder() {
             </div>
           )}
 
-          {/* Results display */}
           <ResultsDisplay
             correct={results.correct}
             total={results.total}
@@ -243,13 +188,12 @@ export function RangeBuilder() {
             userSelections={userSelections}
             correctRange={isSubmitted && range ? range.data : undefined}
             isSubmitted={isSubmitted}
-            isPainting={isPainting && rangeExists}
-            selectedAction={rangeExists ? selectedAction : null}
+            isPainting={painting.isPainting && rangeExists}
+            selectedAction={rangeExists ? painting.selectedAction : null}
             onPaint={rangeExists ? paintCell : () => {}}
             onPaintStart={rangeExists ? handlePaintStart : () => {}}
           />
           
-          {/* Overlay when range doesn't exist */}
           {!rangeExists && !isLoading && (
             <div className="absolute inset-0 bg-slate-800 rounded-lg flex flex-col items-center justify-center text-center p-6">
               <p className="text-slate-400 text-lg mb-4">
@@ -264,7 +208,6 @@ export function RangeBuilder() {
             </div>
           )}
 
-          {/* Loading overlay */}
           {isLoading && (
             <div className="absolute inset-0 bg-white/80 backdrop-blur-sm rounded-lg flex items-center justify-center">
               <div className="text-slate-600">Loading...</div>
@@ -272,8 +215,8 @@ export function RangeBuilder() {
           )}
         </div>
       </div>
-    </div>
+    </main>
   );
 }
 
-export default RangeBuilder;
+export default QuizMode;

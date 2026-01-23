@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 
 const NAV_ITEMS = [
   { href: '/', label: 'Quiz Mode', description: 'Test your range knowledge' },
@@ -10,9 +10,17 @@ const NAV_ITEMS = [
 
 /**
  * Top navigation bar for switching between app modes.
+ * Preserves URL params (position, stackSize, scenario) when switching modes.
  */
 export function Navigation() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  // Build href with current search params preserved
+  const buildHref = (basePath: string) => {
+    const params = searchParams.toString();
+    return params ? `${basePath}?${params}` : basePath;
+  };
 
   return (
     <nav className="bg-white border-b border-slate-200 sticky top-0 z-50">
@@ -31,7 +39,7 @@ export function Navigation() {
               return (
                 <Link
                   key={href}
-                  href={href}
+                  href={buildHref(href)}
                   className={`
                     px-4 py-2 rounded-lg text-sm font-medium
                     transition-all duration-150

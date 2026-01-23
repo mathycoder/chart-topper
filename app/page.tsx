@@ -1,9 +1,5 @@
-import { RangeBuilder } from '@/components/RangeBuilder';
+import { QuizMode } from '@/components/QuizMode';
 
 export default function Home() {
-  return (
-    <main className="min-h-screen max-w-[1050px] mx-auto">
-      <RangeBuilder />
-    </main>
-  );
+  return <QuizMode />;
 }
