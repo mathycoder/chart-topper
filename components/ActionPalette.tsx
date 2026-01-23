@@ -46,7 +46,7 @@ export function ActionPalette({
   return (
     <div className="flex flex-col gap-3">
       <span className="text-sm font-medium text-slate-600">Select Action</span>
-      <div className="flex gap-3">
+      <div className="flex flex-col gap-2">
         {ACTIONS.map(({ action, label, color, hoverColor }) => {
           const isSelected = selectedAction === action;
           
@@ -56,14 +56,14 @@ export function ActionPalette({
               onClick={() => onSelectAction(action)}
               disabled={disabled}
               className={`
-                flex items-center gap-2 px-4 py-2 rounded-lg
+                flex items-center gap-3 px-4 py-2.5 rounded-lg
                 font-medium text-white text-sm
                 transition-all duration-150
                 ${color}
                 ${!disabled ? hoverColor : ''}
                 ${isSelected 
-                  ? 'ring-2 ring-offset-2 ring-slate-900 scale-105' 
-                  : 'opacity-70'
+                  ? 'ring-2 ring-offset-2 ring-slate-900' 
+                  : 'opacity-60'
                 }
                 ${disabled 
                   ? 'cursor-not-allowed opacity-50' 
@@ -73,7 +73,7 @@ export function ActionPalette({
             >
               <span 
                 className={`
-                  w-4 h-4 rounded-full border-2 border-white
+                  w-4 h-4 rounded-full border-2 border-white flex-shrink-0
                   ${isSelected ? 'bg-white' : 'bg-transparent'}
                 `}
               />

@@ -3,7 +3,7 @@ import { utg80bbRfi } from '@/data/ranges/80bb-utg-rfi';
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-slate-50 py-8">
+    <main className="min-h-screen max-w-[1050px] mx-auto">
       <RangeBuilder range={utg80bbRfi} />
     </main>
   );
