@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import type { SimpleAction, Position, StackSize, Scenario } from '@/types';
 import { ALL_HANDS } from '@/data/hands';
 import { RangeChart } from '@/components/RangeChart';
@@ -13,9 +14,27 @@ import { RangeDropdowns } from '@/components/RangeDropdowns';
  * Mobile: Single column stacked layout
  */
 export default function BuilderPage() {
-  const [position, setPosition] = useState<Position>('UTG');
-  const [stackSize, setStackSize] = useState<StackSize>('80bb');
-  const [scenario, setScenario] = useState<Scenario>('rfi');
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  
+  const [position, setPosition] = useState<Position>(
+    (searchParams.get('position') as Position) || 'UTG'
+  );
+  const [stackSize, setStackSize] = useState<StackSize>(
+    (searchParams.get('stackSize') as StackSize) || '80bb'
+  );
+  const [scenario, setScenario] = useState<Scenario>(
+    (searchParams.get('scenario') as Scenario) || 'rfi'
+  );
+
+  // Sync state to URL
+  useEffect(() => {
+    const params = new URLSearchParams();
+    params.set('position', position);
+    params.set('stackSize', stackSize);
+    params.set('scenario', scenario);
+    router.replace(`/builder?${params.toString()}`, { scroll: false });
+  }, [position, stackSize, scenario, router]);
 
   const [userSelections, setUserSelections] = useState<Record<string, SimpleAction | null>>(() => {
     const initial: Record<string, SimpleAction | null> = {};
@@ -142,17 +161,6 @@ export default function BuilderPage() {
     setSaveMessage(null);
   };
 
-  const getDisplayName = () => {
-    const scenarioNames: Record<Scenario, string> = {
-      'rfi': 'Raise First In',
-      'vs-raise': 'vs Raise',
-      'vs-3bet': 'vs 3-Bet',
-      'vs-4bet': 'vs 4-Bet',
-      'after-limp': 'After Limp',
-    };
-    return `${stackSize}+ ${position} - ${scenarioNames[scenario]}`;
-  };
-
   return (
     <main className={`min-h-screen p-4 lg:p-8 ${isPainting ? 'select-none' : ''} max-w-[1050px] mx-auto`}>
       {/* Two-column layout on desktop */}
@@ -177,39 +185,12 @@ export default function BuilderPage() {
             />
           </div>
 
-          {/* Current range name */}
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
-            <div className="text-sm text-slate-500 mb-1">Current Range</div>
-            <div className="font-medium text-slate-900">{getDisplayName()}</div>
-            {existingRangeLoaded && (
-              <span className="inline-block mt-2 text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
-                ✓ Loaded from file
-              </span>
-            )}
-          </div>
-
           {/* Action palette */}
           <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
             <ActionPalette
               selectedAction={selectedAction}
               onSelectAction={setSelectedAction}
             />
-          </div>
-
-          {/* Progress */}
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
-            <div className="text-sm text-slate-600">
-              <div className="flex justify-between mb-2">
-                <span>Progress</span>
-                <span className="font-medium">{filledCount} / {totalCells}</span>
-              </div>
-              <div className="w-full bg-slate-100 rounded-full h-2">
-                <div 
-                  className="bg-slate-900 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${(filledCount / totalCells) * 100}%` }}
-                />
-              </div>
-            </div>
           </div>
 
           {/* Action buttons */}
