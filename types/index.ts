@@ -47,7 +47,7 @@ export type HandCombo = string;
 export type RangeData = Record<string, HandAction>;
 
 // Stack size categories
-export type StackSize = '20bb' | '40bb' | '80bb' | '100bb';
+export type StackSize = '10bb' | '20bb' | '40bb' | '80bb';
 
 // Table positions (8-max)
 export type Position = 'UTG' | 'UTG+1' | 'LJ' | 'HJ' | 'CO' | 'BTN' | 'SB' | 'BB';
