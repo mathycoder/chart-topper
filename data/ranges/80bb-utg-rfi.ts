@@ -1,0 +1,217 @@
+import type { PokerRange, RangeData } from '@/types';
+
+/**
+ * UTG (Under The Gun) Raise First In range at 80bb+ stack depth.
+ * 
+ * This is a tight opening range from the earliest position.
+ * Red = Raise, Blue = Fold in the reference chart.
+ */
+
+const data: RangeData = {
+  // Row 0: Ace-high hands
+  'AA': 'raise',
+  'AKs': 'raise',
+  'AQs': 'raise',
+  'AJs': 'raise',
+  'ATs': 'raise',
+  'A9s': 'fold',
+  'A8s': 'fold',
+  'A7s': 'fold',
+  'A6s': 'fold',
+  'A5s': 'fold',
+  'A4s': 'fold',
+  'A3s': 'fold',
+  'A2s': 'fold',
+
+  // Row 1: King-high hands
+  'AKo': 'raise',
+  'KK': 'raise',
+  'KQs': 'raise',
+  'KJs': 'raise',
+  'KTs': 'raise',
+  'K9s': 'fold',
+  'K8s': 'fold',
+  'K7s': 'fold',
+  'K6s': 'fold',
+  'K5s': 'fold',
+  'K4s': 'fold',
+  'K3s': 'fold',
+  'K2s': 'fold',
+
+  // Row 2: Queen-high hands
+  'AQo': 'raise',
+  'KQo': 'raise',
+  'QQ': 'raise',
+  'QJs': 'raise',
+  'QTs': 'raise',
+  'Q9s': 'fold',
+  'Q8s': 'fold',
+  'Q7s': 'fold',
+  'Q6s': 'fold',
+  'Q5s': 'fold',
+  'Q4s': 'fold',
+  'Q3s': 'fold',
+  'Q2s': 'fold',
+
+  // Row 3: Jack-high hands
+  'AJo': 'raise',
+  'KJo': 'fold',
+  'QJo': 'fold',
+  'JJ': 'raise',
+  'JTs': 'raise',
+  'J9s': 'fold',
+  'J8s': 'fold',
+  'J7s': 'fold',
+  'J6s': 'fold',
+  'J5s': 'fold',
+  'J4s': 'fold',
+  'J3s': 'fold',
+  'J2s': 'fold',
+
+  // Row 4: Ten-high hands
+  'ATo': 'raise',
+  'KTo': 'fold',
+  'QTo': 'fold',
+  'JTo': 'fold',
+  'TT': 'raise',
+  'T9s': 'raise',
+  'T8s': 'fold',
+  'T7s': 'fold',
+  'T6s': 'fold',
+  'T5s': 'fold',
+  'T4s': 'fold',
+  'T3s': 'fold',
+  'T2s': 'fold',
+
+  // Row 5: Nine-high hands
+  'A9o': 'fold',
+  'K9o': 'fold',
+  'Q9o': 'fold',
+  'J9o': 'fold',
+  'T9o': 'fold',
+  '99': 'raise',
+  '98s': 'raise',
+  '97s': 'fold',
+  '96s': 'fold',
+  '95s': 'fold',
+  '94s': 'fold',
+  '93s': 'fold',
+  '92s': 'fold',
+
+  // Row 6: Eight-high hands
+  'A8o': 'fold',
+  'K8o': 'fold',
+  'Q8o': 'fold',
+  'J8o': 'fold',
+  'T8o': 'fold',
+  '98o': 'fold',
+  '88': 'raise',
+  '87s': 'fold',
+  '86s': 'fold',
+  '85s': 'fold',
+  '84s': 'fold',
+  '83s': 'fold',
+  '82s': 'fold',
+
+  // Row 7: Seven-high hands
+  'A7o': 'fold',
+  'K7o': 'fold',
+  'Q7o': 'fold',
+  'J7o': 'fold',
+  'T7o': 'fold',
+  '97o': 'fold',
+  '87o': 'fold',
+  '77': 'raise',
+  '76s': 'raise',
+  '75s': 'fold',
+  '74s': 'fold',
+  '73s': 'fold',
+  '72s': 'fold',
+
+  // Row 8: Six-high hands
+  'A6o': 'fold',
+  'K6o': 'fold',
+  'Q6o': 'fold',
+  'J6o': 'fold',
+  'T6o': 'fold',
+  '96o': 'fold',
+  '86o': 'fold',
+  '76o': 'fold',
+  '66': 'raise',
+  '65s': 'raise',
+  '64s': 'fold',
+  '63s': 'fold',
+  '62s': 'fold',
+
+  // Row 9: Five-high hands
+  'A5o': 'fold',
+  'K5o': 'fold',
+  'Q5o': 'fold',
+  'J5o': 'fold',
+  'T5o': 'fold',
+  '95o': 'fold',
+  '85o': 'fold',
+  '75o': 'fold',
+  '65o': 'fold',
+  '55': 'raise',
+  '54s': 'fold',
+  '53s': 'fold',
+  '52s': 'fold',
+
+  // Row 10: Four-high hands
+  'A4o': 'fold',
+  'K4o': 'fold',
+  'Q4o': 'fold',
+  'J4o': 'fold',
+  'T4o': 'fold',
+  '94o': 'fold',
+  '84o': 'fold',
+  '74o': 'fold',
+  '64o': 'fold',
+  '54o': 'fold',
+  '44': 'raise',
+  '43s': 'fold',
+  '42s': 'fold',
+
+  // Row 11: Three-high hands
+  'A3o': 'fold',
+  'K3o': 'fold',
+  'Q3o': 'fold',
+  'J3o': 'fold',
+  'T3o': 'fold',
+  '93o': 'fold',
+  '83o': 'fold',
+  '73o': 'fold',
+  '63o': 'fold',
+  '53o': 'fold',
+  '43o': 'fold',
+  '33': 'fold',
+  '32s': 'fold',
+
+  // Row 12: Two-high hands
+  'A2o': 'fold',
+  'K2o': 'fold',
+  'Q2o': 'fold',
+  'J2o': 'fold',
+  'T2o': 'fold',
+  '92o': 'fold',
+  '82o': 'fold',
+  '72o': 'fold',
+  '62o': 'fold',
+  '52o': 'fold',
+  '42o': 'fold',
+  '32o': 'fold',
+  '22': 'fold',
+};
+
+export const utg80bbRfi: PokerRange = {
+  meta: {
+    stackSize: '80bb',
+    position: 'UTG',
+    scenario: 'rfi',
+    displayName: '80bb+ UTG - Raise First In',
+  },
+  data,
+};
+
+export default utg80bbRfi;
