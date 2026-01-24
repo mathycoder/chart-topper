@@ -59,6 +59,7 @@ export function ResultsDisplay({
       case 'too_loose': return 'Too loose';
       case 'over_aggressive': return 'Over-aggressive';
       case 'under_aggressive': return 'Under-aggressive';
+      case 'wrong_blend': return 'Wrong blend';
     }
   };
 
@@ -78,6 +79,11 @@ export function ResultsDisplay({
           <span className="text-green-600 font-medium">
             ✓ {overall.correct} correct
           </span>
+          {overall.halfCredit > 0 && (
+            <span className="text-amber-600 font-medium">
+              ½ {overall.halfCredit} half credit
+            </span>
+          )}
           <span className="text-red-600 font-medium">
             ✗ {overall.wrong} incorrect
           </span>
@@ -197,7 +203,8 @@ function LeakCard({ leak, isExpanded, onToggle, getSeverityColor, getMistakeType
                   </span>
                 </div>
                 <div className="text-xs mb-1">
-                  You: <span className="font-medium">{ex.got}</span> → Should: <span className="font-medium">{ex.expected}</span>
+                  You: <span className="font-medium">{ex.got}</span> → Should: <span className="font-medium">{ex.expectedBlendType || ex.expectedPrimary}</span>
+                  {ex.isHalfCredit && <span className="ml-1 text-amber-600">(½ credit)</span>}
                 </div>
                 <div className="text-xs opacity-90">{ex.why}</div>
               </div>

@@ -1,12 +1,14 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import type { SimpleAction } from '@/types';
+import type { SimpleAction, HandAction, BlendedAction } from '@/types';
+import { isSimpleAction } from '@/types';
 import { useUrlState, useRangeSelections, usePainting } from '@/hooks';
 import { Card, PageHeader } from './shared';
 import { RangeChart } from './RangeChart';
 import { ActionPalette } from './ActionPalette';
 import { RangeDropdowns } from './RangeDropdowns';
+import { BlendPicker } from './BlendPicker';
 
 /**
  * Builder Mode - Create and save poker ranges.
@@ -14,41 +16,85 @@ import { RangeDropdowns } from './RangeDropdowns';
  * Mobile: Single column stacked layout
  */
 export function BuilderMode() {
-  const { position, stackSize, scenario, setPosition, setStackSize, setScenario } = useUrlState('/builder');
+  const { position, stackSize, scenario, opponent, setPosition, setStackSize, setScenario, setOpponent } = useUrlState('/builder');
   const { userSelections, setCell, loadSelections, clearSelections, filledCount, totalCells, allFilled } = useRangeSelections();
 
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [existingRangeLoaded, setExistingRangeLoaded] = useState(false);
+  
+  // Blend picker state
+  const [blendPickerOpen, setBlendPickerOpen] = useState(false);
+  const [blendPickerHand, setBlendPickerHand] = useState<string | null>(null);
+  const [blendMode, setBlendMode] = useState(false);
 
   // Painting state
   const painting = usePainting();
 
-  // Paint cell callback
+  // Paint cell callback - now handles blend mode
   const paintCell = useCallback((hand: string) => {
-    if (painting.selectedAction) {
+    if (blendMode) {
+      // In blend mode, clicking opens the picker
+      setBlendPickerHand(hand);
+      setBlendPickerOpen(true);
+    } else if (painting.selectedAction) {
       setCell(hand, painting.selectedAction);
     }
-  }, [painting.selectedAction, setCell]);
+  }, [blendMode, painting.selectedAction, setCell]);
 
   // Start painting and paint the initial cell
   const handlePaintStart = useCallback((hand: string) => {
-    painting.handlePaintStart();
-    if (painting.selectedAction) {
-      setCell(hand, painting.selectedAction);
+    if (blendMode) {
+      // In blend mode, clicking opens the picker
+      setBlendPickerHand(hand);
+      const existingAction = userSelections[hand];
+      setBlendPickerOpen(true);
+    } else {
+      painting.handlePaintStart();
+      if (painting.selectedAction) {
+        setCell(hand, painting.selectedAction);
+      }
     }
-  }, [painting, setCell]);
+  }, [blendMode, painting, setCell, userSelections]);
+
+  // Handle blend button click
+  const handleBlendClick = useCallback(() => {
+    setBlendMode(true);
+    painting.setSelectedAction(null); // Deselect simple action
+  }, [painting]);
+
+  // Handle simple action selection (exits blend mode)
+  const handleSelectAction = useCallback((action: SimpleAction) => {
+    setBlendMode(false);
+    painting.setSelectedAction(action);
+  }, [painting]);
+
+  // Handle blend confirm
+  const handleBlendConfirm = useCallback((action: BlendedAction) => {
+    if (blendPickerHand) {
+      setCell(blendPickerHand, action);
+    }
+    setBlendPickerOpen(false);
+    setBlendPickerHand(null);
+  }, [blendPickerHand, setCell]);
+
+  // Handle blend picker close
+  const handleBlendClose = useCallback(() => {
+    setBlendPickerOpen(false);
+    setBlendPickerHand(null);
+  }, []);
 
   // Load existing range when dropdowns change
   useEffect(() => {
     const loadExistingRange = async () => {
       try {
         const params = new URLSearchParams({ stackSize, position, scenario });
+        if (opponent) params.set('opponent', opponent);
         const response = await fetch(`/api/load-range?${params}`);
         const result = await response.json();
 
         if (result.exists && result.data) {
-          loadSelections(result.data as Record<string, SimpleAction>);
+          loadSelections(result.data as Record<string, HandAction>);
           setExistingRangeLoaded(true);
           setSaveMessage({ type: 'success', text: `Loaded: ${result.filename}` });
         } else {
@@ -62,7 +108,7 @@ export function BuilderMode() {
     };
 
     loadExistingRange();
-  }, [position, stackSize, scenario, loadSelections, clearSelections]);
+  }, [position, stackSize, scenario, opponent, loadSelections, clearSelections]);
 
   // Clear save message after delay
   useEffect(() => {
@@ -78,7 +124,7 @@ export function BuilderMode() {
     setSaveMessage(null);
 
     try {
-      const data: Record<string, SimpleAction> = {};
+      const data: Record<string, HandAction> = {};
       Object.entries(userSelections).forEach(([hand, action]) => {
         if (action) data[hand] = action;
       });
@@ -86,7 +132,7 @@ export function BuilderMode() {
       const response = await fetch('/api/save-range', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stackSize, position, scenario, data }),
+        body: JSON.stringify({ stackSize, position, scenario, opponent, data }),
       });
 
       const result = await response.json();
@@ -124,17 +170,27 @@ export function BuilderMode() {
               position={position}
               stackSize={stackSize}
               scenario={scenario}
+              opponent={opponent}
               onPositionChange={setPosition}
               onStackSizeChange={setStackSize}
               onScenarioChange={setScenario}
+              onOpponentChange={setOpponent}
             />
           </Card>
 
           <Card>
             <ActionPalette
-              selectedAction={painting.selectedAction}
-              onSelectAction={painting.setSelectedAction}
+              selectedAction={blendMode ? null : painting.selectedAction}
+              onSelectAction={handleSelectAction}
+              mode="builder"
+              showBlendOptions={true}
+              onBlendClick={handleBlendClick}
             />
+            {blendMode && (
+              <div className="mt-2 px-3 py-2 bg-slate-100 rounded-lg text-sm text-slate-600">
+                Click a cell to set blend percentages
+              </div>
+            )}
           </Card>
 
           {/* Action buttons */}
@@ -182,13 +238,27 @@ export function BuilderMode() {
           <RangeChart
             userSelections={userSelections}
             isSubmitted={false}
-            isPainting={painting.isPainting}
-            selectedAction={painting.selectedAction}
+            isPainting={painting.isPainting && !blendMode}
+            selectedAction={blendMode ? null : painting.selectedAction}
             onPaint={paintCell}
             onPaintStart={handlePaintStart}
+            blendMode={blendMode}
           />
         </div>
       </div>
+
+      {/* Blend Picker Modal */}
+      <BlendPicker
+        isOpen={blendPickerOpen}
+        handName={blendPickerHand || undefined}
+        initialValue={
+          blendPickerHand && userSelections[blendPickerHand] && !isSimpleAction(userSelections[blendPickerHand]!)
+            ? userSelections[blendPickerHand] as BlendedAction
+            : undefined
+        }
+        onConfirm={handleBlendConfirm}
+        onClose={handleBlendClose}
+      />
     </main>
   );
 }

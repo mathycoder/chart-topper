@@ -2,11 +2,43 @@ import { NextRequest, NextResponse } from 'next/server';
 import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
 
+// Blended action with percentages
+interface BlendedAction {
+  raise?: number;
+  call?: number;
+  fold?: number;
+}
+
+type HandAction = 'raise' | 'call' | 'fold' | BlendedAction;
+
 interface SaveRangeRequest {
   stackSize: string;
   position: string;
   scenario: string;
-  data: Record<string, 'raise' | 'call' | 'fold'>;
+  opponent?: string; // Optional for non-RFI scenarios
+  data: Record<string, HandAction>;
+}
+
+/**
+ * Formats a hand action for TypeScript output.
+ * Simple actions become quoted strings, blended actions become object literals.
+ */
+function formatAction(action: HandAction): string {
+  if (typeof action === 'string') {
+    return `'${action}'`;
+  }
+  // Blended action - format as object
+  const parts: string[] = [];
+  if (action.raise !== undefined && action.raise > 0) {
+    parts.push(`raise: ${action.raise}`);
+  }
+  if (action.call !== undefined && action.call > 0) {
+    parts.push(`call: ${action.call}`);
+  }
+  if (action.fold !== undefined && action.fold > 0) {
+    parts.push(`fold: ${action.fold}`);
+  }
+  return `{ ${parts.join(', ')} }`;
 }
 
 /**
@@ -16,14 +48,34 @@ function generateRangeFileContent(
   stackSize: string,
   position: string,
   scenario: string,
-  data: Record<string, string>
+  opponent: string | undefined,
+  data: Record<string, HandAction>
 ): string {
-  const variableName = `${position.toLowerCase().replace('+', 'Plus')}${stackSize}${scenario.charAt(0).toUpperCase() + scenario.slice(1).replace('-', '')}`;
-  const displayName = getDisplayName(stackSize, position, scenario);
+  // Build variable name
+  let variableName = `${position.toLowerCase().replace('+', 'Plus')}`;
+  if (opponent && scenario !== 'rfi') {
+    variableName += `Vs${opponent.replace('+', 'Plus')}`;
+  }
+  variableName += `${stackSize}${scenario.charAt(0).toUpperCase() + scenario.slice(1).replace('-', '')}`;
+  
+  const displayName = getDisplayName(stackSize, position, scenario, opponent);
 
   const dataEntries = Object.entries(data)
-    .map(([hand, action]) => `  '${hand}': '${action}',`)
+    .map(([hand, action]) => `  '${hand}': ${formatAction(action)},`)
     .join('\n');
+
+  // Build meta object with optional opponentPosition
+  const metaLines = [
+    `    stackSize: '${stackSize}',`,
+    `    position: '${position}',`,
+    `    scenario: '${scenario}',`,
+  ];
+  
+  if (opponent && scenario !== 'rfi') {
+    metaLines.push(`    opponentPosition: '${opponent}',`);
+  }
+  
+  metaLines.push(`    displayName: '${displayName}',`);
 
   return `import type { PokerRange, RangeData } from '@/types';
 
@@ -38,10 +90,7 @@ ${dataEntries}
 
 export const ${variableName}: PokerRange = {
   meta: {
-    stackSize: '${stackSize}',
-    position: '${position}',
-    scenario: '${scenario}',
-    displayName: '${displayName}',
+${metaLines.join('\n')}
   },
   data,
 };
@@ -50,12 +99,16 @@ export default ${variableName};
 `;
 }
 
-function getDisplayName(stackSize: string, position: string, scenario: string): string {
+function getDisplayName(stackSize: string, position: string, scenario: string, opponent?: string): string {
   const scenarioNames: Record<string, string> = {
     'rfi': 'Raise First In',
     'vs-raise': 'vs Raise',
     'vs-3bet': 'vs 3-Bet',
   };
+  
+  if (opponent && scenario !== 'rfi') {
+    return `${stackSize}+ ${position} vs ${opponent} - ${scenarioNames[scenario] || scenario}`;
+  }
   
   return `${stackSize}+ ${position} - ${scenarioNames[scenario] || scenario}`;
 }
@@ -63,7 +116,7 @@ function getDisplayName(stackSize: string, position: string, scenario: string): 
 export async function POST(request: NextRequest) {
   try {
     const body: SaveRangeRequest = await request.json();
-    const { stackSize, position, scenario, data } = body;
+    const { stackSize, position, scenario, opponent, data } = body;
 
     // Validate required fields
     if (!stackSize || !position || !scenario || !data) {
@@ -82,8 +135,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate filename
-    const filename = `${stackSize}-${position.toLowerCase().replace('+', 'plus')}-${scenario}.ts`;
+    // Generate filename based on whether opponent is present
+    const positionSlug = position.toLowerCase().replace('+', 'plus');
+    let filename: string;
+    
+    if (opponent && scenario !== 'rfi') {
+      const opponentSlug = opponent.toLowerCase().replace('+', 'plus');
+      filename = `${stackSize}-${positionSlug}-vs-${opponentSlug}-${scenario}.ts`;
+    } else {
+      filename = `${stackSize}-${positionSlug}-${scenario}.ts`;
+    }
+    
     const rangesDir = path.join(process.cwd(), 'data', 'ranges');
     const filepath = path.join(rangesDir, filename);
 
@@ -91,7 +153,7 @@ export async function POST(request: NextRequest) {
     await mkdir(rangesDir, { recursive: true });
 
     // Generate file content
-    const content = generateRangeFileContent(stackSize, position, scenario, data);
+    const content = generateRangeFileContent(stackSize, position, scenario, opponent, data);
 
     // Write file
     await writeFile(filepath, content, 'utf-8');

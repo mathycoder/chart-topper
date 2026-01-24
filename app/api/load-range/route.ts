@@ -13,6 +13,7 @@ export async function GET(request: NextRequest) {
     const stackSize = searchParams.get('stackSize');
     const position = searchParams.get('position');
     const scenario = searchParams.get('scenario');
+    const opponent = searchParams.get('opponent'); // Optional for non-RFI scenarios
 
     if (!stackSize || !position || !scenario) {
       return NextResponse.json(
@@ -21,7 +22,18 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const filename = `${stackSize}-${position.toLowerCase().replace('+', 'plus')}-${scenario}.ts`;
+    // Build filename based on whether opponent is present
+    // Format: {stackSize}-{position}[-vs-{opponent}]-{scenario}.ts
+    const positionSlug = position.toLowerCase().replace('+', 'plus');
+    let filename: string;
+    
+    if (opponent && scenario !== 'rfi') {
+      const opponentSlug = opponent.toLowerCase().replace('+', 'plus');
+      filename = `${stackSize}-${positionSlug}-vs-${opponentSlug}-${scenario}.ts`;
+    } else {
+      filename = `${stackSize}-${positionSlug}-${scenario}.ts`;
+    }
+    
     const filepath = path.join(process.cwd(), 'data', 'ranges', filename);
 
     try {
@@ -35,14 +47,41 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ exists: false, data: null, notes: null });
       }
 
-      // Parse the hand entries
+      // Parse the hand entries - supports both simple actions and blended actions
       const dataSection = dataMatch[1];
-      const handRegex = /'([A-Za-z0-9]+)':\s*'(raise|call|fold)'/g;
-      const data: Record<string, string> = {};
+      const data: Record<string, string | { raise?: number; call?: number; fold?: number }> = {};
       
+      // First, parse simple actions: 'AA': 'raise'
+      const simpleRegex = /'([A-Za-z0-9]+)':\s*'(raise|call|fold)'/g;
       let match;
-      while ((match = handRegex.exec(dataSection)) !== null) {
+      while ((match = simpleRegex.exec(dataSection)) !== null) {
         data[match[1]] = match[2];
+      }
+      
+      // Then, parse blended actions: 'A5s': { raise: 50, call: 50 }
+      const blendedRegex = /'([A-Za-z0-9]+)':\s*\{\s*(raise:\s*\d+)?\s*,?\s*(call:\s*\d+)?\s*,?\s*(fold:\s*\d+)?\s*\}/g;
+      while ((match = blendedRegex.exec(dataSection)) !== null) {
+        const hand = match[1];
+        const blended: { raise?: number; call?: number; fold?: number } = {};
+        
+        // Parse each component if present
+        if (match[2]) {
+          const raiseMatch = match[2].match(/raise:\s*(\d+)/);
+          if (raiseMatch) blended.raise = parseInt(raiseMatch[1], 10);
+        }
+        if (match[3]) {
+          const callMatch = match[3].match(/call:\s*(\d+)/);
+          if (callMatch) blended.call = parseInt(callMatch[1], 10);
+        }
+        if (match[4]) {
+          const foldMatch = match[4].match(/fold:\s*(\d+)/);
+          if (foldMatch) blended.fold = parseInt(foldMatch[1], 10);
+        }
+        
+        // Only add if we parsed at least one component
+        if (Object.keys(blended).length > 0) {
+          data[hand] = blended;
+        }
       }
 
       // Parse the notes object if it exists

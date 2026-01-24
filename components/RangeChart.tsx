@@ -1,13 +1,13 @@
 'use client';
 
 import { RANKS } from '@/types';
-import type { SimpleAction, RangeData } from '@/types';
+import type { SimpleAction, RangeData, HandAction, QuizAction } from '@/types';
 import { getHandName } from '@/data/hands';
 import { HandCell } from './HandCell';
 
 interface RangeChartProps {
-  /** User's current selections for each hand */
-  userSelections: Record<string, SimpleAction | null>;
+  /** User's current selections for each hand (can be simple, blended, or quiz action) */
+  userSelections: Record<string, HandAction | QuizAction | null>;
   /** The correct answers (only used after submission) */
   correctRange?: RangeData;
   /** Whether the quiz has been submitted */
@@ -20,6 +20,10 @@ interface RangeChartProps {
   onPaint: (hand: string) => void;
   /** Callback when painting starts */
   onPaintStart: (hand: string) => void;
+  /** Whether to show correct answers instead of user selections (for toggle) */
+  showCorrectAnswers?: boolean;
+  /** Whether blend mode is active (cells respond to clicks without selectedAction) */
+  blendMode?: boolean;
 }
 
 /**
@@ -40,6 +44,8 @@ export function RangeChart({
   selectedAction,
   onPaint,
   onPaintStart,
+  showCorrectAnswers = false,
+  blendMode = false,
 }: RangeChartProps) {
   return (
     <div 
@@ -52,17 +58,21 @@ export function RangeChart({
       {RANKS.map((_, rowIndex) =>
         RANKS.map((_, colIndex) => {
           const hand = getHandName(rowIndex, colIndex);
+          const userAction = userSelections[hand] ?? null;
+          
           return (
             <HandCell
               key={hand}
               hand={hand}
-              userAction={userSelections[hand] ?? null}
+              userAction={userAction}
               correctAction={correctRange?.[hand]}
               isSubmitted={isSubmitted}
               isPainting={isPainting}
               selectedAction={selectedAction}
               onPaint={onPaint}
               onPaintStart={onPaintStart}
+              displayAction={showCorrectAnswers ? correctRange?.[hand] : undefined}
+              blendMode={blendMode}
             />
           );
         })

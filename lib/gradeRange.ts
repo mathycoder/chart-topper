@@ -1,17 +1,23 @@
 /* eslint-disable no-console */
 
-import type { PokerRange, RangeNotes, HandAction, SimpleAction, HandTag } from '@/types';
+import type { PokerRange, RangeNotes, HandAction, SimpleAction, HandTag, BlendType, QuizAction, BlendedAction } from '@/types';
+import { getBlendType as getBlendTypeFromTypes, isBlendType } from '@/types';
 
 /**
  * Output model (UI-friendly)
+ * Now supports blend types for quiz answers
  */
-export type GradeAction = 'raise' | 'call' | 'fold';
+export type GradeAction = SimpleAction | BlendType;
 
 export type HandDiff = {
   hand: string;
-  expected: GradeAction;
-  got: GradeAction;
-  mistakeType: 'too_tight' | 'too_loose' | 'over_aggressive' | 'under_aggressive';
+  expectedAction: HandAction; // Original action (simple or blended)
+  expectedPrimary: SimpleAction; // Dominant action for display
+  expectedBlendType: BlendType | null; // Blend type if applicable
+  got: GradeAction; // User's answer (simple action or blend type)
+  score: number; // 0.0, 0.5, or 1.0
+  isHalfCredit: boolean;
+  mistakeType: 'too_tight' | 'too_loose' | 'over_aggressive' | 'under_aggressive' | 'wrong_blend';
   severity: 'high' | 'medium' | 'low';
   severityScore: number;
   why: string; // short, derived from notes/tags
@@ -31,12 +37,14 @@ export type LeakGroup = {
 
 export type ChartGradeSummary = {
   overall: {
-    accuracy: number; // 0..1
+    accuracy: number; // 0..1 (accounts for half credit)
     attempted: number;
-    correct: number;
+    correct: number; // Full credit answers
+    halfCredit: number; // Half credit answers (dominant action on blended)
     wrong: number;
     unanswered: number;
-    byAction: Record<GradeAction, { expected: number; correct: number; accuracy: number }>;
+    totalScore: number; // Sum of all scores (1.0 for correct, 0.5 for half credit)
+    byAction: Record<SimpleAction, { expected: number; correct: number; halfCredit: number; accuracy: number }>;
   };
   strengths: string[];
   priorityFixes: string[];
@@ -57,7 +65,7 @@ function isSimpleAction(a: HandAction): a is SimpleAction {
   return typeof a === 'string';
 }
 
-function getPrimaryAction(a: HandAction): GradeAction {
+function getPrimaryAction(a: HandAction): SimpleAction {
   if (isSimpleAction(a)) return a;
 
   const raise = a.raise ?? 0;
@@ -70,13 +78,60 @@ function getPrimaryAction(a: HandAction): GradeAction {
   return 'fold';
 }
 
-function classifyMistake(expected: GradeAction, got: GradeAction): HandDiff['mistakeType'] {
-  if (expected === 'raise' && got === 'fold') return 'too_tight';
-  if (expected === 'fold' && (got === 'raise' || got === 'call')) return 'too_loose';
-  if (expected === 'call' && got === 'raise') return 'over_aggressive';
-  if (expected === 'raise' && got === 'call') return 'under_aggressive';
+function getBlendType(a: HandAction): BlendType | null {
+  return getBlendTypeFromTypes(a);
+}
+
+/**
+ * Grade a single hand answer.
+ * Returns: { score, isHalfCredit }
+ * - score: 1.0 (correct), 0.5 (half credit), 0.0 (wrong)
+ * - isHalfCredit: true if user got dominant action on blended hand
+ */
+function gradeHandAnswer(expected: HandAction, got: GradeAction): { score: number; isHalfCredit: boolean } {
+  const expectedPrimary = getPrimaryAction(expected);
+  const expectedBlendType = getBlendType(expected);
+  
+  // Simple expected action - needs exact match
+  if (isSimpleAction(expected)) {
+    if (got === expected) {
+      return { score: 1.0, isHalfCredit: false };
+    }
+    return { score: 0.0, isHalfCredit: false };
+  }
+  
+  // Blended expected action
+  // Full credit: user selected correct blend type
+  if (expectedBlendType && got === expectedBlendType) {
+    return { score: 1.0, isHalfCredit: false };
+  }
+  
+  // Half credit: user selected dominant action (simple, not blend type)
+  if (!isBlendType(got) && got === expectedPrimary) {
+    return { score: 0.5, isHalfCredit: true };
+  }
+  
+  // Wrong
+  return { score: 0.0, isHalfCredit: false };
+}
+
+function classifyMistake(expectedPrimary: SimpleAction, got: GradeAction, isBlendedExpected: boolean): HandDiff['mistakeType'] {
+  // If expected was blended and user got wrong blend type
+  if (isBlendedExpected && isBlendType(got)) {
+    return 'wrong_blend';
+  }
+  
+  // Extract simple action from got for comparison
+  const gotSimple: SimpleAction = isBlendType(got) 
+    ? (got.includes('raise') ? 'raise' : got.includes('call') ? 'call' : 'fold')
+    : got;
+  
+  if (expectedPrimary === 'raise' && gotSimple === 'fold') return 'too_tight';
+  if (expectedPrimary === 'fold' && (gotSimple === 'raise' || gotSimple === 'call')) return 'too_loose';
+  if (expectedPrimary === 'call' && gotSimple === 'raise') return 'over_aggressive';
+  if (expectedPrimary === 'raise' && gotSimple === 'call') return 'under_aggressive';
   // default fallback (shouldn't happen if expected != got)
-  return expected === 'fold' ? 'too_loose' : 'too_tight';
+  return expectedPrimary === 'fold' ? 'too_loose' : 'too_tight';
 }
 
 function clamp(n: number, lo: number, hi: number) {
@@ -200,24 +255,36 @@ function evSourceToEngine(ev?: EvSource): string {
 }
 
 function computeSeverityScore(args: {
-  expected: GradeAction;
+  expected: SimpleAction;
   got: GradeAction;
   tags: HandTag[];
   notes?: DecisionMeta;
+  isHalfCredit?: boolean;
 }): number {
-  const { expected, got, tags, notes } = args;
+  const { expected, got, tags, notes, isHalfCredit } = args;
 
   let s = 1.0;
+
+  // Half credit answers are less severe
+  if (isHalfCredit) {
+    s = 0.5;
+    return s;
+  }
+
+  // Extract simple action from got for comparison
+  const gotSimple: SimpleAction = isBlendType(got) 
+    ? (got.includes('raise') ? 'raise' : got.includes('call') ? 'call' : 'fold')
+    : got;
 
   // Important misses: core opens and robust premiums
   if (expected === 'raise') {
     if (tags.includes('core_open')) s += 1.0;
     if (notes?.robustness === 'robust') s += 1.0;
-    if (got === 'fold') s += 0.5; // missed initiative
+    if (gotSimple === 'fold') s += 0.5; // missed initiative
   }
 
   if (expected === 'fold') {
-    if (got === 'raise' || got === 'call') s += 0.5; // spew risk
+    if (gotSimple === 'raise' || gotSimple === 'call') s += 0.5; // spew risk
   }
 
   // Edge opens should be penalized less
@@ -238,17 +305,28 @@ function scoreToSeverity(score: number): HandDiff['severity'] {
  */
 function explainHandDiff(args: {
   hand: string;
-  expected: GradeAction;
+  expected: SimpleAction;
   got: GradeAction;
   tags: HandTag[];
   notes?: DecisionMeta;
+  isBlendedExpected?: boolean;
+  expectedBlendType?: BlendType | null;
 }): { why: string; evSource?: EvSource } {
-  const { expected, got, tags, notes } = args;
+  const { expected, got, tags, notes, isBlendedExpected, expectedBlendType } = args;
 
   if (notes?.oneLiner && typeof notes.oneLiner === 'string') {
     // Keep it short (UI snippet); don't exceed ~120 chars
     const s = notes.oneLiner.length > 120 ? `${notes.oneLiner.slice(0, 117)}...` : notes.oneLiner;
     return { why: s, evSource: notes.evSource as EvSource | undefined };
+  }
+
+  // For blended actions, explain the mix
+  if (isBlendedExpected && expectedBlendType) {
+    const blendExplain = expectedBlendType === 'raise-call' ? 'raise or call'
+      : expectedBlendType === 'raise-fold' ? 'raise or fold'
+      : expectedBlendType === 'call-fold' ? 'call or fold'
+      : 'a mix of actions';
+    return { why: `This is a mixed strategy spot where you should ${blendExplain}. Dominant action is ${expected}.`, evSource: 'mixed' };
   }
 
   // fallback: infer an EV engine + a one-sentence reason
@@ -262,8 +340,13 @@ function explainHandDiff(args: {
         : 'no_ev';
 
   const engine = evSourceToEngine(likelyEv);
+  
+  // Extract simple action from got for comparison
+  const gotSimple: SimpleAction = isBlendType(got) 
+    ? (got.includes('raise') ? 'raise' : got.includes('call') ? 'call' : 'fold')
+    : got;
 
-  if (expected === 'raise' && got === 'fold') {
+  if (expected === 'raise' && gotSimple === 'fold') {
     if (tags.includes('suited_connector') || tags.includes('suited_one_gapper') || tags.includes('suited_ace')) {
       return { why: `${engine} BTN profit comes from position and playability; this is a standard open.`, evSource: likelyEv };
     }
@@ -273,7 +356,7 @@ function explainHandDiff(args: {
     return { why: `${engine} This is opened for value or realization depending on who continues.`, evSource: likelyEv };
   }
 
-  if (expected === 'fold' && got !== 'fold') {
+  if (expected === 'fold' && gotSimple !== 'fold') {
     return { why: `${engine} Too weak when called; folding avoids dominated and low-EV spots.`, evSource: likelyEv };
   }
 
@@ -308,7 +391,7 @@ function groupTitle(groupKey: string): string {
   return map[groupKey] ?? groupKey;
 }
 
-function groupDiagnosis(args: { groupKey: string; mistakes: HandDiff[]; expectedAction: GradeAction }): string {
+function groupDiagnosis(args: { groupKey: string; mistakes: HandDiff[]; expectedAction: SimpleAction }): string {
   const { groupKey, expectedAction } = args;
   // Keep these as short templates (your UI will show examples anyway)
   if (expectedAction === 'raise') {
@@ -326,7 +409,7 @@ function groupDiagnosis(args: { groupKey: string; mistakes: HandDiff[]; expected
   return 'You are continuing with hands the chart folds; these are low-EV when called.';
 }
 
-function groupWhatToDo(args: { expectedAction: GradeAction; groupKey: string }): string {
+function groupWhatToDo(args: { expectedAction: SimpleAction; groupKey: string }): string {
   const { expectedAction, groupKey } = args;
   if (expectedAction === 'raise') {
     if (groupKey === 'suited_connector' || groupKey === 'suited_one_gapper') return 'Add back the suited-connectivity opens on BTN.';
@@ -337,7 +420,7 @@ function groupWhatToDo(args: { expectedAction: GradeAction; groupKey: string }):
   return 'Tighten up by folding these combos per the chart.';
 }
 
-function groupDrill(groupKey: string, expectedAction: GradeAction): string {
+function groupDrill(groupKey: string, expectedAction: SimpleAction): string {
   if (expectedAction === 'raise') {
     if (groupKey === 'suited_ace') return 'Drill: flash-card the lowest opened suited ace + the next one down in earlier positions.';
     if (groupKey === 'suited_connector' || groupKey === 'suited_one_gapper') return 'Drill: pick 5 connectors/one-gappers and repeat until instant.';
@@ -366,7 +449,7 @@ function pickStrengths(diffs: HandDiff[], expectedData: Record<string, GradeActi
   if (tooLoose < Math.max(2, Math.floor(tooTight / 5))) strengths.push('You avoid most of the obvious spew (not many over-continues).');
 
   // If they got a lot of raises correct in general
-  const raiseMistakes = diffs.filter((d) => d.expected === 'raise').length;
+  const raiseMistakes = diffs.filter((d) => d.expectedPrimary === 'raise').length;
   if (raiseMistakes < 10) strengths.push('You are close on the high-level "raise the strong stuff" rule.');
 
   return strengths.slice(0, 4);
@@ -378,7 +461,7 @@ function pickPriorityFixes(topLeaks: LeakGroup[]): string[] {
     .map((g) => {
       if (g.examples.length) {
         const ex = g.examples[0]!;
-        return `${g.title}: fix ${ex.hand} (${ex.got} → ${ex.expected}) and nearby hands.`;
+        return `${g.title}: fix ${ex.hand} (${ex.got} → ${ex.expectedPrimary}) and nearby hands.`;
       }
       return `${g.title}: tighten your pattern recognition.`;
     })
@@ -405,21 +488,24 @@ export function gradeRangeSubmission(args: {
   // Overall counters
   let attempted = 0;
   let correct = 0;
+  let halfCreditCount = 0;
   let wrong = 0;
   let unanswered = 0;
+  let totalScore = 0;
 
   const byAction: ChartGradeSummary['overall']['byAction'] = {
-    raise: { expected: 0, correct: 0, accuracy: 0 },
-    call: { expected: 0, correct: 0, accuracy: 0 },
-    fold: { expected: 0, correct: 0, accuracy: 0 },
+    raise: { expected: 0, correct: 0, halfCredit: 0, accuracy: 0 },
+    call: { expected: 0, correct: 0, halfCredit: 0, accuracy: 0 },
+    fold: { expected: 0, correct: 0, halfCredit: 0, accuracy: 0 },
   };
 
   const diffs: HandDiff[] = [];
 
   // Grade every hand in expected range data
   for (const [hand, action] of Object.entries(expectedData)) {
-    const expected = getPrimaryAction(action);
-    byAction[expected].expected += 1;
+    const expectedPrimary = getPrimaryAction(action);
+    const expectedBlendType = getBlendType(action);
+    byAction[expectedPrimary].expected += 1;
 
     const got = userResults[hand];
     if (!got) {
@@ -429,28 +515,45 @@ export function gradeRangeSubmission(args: {
 
     attempted += 1;
 
-    if (got === expected) {
+    // Grade the answer with half-credit support
+    const { score, isHalfCredit } = gradeHandAnswer(action, got);
+    totalScore += score;
+
+    if (score === 1.0) {
       correct += 1;
-      byAction[expected].correct += 1;
+      byAction[expectedPrimary].correct += 1;
       continue;
     }
 
-    wrong += 1;
+    if (isHalfCredit) {
+      halfCreditCount += 1;
+      byAction[expectedPrimary].halfCredit += 1;
+      // Still add to diffs for feedback, but mark as half credit
+    }
+
+    if (score === 0) {
+      wrong += 1;
+    }
 
     const meta = notes[hand] as DecisionMeta | undefined;
 
     // tags: notes.tags if present else infer
     const tags = uniq([...(meta?.tags ?? []), ...inferTagsFromHand(hand)]) as HandTag[];
 
-    const mistakeType = classifyMistake(expected, got);
-    const severityScore = computeSeverityScore({ expected, got, tags, notes: meta });
+    const isBlendedExpected = !isSimpleAction(action);
+    const mistakeType = classifyMistake(expectedPrimary, got, isBlendedExpected);
+    const severityScore = computeSeverityScore({ expected: expectedPrimary, got, tags, notes: meta, isHalfCredit });
     const severity = scoreToSeverity(severityScore);
-    const { why, evSource } = explainHandDiff({ hand, expected, got, tags, notes: meta });
+    const { why, evSource } = explainHandDiff({ hand, expected: expectedPrimary, got, tags, notes: meta, isBlendedExpected, expectedBlendType });
 
     diffs.push({
       hand,
-      expected,
+      expectedAction: action,
+      expectedPrimary,
+      expectedBlendType,
       got,
+      score,
+      isHalfCredit,
       mistakeType,
       severity,
       severityScore,
@@ -460,31 +563,34 @@ export function gradeRangeSubmission(args: {
     });
   }
 
-  // finalize byAction accuracies
-  for (const a of Object.keys(byAction) as GradeAction[]) {
+  // finalize byAction accuracies (count full + half credit for accuracy)
+  for (const a of Object.keys(byAction) as SimpleAction[]) {
     const exp = byAction[a].expected;
-    const corr = byAction[a].correct;
-    byAction[a].accuracy = exp > 0 ? corr / exp : 1;
+    const fullCredit = byAction[a].correct;
+    const halfCredit = byAction[a].halfCredit;
+    // Accuracy treats half credit as 0.5
+    const effectiveCorrect = fullCredit + (halfCredit * 0.5);
+    byAction[a].accuracy = exp > 0 ? effectiveCorrect / exp : 1;
   }
 
-  const accuracy = attempted > 0 ? correct / attempted : 0;
+  const accuracy = attempted > 0 ? totalScore / attempted : 0;
 
   // Build leak groups from diffs
   const mistakeGroups = new Map<
     string,
-    { key: string; expectedAction: GradeAction; diffs: HandDiff[]; weight: number }
+    { key: string; expectedAction: SimpleAction; diffs: HandDiff[]; weight: number }
   >();
 
   for (const d of diffs) {
     // group mainly by "what they should have done" and tag cluster
-    const groupKey = choosePrimaryGroupKey(d.tags, d.expected);
-    const id = `${d.expected}_${d.mistakeType}_${groupKey}`;
+    const groupKey = choosePrimaryGroupKey(d.tags, d.expectedPrimary);
+    const id = `${d.expectedPrimary}_${d.mistakeType}_${groupKey}`;
 
     const entry = mistakeGroups.get(id);
     const w = d.severityScore;
 
     if (!entry) {
-      mistakeGroups.set(id, { key: groupKey, expectedAction: d.expected, diffs: [d], weight: w });
+      mistakeGroups.set(id, { key: groupKey, expectedAction: d.expectedPrimary, diffs: [d], weight: w });
     } else {
       entry.diffs.push(d);
       entry.weight += w;
@@ -532,8 +638,10 @@ export function gradeRangeSubmission(args: {
       accuracy,
       attempted,
       correct,
+      halfCredit: halfCreditCount,
       wrong,
       unanswered,
+      totalScore,
       byAction,
     },
     strengths,
@@ -574,7 +682,7 @@ export function formatGradeSummary(summary: ChartGradeSummary): string {
       lines.push(`  Do: ${g.whatToDo}`);
       lines.push(`  Drill: ${g.drill}`);
       for (const ex of g.examples) {
-        lines.push(`    • ${ex.hand}: ${ex.got} → ${ex.expected} (${ex.severity}) — ${ex.why}`);
+        lines.push(`    • ${ex.hand}: ${ex.got} → ${ex.expectedPrimary} (${ex.severity}) — ${ex.why}`);
       }
       lines.push('');
     }

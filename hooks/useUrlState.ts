@@ -8,9 +8,11 @@ interface UseUrlStateReturn {
   position: Position;
   stackSize: StackSize;
   scenario: Scenario;
+  opponent: Position | null;
   setPosition: (p: Position) => void;
   setStackSize: (s: StackSize) => void;
   setScenario: (s: Scenario) => void;
+  setOpponent: (o: Position | null) => void;
 }
 
 /**
@@ -30,6 +32,9 @@ export function useUrlState(basePath: string): UseUrlStateReturn {
   const [scenario, setScenario] = useState<Scenario>(
     (searchParams.get('scenario') as Scenario) || 'rfi'
   );
+  const [opponent, setOpponent] = useState<Position | null>(
+    (searchParams.get('opponent') as Position) || null
+  );
 
   // Sync state to URL
   useEffect(() => {
@@ -37,15 +42,28 @@ export function useUrlState(basePath: string): UseUrlStateReturn {
     params.set('position', position);
     params.set('stackSize', stackSize);
     params.set('scenario', scenario);
+    // Only include opponent in URL if scenario is not RFI
+    if (scenario !== 'rfi' && opponent) {
+      params.set('opponent', opponent);
+    }
     router.replace(`${basePath}?${params.toString()}`, { scroll: false });
-  }, [position, stackSize, scenario, router, basePath]);
+  }, [position, stackSize, scenario, opponent, router, basePath]);
+
+  // Clear opponent when switching to RFI scenario
+  useEffect(() => {
+    if (scenario === 'rfi' && opponent !== null) {
+      setOpponent(null);
+    }
+  }, [scenario, opponent]);
 
   return {
     position,
     stackSize,
     scenario,
+    opponent,
     setPosition,
     setStackSize,
     setScenario,
+    setOpponent,
   };
 }

@@ -49,6 +49,41 @@ export function getPrimaryAction(action: HandAction): SimpleAction {
 }
 
 // ============================================
+// Blend Types (for Quiz Mode)
+// ============================================
+
+// Blend type identifies which actions are present in a mixed strategy
+export type BlendType = 'raise-call' | 'raise-fold' | 'call-fold' | 'raise-call-fold';
+
+// Quiz answers can be simple actions OR blend types
+export type QuizAction = SimpleAction | BlendType;
+
+// Type guard for blend types
+export function isBlendType(action: QuizAction): action is BlendType {
+  return ['raise-call', 'raise-fold', 'call-fold', 'raise-call-fold'].includes(action);
+}
+
+// Helper: extract blend type from a blended action
+export function getBlendType(action: HandAction): BlendType | null {
+  if (isSimpleAction(action)) return null;
+
+  const hasRaise = (action.raise ?? 0) > 0;
+  const hasCall = (action.call ?? 0) > 0;
+  const hasFold = (action.fold ?? 0) > 0;
+
+  if (hasRaise && hasCall && hasFold) return 'raise-call-fold';
+  if (hasRaise && hasCall) return 'raise-call';
+  if (hasRaise && hasFold) return 'raise-fold';
+  if (hasCall && hasFold) return 'call-fold';
+  return null;
+}
+
+// Helper: get dominant action from blended (same as getPrimaryAction but explicitly named)
+export function getDominantAction(action: HandAction): SimpleAction {
+  return getPrimaryAction(action);
+}
+
+// ============================================
 // Hand Combinations (169 total)
 // ============================================
 
@@ -76,6 +111,7 @@ export type RangeMeta = {
   stackSize: StackSize;
   position: Position;
   scenario: Scenario;
+  opponentPosition?: Position; // Only for non-RFI scenarios (who raised/3bet/etc.)
   displayName: string; // Human-readable: "80bb+ UTG - Raise First In"
 };
 
@@ -171,18 +207,22 @@ export type PokerRange = {
 // UI State Types
 // ============================================
 
-// User's selections while building a range
+// User's selections while building a range (now supports blend types for quiz)
 export type UserSelections = Record<HandCombo, SimpleAction | null>;
+export type QuizSelections = Record<HandCombo, QuizAction | null>;
 
 // Result of checking user's answers against the correct range
 export type CheckResultDetail = {
-  userAnswer: SimpleAction | null;
+  userAnswer: QuizAction | null;
 
   // Keep original for transparency, but also provide primary for grading.
   correctAnswer: HandAction;
   correctPrimary: SimpleAction;
+  correctBlendType: BlendType | null; // null if simple action
 
   isCorrect: boolean;
+  isHalfCredit: boolean; // true if user got dominant action on blended hand
+  score: number; // 0.0, 0.5, or 1.0
 
   // Optional teaching metadata for results screens
   meta?: DecisionMeta;
@@ -191,8 +231,10 @@ export type CheckResultDetail = {
 export type CheckResult = {
   correct: number;
   incorrect: number;
+  halfCredit: number; // count of half-credit answers
   total: number;
   percentage: number;
+  totalScore: number; // sum of all scores (accounts for half credit)
 
   details: Record<HandCombo, CheckResultDetail>;
 };

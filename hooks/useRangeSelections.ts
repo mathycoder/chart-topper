@@ -1,15 +1,29 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import type { SimpleAction } from '@/types';
+import type { SimpleAction, HandAction, BlendedAction, QuizAction } from '@/types';
 import { ALL_HANDS } from '@/data/hands';
 
-type Selections = Record<string, SimpleAction | null>;
+// Builder mode selections can include blended actions
+type BuilderSelections = Record<string, HandAction | null>;
+
+// Quiz mode selections can include blend types
+type QuizSelections = Record<string, QuizAction | null>;
 
 interface UseRangeSelectionsReturn {
-  userSelections: Selections;
-  setCell: (hand: string, action: SimpleAction | null) => void;
-  loadSelections: (data: Record<string, SimpleAction>) => void;
+  userSelections: BuilderSelections;
+  setCell: (hand: string, action: HandAction | null) => void;
+  loadSelections: (data: Record<string, HandAction>) => void;
+  clearSelections: () => void;
+  resetToFold: () => void;
+  filledCount: number;
+  totalCells: number;
+  allFilled: boolean;
+}
+
+interface UseQuizSelectionsReturn {
+  userSelections: QuizSelections;
+  setCell: (hand: string, action: QuizAction | null) => void;
   clearSelections: () => void;
   resetToFold: () => void;
   filledCount: number;
@@ -18,28 +32,28 @@ interface UseRangeSelectionsReturn {
 }
 
 /**
- * Hook for managing user selections on the range chart.
- * Tracks which hands have been assigned actions.
+ * Hook for managing user selections on the range chart (Builder mode).
+ * Supports both simple actions and blended actions.
  */
 export function useRangeSelections(): UseRangeSelectionsReturn {
-  const [userSelections, setUserSelections] = useState<Selections>(() => {
-    const initial: Selections = {};
+  const [userSelections, setUserSelections] = useState<BuilderSelections>(() => {
+    const initial: BuilderSelections = {};
     ALL_HANDS.forEach(hand => {
       initial[hand] = null;
     });
     return initial;
   });
 
-  const setCell = useCallback((hand: string, action: SimpleAction | null) => {
+  const setCell = useCallback((hand: string, action: HandAction | null) => {
     setUserSelections(prev => ({
       ...prev,
       [hand]: action,
     }));
   }, []);
 
-  const loadSelections = useCallback((data: Record<string, SimpleAction>) => {
+  const loadSelections = useCallback((data: Record<string, HandAction>) => {
     setUserSelections(() => {
-      const updated: Selections = {};
+      const updated: BuilderSelections = {};
       ALL_HANDS.forEach(hand => {
         updated[hand] = data[hand] ?? null;
       });
@@ -49,7 +63,7 @@ export function useRangeSelections(): UseRangeSelectionsReturn {
 
   const clearSelections = useCallback(() => {
     setUserSelections(() => {
-      const blank: Selections = {};
+      const blank: BuilderSelections = {};
       ALL_HANDS.forEach(hand => {
         blank[hand] = null;
       });
@@ -59,7 +73,7 @@ export function useRangeSelections(): UseRangeSelectionsReturn {
 
   const resetToFold = useCallback(() => {
     setUserSelections(() => {
-      const allFold: Selections = {};
+      const allFold: BuilderSelections = {};
       ALL_HANDS.forEach(hand => {
         allFold[hand] = 'fold';
       });
@@ -75,6 +89,61 @@ export function useRangeSelections(): UseRangeSelectionsReturn {
     userSelections,
     setCell,
     loadSelections,
+    clearSelections,
+    resetToFold,
+    filledCount,
+    totalCells,
+    allFilled,
+  };
+}
+
+/**
+ * Hook for managing quiz selections (Quiz mode).
+ * Supports simple actions and blend types for answering.
+ */
+export function useQuizSelections(): UseQuizSelectionsReturn {
+  const [userSelections, setUserSelections] = useState<QuizSelections>(() => {
+    const initial: QuizSelections = {};
+    ALL_HANDS.forEach(hand => {
+      initial[hand] = null;
+    });
+    return initial;
+  });
+
+  const setCell = useCallback((hand: string, action: QuizAction | null) => {
+    setUserSelections(prev => ({
+      ...prev,
+      [hand]: action,
+    }));
+  }, []);
+
+  const clearSelections = useCallback(() => {
+    setUserSelections(() => {
+      const blank: QuizSelections = {};
+      ALL_HANDS.forEach(hand => {
+        blank[hand] = null;
+      });
+      return blank;
+    });
+  }, []);
+
+  const resetToFold = useCallback(() => {
+    setUserSelections(() => {
+      const allFold: QuizSelections = {};
+      ALL_HANDS.forEach(hand => {
+        allFold[hand] = 'fold';
+      });
+      return allFold;
+    });
+  }, []);
+
+  const filledCount = Object.values(userSelections).filter(v => v !== null).length;
+  const totalCells = ALL_HANDS.length;
+  const allFilled = filledCount === totalCells;
+
+  return {
+    userSelections,
+    setCell,
     clearSelections,
     resetToFold,
     filledCount,

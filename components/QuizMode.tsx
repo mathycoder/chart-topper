@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import type { PokerRange, RangeData, RangeNotes, Scenario } from '@/types';
-import { useUrlState, useRangeSelections, usePainting } from '@/hooks';
+import type { PokerRange, RangeData, RangeNotes, Scenario, SimpleAction, QuizAction, BlendType } from '@/types';
+import { isSimpleAction } from '@/types';
+import { useUrlState, useQuizSelections, usePainting } from '@/hooks';
 import { Card, PageHeader } from './shared';
 import { RangeChart } from './RangeChart';
 import { ActionPalette } from './ActionPalette';
@@ -24,32 +25,49 @@ const SCENARIO_NAMES: Record<Scenario, string> = {
  * Mobile: Single column stacked layout
  */
 export function QuizMode() {
-  const { position, stackSize, scenario, setPosition, setStackSize, setScenario } = useUrlState('/');
-  const { userSelections, setCell, clearSelections, resetToFold, filledCount, totalCells, allFilled } = useRangeSelections();
+  const { position, stackSize, scenario, opponent, setPosition, setStackSize, setScenario, setOpponent } = useUrlState('/');
+  const { userSelections, setCell, clearSelections, resetToFold, filledCount, totalCells, allFilled } = useQuizSelections();
 
   const [range, setRange] = useState<PokerRange | null>(null);
   const [rangeExists, setRangeExists] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [gradeSummary, setGradeSummary] = useState<ChartGradeSummary | null>(null);
+  const [hasBlendedActions, setHasBlendedActions] = useState(false);
+  const [showCorrectAnswers, setShowCorrectAnswers] = useState(false);
+  
+  // Selected action state (supports both simple and blend types)
+  const [selectedAction, setSelectedAction] = useState<QuizAction | null>(null);
 
   // Painting state
   const painting = usePainting();
 
-  // Paint cell callback
+  // Paint cell callback - now supports blend types
   const paintCell = useCallback((hand: string) => {
-    if (painting.selectedAction && !isSubmitted) {
-      setCell(hand, painting.selectedAction);
+    if (selectedAction && !isSubmitted) {
+      setCell(hand, selectedAction);
     }
-  }, [painting.selectedAction, isSubmitted, setCell]);
+  }, [selectedAction, isSubmitted, setCell]);
 
   // Start painting and paint the initial cell
   const handlePaintStart = useCallback((hand: string) => {
     painting.handlePaintStart();
-    if (painting.selectedAction && !isSubmitted) {
-      setCell(hand, painting.selectedAction);
+    if (selectedAction && !isSubmitted) {
+      setCell(hand, selectedAction);
     }
-  }, [painting, isSubmitted, setCell]);
+  }, [painting, selectedAction, isSubmitted, setCell]);
+
+  // Handle simple action selection
+  const handleSelectAction = useCallback((action: SimpleAction) => {
+    setSelectedAction(action);
+    painting.setSelectedAction(action);
+  }, [painting]);
+
+  // Handle blend type selection
+  const handleSelectBlendType = useCallback((blendType: BlendType) => {
+    setSelectedAction(blendType);
+    painting.setSelectedAction(null); // Blend types don't use painting drag
+  }, [painting]);
 
   // Load range when dropdowns change
   useEffect(() => {
@@ -57,40 +75,57 @@ export function QuizMode() {
       setIsLoading(true);
       setIsSubmitted(false);
       setGradeSummary(null);
+      setSelectedAction(null);
       resetToFold();
 
       try {
         const params = new URLSearchParams({ stackSize, position, scenario });
+        if (opponent) params.set('opponent', opponent);
         const response = await fetch(`/api/load-range?${params}`);
         const result = await response.json();
 
         if (result.exists && result.data) {
+          // Build display name based on scenario
+          let displayName = `${stackSize}+ ${position} - ${SCENARIO_NAMES[scenario]}`;
+          if (opponent && scenario !== 'rfi') {
+            displayName = `${stackSize}+ ${position} vs ${opponent} - ${SCENARIO_NAMES[scenario]}`;
+          }
+          
+          const rangeData = result.data as RangeData;
+          
+          // Check if range has any blended actions
+          const hasBlended = Object.values(rangeData).some(action => !isSimpleAction(action));
+          setHasBlendedActions(hasBlended);
+          
           setRange({
             meta: {
               stackSize,
               position,
               scenario,
-              displayName: `${stackSize}+ ${position} - ${SCENARIO_NAMES[scenario]}`,
+              opponentPosition: opponent || undefined,
+              displayName,
             },
-            data: result.data as RangeData,
+            data: rangeData,
             notes: result.notes as RangeNotes | undefined,
           });
           setRangeExists(true);
         } else {
           setRange(null);
           setRangeExists(false);
+          setHasBlendedActions(false);
         }
       } catch (error) {
         console.error('Failed to load range:', error);
         setRange(null);
         setRangeExists(false);
+        setHasBlendedActions(false);
       } finally {
         setIsLoading(false);
       }
     };
 
     loadRange();
-  }, [position, stackSize, scenario, resetToFold]);
+  }, [position, stackSize, scenario, opponent, resetToFold]);
 
   // Convert userSelections to GradeAction format for grading
   const userResultsForGrading = useMemo(() => {
@@ -118,7 +153,9 @@ export function QuizMode() {
   const handleReset = () => {
     setIsSubmitted(false);
     setGradeSummary(null);
+    setShowCorrectAnswers(false);
     resetToFold();
+    setSelectedAction(null);
     painting.setSelectedAction(null);
   };
 
@@ -137,9 +174,11 @@ export function QuizMode() {
               position={position}
               stackSize={stackSize}
               scenario={scenario}
+              opponent={opponent}
               onPositionChange={setPosition}
               onStackSizeChange={setStackSize}
               onScenarioChange={setScenario}
+              onOpponentChange={setOpponent}
               disabled={isSubmitted}
             />
           </Card>
@@ -147,9 +186,12 @@ export function QuizMode() {
           {rangeExists && (
             <Card>
               <ActionPalette
-                selectedAction={painting.selectedAction}
-                onSelectAction={painting.setSelectedAction}
+                selectedAction={selectedAction}
+                onSelectAction={handleSelectAction}
                 disabled={isSubmitted || !rangeExists}
+                mode="quiz"
+                showBlendOptions={hasBlendedActions}
+                onSelectBlendType={handleSelectBlendType}
               />
             </Card>
           )}
@@ -190,14 +232,47 @@ export function QuizMode() {
 
         {/* Right column - Grid */}
         <div className="flex-1 min-w-0 relative">
+          {/* Toggle between user answers and correct answers */}
+          {isSubmitted && rangeExists && (
+            <div className="flex justify-center mb-3">
+              <div className="inline-flex rounded-lg bg-slate-100 p-1">
+                <button
+                  onClick={() => setShowCorrectAnswers(false)}
+                  className={`
+                    px-4 py-2 text-sm font-medium rounded-md transition-colors
+                    ${!showCorrectAnswers 
+                      ? 'bg-white text-slate-900 shadow-sm' 
+                      : 'text-slate-600 hover:text-slate-900'
+                    }
+                  `}
+                >
+                  My Answers
+                </button>
+                <button
+                  onClick={() => setShowCorrectAnswers(true)}
+                  className={`
+                    px-4 py-2 text-sm font-medium rounded-md transition-colors
+                    ${showCorrectAnswers 
+                      ? 'bg-white text-slate-900 shadow-sm' 
+                      : 'text-slate-600 hover:text-slate-900'
+                    }
+                  `}
+                >
+                  Correct Answers
+                </button>
+              </div>
+            </div>
+          )}
+          
           <RangeChart
             userSelections={userSelections}
             correctRange={isSubmitted && range ? range.data : undefined}
             isSubmitted={isSubmitted}
-            isPainting={painting.isPainting && rangeExists}
-            selectedAction={rangeExists ? painting.selectedAction : null}
-            onPaint={rangeExists ? paintCell : () => {}}
-            onPaintStart={rangeExists ? handlePaintStart : () => {}}
+            isPainting={painting.isPainting && rangeExists && !isSubmitted}
+            selectedAction={rangeExists && !isSubmitted ? (typeof selectedAction === 'string' && ['raise', 'call', 'fold'].includes(selectedAction) ? selectedAction as SimpleAction : null) : null}
+            onPaint={rangeExists && !isSubmitted ? paintCell : () => {}}
+            onPaintStart={rangeExists && !isSubmitted ? handlePaintStart : () => {}}
+            showCorrectAnswers={showCorrectAnswers}
           />
           
           {!rangeExists && !isLoading && (
@@ -206,7 +281,7 @@ export function QuizMode() {
                 This range hasn&apos;t been created yet
               </p>
               <a 
-                href={`/builder?position=${position}&stackSize=${stackSize}&scenario=${scenario}`}
+                href={`/builder?position=${position}&stackSize=${stackSize}&scenario=${scenario}${opponent ? `&opponent=${opponent}` : ''}`}
                 className="px-4 py-2 bg-slate-700 text-white rounded-lg font-medium hover:bg-slate-600 transition-colors"
               >
                 Create in Builder

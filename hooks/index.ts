@@ -1,3 +1,3 @@
 export { usePainting } from './usePainting';
-export { useRangeSelections } from './useRangeSelections';
+export { useRangeSelections, useQuizSelections } from './useRangeSelections';
 export { useUrlState } from './useUrlState';
