@@ -1,15 +1,14 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import type { PokerRange, RangeData, Scenario, SimpleAction } from '@/types';
-import { isSimpleAction } from '@/types';
-import { ALL_HANDS } from '@/data/hands';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import type { PokerRange, RangeData, RangeNotes, Scenario } from '@/types';
 import { useUrlState, useRangeSelections, usePainting } from '@/hooks';
 import { Card, PageHeader } from './shared';
 import { RangeChart } from './RangeChart';
 import { ActionPalette } from './ActionPalette';
 import { ResultsDisplay } from './ResultsDisplay';
 import { RangeDropdowns } from './RangeDropdowns';
+import { gradeRangeSubmission, type ChartGradeSummary, type GradeAction } from '@/lib/gradeRange';
 
 const SCENARIO_NAMES: Record<Scenario, string> = {
   'rfi': 'Raise First In',
@@ -26,12 +25,13 @@ const SCENARIO_NAMES: Record<Scenario, string> = {
  */
 export function QuizMode() {
   const { position, stackSize, scenario, setPosition, setStackSize, setScenario } = useUrlState('/');
-  const { userSelections, setCell, clearSelections, filledCount, totalCells, allFilled } = useRangeSelections();
+  const { userSelections, setCell, clearSelections, resetToFold, filledCount, totalCells, allFilled } = useRangeSelections();
 
   const [range, setRange] = useState<PokerRange | null>(null);
   const [rangeExists, setRangeExists] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [gradeSummary, setGradeSummary] = useState<ChartGradeSummary | null>(null);
 
   // Painting state
   const painting = usePainting();
@@ -56,7 +56,8 @@ export function QuizMode() {
     const loadRange = async () => {
       setIsLoading(true);
       setIsSubmitted(false);
-      clearSelections();
+      setGradeSummary(null);
+      resetToFold();
 
       try {
         const params = new URLSearchParams({ stackSize, position, scenario });
@@ -72,6 +73,7 @@ export function QuizMode() {
               displayName: `${stackSize}+ ${position} - ${SCENARIO_NAMES[scenario]}`,
             },
             data: result.data as RangeData,
+            notes: result.notes as RangeNotes | undefined,
           });
           setRangeExists(true);
         } else {
@@ -88,30 +90,35 @@ export function QuizMode() {
     };
 
     loadRange();
-  }, [position, stackSize, scenario, clearSelections]);
+  }, [position, stackSize, scenario, resetToFold]);
 
-  const calculateResults = () => {
-    if (!range) return { correct: 0, total: totalCells };
-    let correct = 0;
-    ALL_HANDS.forEach(hand => {
-      const userAnswer = userSelections[hand];
-      const correctAnswer = range.data[hand];
-      if (userAnswer && correctAnswer && isSimpleAction(correctAnswer)) {
-        if (userAnswer === correctAnswer) correct++;
+  // Convert userSelections to GradeAction format for grading
+  const userResultsForGrading = useMemo(() => {
+    const results: Record<string, GradeAction> = {};
+    for (const [hand, action] of Object.entries(userSelections)) {
+      if (action) {
+        results[hand] = action as GradeAction;
       }
-    });
-    return { correct, total: totalCells };
-  };
-
-  const results = isSubmitted ? calculateResults() : { correct: 0, total: totalCells };
+    }
+    return results;
+  }, [userSelections]);
 
   const handleSubmit = () => {
-    if (allFilled) setIsSubmitted(true);
+    if (allFilled && range) {
+      setIsSubmitted(true);
+      // Run the grading function
+      const summary = gradeRangeSubmission({
+        expectedRange: range,
+        userResults: userResultsForGrading,
+      });
+      setGradeSummary(summary);
+    }
   };
 
   const handleReset = () => {
     setIsSubmitted(false);
-    clearSelections();
+    setGradeSummary(null);
+    resetToFold();
     painting.setSelectedAction(null);
   };
 
@@ -176,8 +183,7 @@ export function QuizMode() {
           )}
 
           <ResultsDisplay
-            correct={results.correct}
-            total={results.total}
+            gradeSummary={gradeSummary}
             isVisible={isSubmitted}
           />
         </div>

@@ -11,6 +11,7 @@ interface UseRangeSelectionsReturn {
   setCell: (hand: string, action: SimpleAction | null) => void;
   loadSelections: (data: Record<string, SimpleAction>) => void;
   clearSelections: () => void;
+  resetToFold: () => void;
   filledCount: number;
   totalCells: number;
   allFilled: boolean;
@@ -56,6 +57,16 @@ export function useRangeSelections(): UseRangeSelectionsReturn {
     });
   }, []);
 
+  const resetToFold = useCallback(() => {
+    setUserSelections(() => {
+      const allFold: Selections = {};
+      ALL_HANDS.forEach(hand => {
+        allFold[hand] = 'fold';
+      });
+      return allFold;
+    });
+  }, []);
+
   const filledCount = Object.values(userSelections).filter(v => v !== null).length;
   const totalCells = ALL_HANDS.length;
   const allFilled = filledCount === totalCells;
@@ -65,6 +76,7 @@ export function useRangeSelections(): UseRangeSelectionsReturn {
     setCell,
     loadSelections,
     clearSelections,
+    resetToFold,
     filledCount,
     totalCells,
     allFilled,
