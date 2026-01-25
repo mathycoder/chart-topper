@@ -48,12 +48,18 @@ interface DropdownProps {
   onOpponentChange: (opponent: Position | null) => void;
 }
 
-interface MobileActionBarQuizProps extends DropdownProps {
+interface MobileActionBarQuizProps {
   mode: 'quiz';
   /** Currently selected actions (supports multi-select for blends) */
   selectedActions: Set<SimpleAction>;
-  /** Callback when action selection changes */
+  /** Callback when action selection changes (multi-select mode) */
   onToggleAction: (action: SimpleAction) => void;
+  /** Callback when action is selected (single-select mode) */
+  onSelectAction: (action: SimpleAction) => void;
+  /** Whether multi-select mode is active */
+  multiSelectMode: boolean;
+  /** Callback when multi-select toggle is clicked */
+  onMultiToggle: () => void;
   /** Whether actions are disabled */
   disabled?: boolean;
   /** Submit button state */
@@ -127,161 +133,102 @@ export function MobileActionBar(props: MobileActionBarProps) {
   // Quiz mode
   if (props.mode === 'quiz') {
     const { 
-      selectedActions, onToggleAction, disabled = false, submitState, onSubmit, onReset,
-      position, stackSize, scenario, opponent,
-      onPositionChange, onStackSizeChange, onScenarioChange, onOpponentChange
+      selectedActions, onToggleAction, onSelectAction, multiSelectMode, onMultiToggle,
+      disabled = false, submitState, onSubmit, onReset
     } = props;
-    const blendType = deriveBlendType(selectedActions);
     
-    const showOpponent = scenario !== 'rfi';
-    const validOpponents = showOpponent ? getValidOpponents(position, scenario) : [];
-    const effectiveOpponent = showOpponent && validOpponents.length > 0
-      ? (opponent && validOpponents.includes(opponent) ? opponent : validOpponents[0])
-      : null;
-    
-    // Sync opponent if needed
-    if (showOpponent && effectiveOpponent !== opponent) {
-      onOpponentChange(effectiveOpponent);
-    }
-    
-    const selectClasses = `
-      px-2 py-1.5 rounded-md
-      bg-slate-50 border border-slate-200
-      text-slate-900 text-xs font-medium
-      focus:outline-none focus:ring-1 focus:ring-slate-400
-      disabled:opacity-50
-      cursor-pointer
-    `;
+    const handleActionClick = (action: SimpleAction) => {
+      if (multiSelectMode) {
+        onToggleAction(action);
+      } else {
+        onSelectAction(action);
+      }
+    };
     
     return (
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-3 pt-2 pb-safe z-40 lg:hidden">
-        {/* Row 1: Action buttons */}
-        <div className="flex items-center gap-2 mb-2">
-          <div className="flex gap-1.5 flex-1">
-            {actionsToShow.map(({ action, label, color }) => {
-              const isSelected = selectedActions.has(action);
-              
-              return (
-                <button
-                  key={action}
-                  onClick={() => onToggleAction(action)}
-                  disabled={disabled}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-3 pt-3 pb-safe z-40 lg:hidden">
+        {/* Row 1: Action buttons + Multi toggle */}
+        <div className="flex items-center gap-1.5 mb-2">
+          {actionsToShow.map(({ action, label, color }) => {
+            const isSelected = selectedActions.has(action);
+            
+            return (
+              <button
+                key={action}
+                onClick={() => handleActionClick(action)}
+                disabled={disabled}
+                className={`
+                  flex-1 flex items-center justify-center gap-1 py-2 px-1 rounded-lg
+                  font-medium text-white text-xs
+                  transition-all duration-150
+                  ${color}
+                  ${isSelected 
+                    ? 'ring-2 ring-offset-1 ring-slate-900 opacity-100' 
+                    : 'opacity-50'
+                  }
+                  ${disabled 
+                    ? 'cursor-not-allowed opacity-30' 
+                    : 'cursor-pointer active:scale-95'
+                  }
+                `}
+              >
+                <span 
                   className={`
-                    flex-1 flex items-center justify-center gap-1 py-2 px-1 rounded-lg
-                    font-medium text-white text-xs
-                    transition-all duration-150
-                    ${color}
-                    ${isSelected 
-                      ? 'ring-2 ring-offset-1 ring-slate-900 opacity-100' 
-                      : 'opacity-50'
-                    }
-                    ${disabled 
-                      ? 'cursor-not-allowed opacity-30' 
-                      : 'cursor-pointer active:scale-95'
-                    }
+                    w-2 h-2 rounded-full border-2 border-white flex-shrink-0
+                    ${isSelected ? 'bg-white' : 'bg-transparent'}
                   `}
-                >
-                  <span 
-                    className={`
-                      w-2 h-2 rounded-full border-2 border-white flex-shrink-0
-                      ${isSelected ? 'bg-white' : 'bg-transparent'}
-                    `}
-                  />
-                  <span className="truncate">{label}</span>
-                </button>
-              );
-            })}
-          </div>
+                />
+                <span className="truncate">{label}</span>
+              </button>
+            );
+          })}
           
-          {/* Blend indicator */}
-          {blendType && (
-            <div className="px-2 py-1 bg-slate-100 rounded text-xs font-bold text-slate-600">
-              {blendType === 'raise-call' && 'R/C'}
-              {blendType === 'raise-fold' && 'R/F'}
-              {blendType === 'call-fold' && 'C/F'}
-              {blendType === 'raise-call-fold' && 'R/C/F'}
-            </div>
-          )}
-          
-          {/* Submit / Reset button */}
+          {/* Multi toggle button */}
+          <button
+            onClick={onMultiToggle}
+            disabled={disabled}
+            className={`
+              flex-1 flex items-center justify-center py-2 px-1 rounded-lg
+              font-medium text-xs
+              transition-all duration-150
+              ${multiSelectMode 
+                ? 'bg-slate-700 text-white ring-2 ring-offset-1 ring-slate-900' 
+                : 'bg-slate-200 text-slate-600'
+              }
+              ${disabled 
+                ? 'cursor-not-allowed opacity-30' 
+                : 'cursor-pointer active:scale-95'
+              }
+            `}
+          >
+            Multi
+          </button>
+        </div>
+        
+        {/* Row 2: Full-width Submit / Reset button */}
+        <div className="pb-2">
           {submitState === 'submitted' ? (
             <button
               onClick={onReset}
-              className="px-3 py-2 rounded-lg font-semibold text-xs text-slate-700 bg-slate-100 active:bg-slate-200"
+              className="w-full py-3 rounded-lg font-semibold text-sm text-slate-700 bg-slate-100 active:bg-slate-200"
             >
-              Reset
+              Try Again
             </button>
           ) : (
             <button
               onClick={onSubmit}
               disabled={submitState === 'disabled'}
               className={`
-                px-3 py-2 rounded-lg font-semibold text-xs text-white
+                w-full py-3 rounded-lg font-semibold text-sm text-white
                 ${submitState === 'ready'
                   ? 'bg-slate-900 active:bg-slate-800'
                   : 'bg-slate-300 cursor-not-allowed'
                 }
               `}
             >
-              Submit
+              {submitState === 'ready' ? 'Submit' : 'Fill all cells'}
             </button>
           )}
-        </div>
-        
-        {/* Row 2: Dropdowns */}
-        <div className="flex items-center gap-1.5 pb-2">
-          <select
-            value={position}
-            onChange={(e) => onPositionChange(e.target.value as Position)}
-            disabled={disabled}
-            className={selectClasses}
-          >
-            {POSITIONS.map(({ value, label }) => (
-              <option key={value} value={value}>{label}</option>
-            ))}
-          </select>
-          
-          {showOpponent && validOpponents.length > 0 && (
-            <>
-              <span className="text-slate-400 text-xs">vs</span>
-              <select
-                value={effectiveOpponent || ''}
-                onChange={(e) => onOpponentChange(e.target.value as Position)}
-                disabled={disabled}
-                className={selectClasses}
-              >
-                {validOpponents.map((pos) => (
-                  <option key={pos} value={pos}>{pos}</option>
-                ))}
-              </select>
-            </>
-          )}
-          
-          <span className="text-slate-300 text-xs">|</span>
-          
-          <select
-            value={stackSize}
-            onChange={(e) => onStackSizeChange(e.target.value as StackSize)}
-            disabled={disabled}
-            className={selectClasses}
-          >
-            {STACK_SIZES.map(({ value, label }) => (
-              <option key={value} value={value}>{label}</option>
-            ))}
-          </select>
-          
-          <span className="text-slate-300 text-xs">|</span>
-          
-          <select
-            value={scenario}
-            onChange={(e) => onScenarioChange(e.target.value as Scenario)}
-            disabled={disabled}
-            className={selectClasses}
-          >
-            {SCENARIOS.map(({ value, label }) => (
-              <option key={value} value={value}>{label}</option>
-            ))}
-          </select>
         </div>
       </div>
     );

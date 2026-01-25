@@ -49,7 +49,7 @@ export function RangeChart({
 }: RangeChartProps) {
   return (
     <div 
-      className="grid gap-0.5 p-2 bg-slate-100 rounded-lg shadow-inner"
+      className="grid rounded-sm shadow-inner overflow-hidden"
       style={{
         gridTemplateColumns: 'repeat(13, minmax(0, 1fr))',
         gridTemplateRows: 'repeat(13, minmax(0, 1fr))',

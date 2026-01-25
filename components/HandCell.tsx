@@ -227,8 +227,8 @@ export function HandCell({
         relative flex items-center justify-center
         w-full aspect-square
         text-xs sm:text-sm font-medium
-        rounded-sm cursor-pointer
-        border border-slate-200
+        cursor-pointer
+        border-r border-b border-slate-200/50 lg:border lg:border-slate-200
         select-none
         ${getBackgroundClass()}
         ${getTextColor()}

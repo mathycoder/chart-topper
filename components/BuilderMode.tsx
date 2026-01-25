@@ -183,7 +183,7 @@ export function BuilderMode() {
           )}
           
           {/* Mobile Grid */}
-          <div className="flex-1 p-3">
+          <div className="flex-1 p-1">
             <RangeChart
               userSelections={userSelections}
               isSubmitted={false}

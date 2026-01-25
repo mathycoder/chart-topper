@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import type { PokerRange, RangeData, RangeNotes, Scenario, SimpleAction, QuizAction, BlendType } from '@/types';
-import { isSimpleAction } from '@/types';
+import type { PokerRange, RangeData, RangeNotes, Scenario, SimpleAction, QuizAction } from '@/types';
 import { useUrlState, useQuizSelections, usePainting } from '@/hooks';
 import { Card } from './shared';
 import { RangeChart } from './RangeChart';
@@ -10,6 +9,7 @@ import { ActionPalette } from './ActionPalette';
 import { ResultsDisplay } from './ResultsDisplay';
 import { RangeDropdowns } from './RangeDropdowns';
 import { MobileActionBar, deriveBlendType } from './MobileActionBar';
+import { MobileDropdownBar } from './MobileDropdownBar';
 import { gradeRangeSubmission, type ChartGradeSummary, type GradeAction } from '@/lib/gradeRange';
 
 const SCENARIO_NAMES: Record<Scenario, string> = {
@@ -34,21 +34,18 @@ export function QuizMode() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [gradeSummary, setGradeSummary] = useState<ChartGradeSummary | null>(null);
-  const [hasBlendedActions, setHasBlendedActions] = useState(false);
   const [showCorrectAnswers, setShowCorrectAnswers] = useState(false);
   
-  // Mobile UI state
-  const [mobileSelectedActions, setMobileSelectedActions] = useState<Set<SimpleAction>>(new Set());
-  
-  // Selected action state for desktop (supports both simple and blend types)
-  const [selectedAction, setSelectedAction] = useState<QuizAction | null>(null);
+  // Action selection state
+  const [selectedActions, setSelectedActions] = useState<Set<SimpleAction>>(new Set());
+  const [multiSelectMode, setMultiSelectMode] = useState(false);
 
   // Painting state
   const painting = usePainting();
   
-  // Mobile multi-select toggle
-  const handleToggleMobileAction = useCallback((action: SimpleAction) => {
-    setMobileSelectedActions(prev => {
+  // Toggle action selection (multi-select for blends)
+  const handleToggleAction = useCallback((action: SimpleAction) => {
+    setSelectedActions(prev => {
       const next = new Set(prev);
       if (next.has(action)) {
         next.delete(action);
@@ -59,44 +56,39 @@ export function QuizMode() {
     });
   }, []);
   
-  // Derive the effective action from mobile multi-select
-  const mobileEffectiveAction = useMemo((): QuizAction | null => {
-    if (mobileSelectedActions.size === 0) return null;
-    if (mobileSelectedActions.size === 1) {
-      return Array.from(mobileSelectedActions)[0];
+  // Single-select action (replaces current selection)
+  const handleSelectAction = useCallback((action: SimpleAction) => {
+    setSelectedActions(new Set([action]));
+  }, []);
+  
+  // Toggle multi-select mode
+  const handleMultiToggle = useCallback(() => {
+    setMultiSelectMode(prev => !prev);
+  }, []);
+  
+  // Derive the effective action from multi-select
+  const effectiveAction = useMemo((): QuizAction | null => {
+    if (selectedActions.size === 0) return null;
+    if (selectedActions.size === 1) {
+      return Array.from(selectedActions)[0];
     }
-    return deriveBlendType(mobileSelectedActions);
-  }, [mobileSelectedActions]);
+    return deriveBlendType(selectedActions);
+  }, [selectedActions]);
 
-  // Paint cell callback - uses mobile action on mobile, desktop action on desktop
+  // Paint cell callback
   const paintCell = useCallback((hand: string) => {
-    // Use mobile action if available (detected by checking mobileSelectedActions), else desktop
-    const action = mobileEffectiveAction || selectedAction;
-    if (action && !isSubmitted) {
-      setCell(hand, action);
+    if (effectiveAction && !isSubmitted) {
+      setCell(hand, effectiveAction);
     }
-  }, [mobileEffectiveAction, selectedAction, isSubmitted, setCell]);
+  }, [effectiveAction, isSubmitted, setCell]);
 
   // Start painting and paint the initial cell
   const handlePaintStart = useCallback((hand: string) => {
     painting.handlePaintStart();
-    const action = mobileEffectiveAction || selectedAction;
-    if (action && !isSubmitted) {
-      setCell(hand, action);
+    if (effectiveAction && !isSubmitted) {
+      setCell(hand, effectiveAction);
     }
-  }, [painting, mobileEffectiveAction, selectedAction, isSubmitted, setCell]);
-
-  // Handle simple action selection
-  const handleSelectAction = useCallback((action: SimpleAction) => {
-    setSelectedAction(action);
-    painting.setSelectedAction(action);
-  }, [painting]);
-
-  // Handle blend type selection
-  const handleSelectBlendType = useCallback((blendType: BlendType) => {
-    setSelectedAction(blendType);
-    painting.setSelectedAction(null); // Blend types don't use painting drag
-  }, [painting]);
+  }, [painting, effectiveAction, isSubmitted, setCell]);
 
   // Load range when dropdowns change
   useEffect(() => {
@@ -104,7 +96,8 @@ export function QuizMode() {
       setIsLoading(true);
       setIsSubmitted(false);
       setGradeSummary(null);
-      setSelectedAction(null);
+      setSelectedActions(new Set());
+      setMultiSelectMode(false);
       resetToFold();
 
       try {
@@ -122,10 +115,6 @@ export function QuizMode() {
           
           const rangeData = result.data as RangeData;
           
-          // Check if range has any blended actions
-          const hasBlended = Object.values(rangeData).some(action => !isSimpleAction(action));
-          setHasBlendedActions(hasBlended);
-          
           setRange({
             meta: {
               stackSize,
@@ -141,13 +130,11 @@ export function QuizMode() {
         } else {
           setRange(null);
           setRangeExists(false);
-          setHasBlendedActions(false);
         }
       } catch (error) {
         console.error('Failed to load range:', error);
         setRange(null);
         setRangeExists(false);
-        setHasBlendedActions(false);
       } finally {
         setIsLoading(false);
       }
@@ -184,28 +171,43 @@ export function QuizMode() {
     setGradeSummary(null);
     setShowCorrectAnswers(false);
     resetToFold();
-    setSelectedAction(null);
-    setMobileSelectedActions(new Set());
+    setSelectedActions(new Set());
+    setMultiSelectMode(false);
     painting.setSelectedAction(null);
   };
 
-  // Determine effective selected action for painting (combines mobile and desktop)
+  // Determine effective selected action for painting (SimpleAction only, for drag painting)
   const effectiveSelectedAction = useMemo(() => {
-    // For painting, we need a SimpleAction
-    const action = mobileEffectiveAction || selectedAction;
-    if (action && ['raise', 'call', 'fold', 'shove'].includes(action)) {
-      return action as SimpleAction;
+    if (effectiveAction && ['raise', 'call', 'fold', 'shove'].includes(effectiveAction)) {
+      return effectiveAction as SimpleAction;
     }
     return null;
-  }, [mobileEffectiveAction, selectedAction]);
+  }, [effectiveAction]);
+
+  // Check if we have a blend type selected (for enabling click interactions)
+  const hasBlendSelected = useMemo(() => {
+    return effectiveAction !== null && !['raise', 'call', 'fold', 'shove'].includes(effectiveAction);
+  }, [effectiveAction]);
 
   return (
     <>
       <main className={`${painting.isPainting ? 'select-none' : ''}`}>
         {/* Mobile Layout */}
-        <div className="lg:hidden flex flex-col pb-24">
+        <div className="lg:hidden flex flex-col pb-28">
+          {/* Mobile Dropdown Bar at top */}
+          <MobileDropdownBar
+            position={position}
+            stackSize={stackSize}
+            scenario={scenario}
+            opponent={opponent}
+            onPositionChange={setPosition}
+            onStackSizeChange={setStackSize}
+            onScenarioChange={setScenario}
+            onOpponentChange={setOpponent}
+            disabled={isSubmitted}
+          />
           {/* Mobile Grid - fills available space */}
-          <div className="flex-1 p-3 relative">
+          <div className="flex-1 p-1 relative">
             {/* Toggle between user answers and correct answers */}
             {isSubmitted && rangeExists && (
               <div className="flex justify-center mb-2">
@@ -257,6 +259,7 @@ export function QuizMode() {
               onPaint={rangeExists && !isSubmitted ? paintCell : () => {}}
               onPaintStart={rangeExists && !isSubmitted ? handlePaintStart : () => {}}
               showCorrectAnswers={showCorrectAnswers}
+              blendMode={rangeExists && !isSubmitted && hasBlendSelected}
             />
             
             {!rangeExists && !isLoading && (
@@ -303,12 +306,13 @@ export function QuizMode() {
               {rangeExists && (
                 <Card>
                   <ActionPalette
-                    selectedAction={selectedAction}
-                    onSelectAction={handleSelectAction}
-                    disabled={isSubmitted || !rangeExists}
                     mode="quiz"
-                    showBlendOptions={hasBlendedActions}
-                    onSelectBlendType={handleSelectBlendType}
+                    selectedActions={selectedActions}
+                    onToggleAction={handleToggleAction}
+                    onSelectAction={handleSelectAction}
+                    multiSelectMode={multiSelectMode}
+                    onMultiToggle={handleMultiToggle}
+                    disabled={isSubmitted || !rangeExists}
                   />
                 </Card>
               )}
@@ -386,10 +390,11 @@ export function QuizMode() {
                 correctRange={isSubmitted && range ? range.data : undefined}
                 isSubmitted={isSubmitted}
                 isPainting={painting.isPainting && rangeExists && !isSubmitted}
-                selectedAction={rangeExists && !isSubmitted ? (typeof selectedAction === 'string' && ['raise', 'call', 'fold', 'shove'].includes(selectedAction) ? selectedAction as SimpleAction : null) : null}
+                selectedAction={rangeExists && !isSubmitted ? effectiveSelectedAction : null}
                 onPaint={rangeExists && !isSubmitted ? paintCell : () => {}}
                 onPaintStart={rangeExists && !isSubmitted ? handlePaintStart : () => {}}
                 showCorrectAnswers={showCorrectAnswers}
+                blendMode={rangeExists && !isSubmitted && hasBlendSelected}
               />
               
               {!rangeExists && !isLoading && (
@@ -420,21 +425,16 @@ export function QuizMode() {
       {rangeExists && (
         <MobileActionBar
           mode="quiz"
-          selectedActions={mobileSelectedActions}
-          onToggleAction={handleToggleMobileAction}
+          selectedActions={selectedActions}
+          onToggleAction={handleToggleAction}
+          onSelectAction={handleSelectAction}
+          multiSelectMode={multiSelectMode}
+          onMultiToggle={handleMultiToggle}
           disabled={isSubmitted}
           submitState={isSubmitted ? 'submitted' : allFilled ? 'ready' : 'disabled'}
           onSubmit={handleSubmit}
           onReset={handleReset}
           showShove={true}
-          position={position}
-          stackSize={stackSize}
-          scenario={scenario}
-          opponent={opponent}
-          onPositionChange={setPosition}
-          onStackSizeChange={setStackSize}
-          onScenarioChange={setScenario}
-          onOpponentChange={setOpponent}
         />
       )}
 

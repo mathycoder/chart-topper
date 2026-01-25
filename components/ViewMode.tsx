@@ -152,7 +152,7 @@ export function ViewMode() {
         {/* Mobile Layout */}
         <div className="lg:hidden flex flex-col pb-16">
           {/* Mobile Grid - fills available space */}
-          <div className="flex-1 p-3 relative">
+          <div className="flex-1 p-1 relative">
             <RangeChart
               userSelections={displaySelections}
               isSubmitted={false}
