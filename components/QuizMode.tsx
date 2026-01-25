@@ -7,8 +7,8 @@ import { getRange } from '@/data/ranges';
 import { Card } from './shared';
 import { RangeChart } from './RangeChart';
 import { ActionPalette } from './ActionPalette';
-import { ResultsDisplay } from './ResultsDisplay';
 import { RangeDropdowns } from './RangeDropdowns';
+import { ResultsSummary } from './ResultsSummary';
 import { MobileActionBar, deriveBlendType } from './MobileActionBar';
 import { MobileDropdownBar } from './MobileDropdownBar';
 import { gradeRangeSubmission, type ChartGradeSummary, type GradeAction } from '@/lib/gradeRange';
@@ -301,10 +301,10 @@ export function QuizMode() {
                 </div>
               )}
 
-              <ResultsDisplay
-                gradeSummary={gradeSummary}
-                isVisible={isSubmitted}
-              />
+              {/* Results Summary */}
+              {isSubmitted && gradeSummary && (
+                <ResultsSummary gradeSummary={gradeSummary} />
+              )}
             </div>
 
             {/* Right column - Grid */}
