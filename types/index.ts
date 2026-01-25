@@ -110,6 +110,7 @@ export type RangeMeta = {
   scenario: Scenario;
   opponentPosition?: Position; // Only for non-RFI scenarios (who raised/3bet/etc.)
   displayName: string; // Human-readable: "80bb+ UTG - Raise First In"
+  description?: string; // Strategy explanation for this range
 };
 
 // ============================================

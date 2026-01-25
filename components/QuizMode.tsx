@@ -1,17 +1,127 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import type { Scenario, SimpleAction, QuizAction } from '@/types';
+import type { Scenario, SimpleAction, QuizAction, Position, StackSize } from '@/types';
 import { useUrlState, useQuizSelections, usePainting } from '@/hooks';
 import { getRange } from '@/data/ranges';
 import { Card } from './shared';
 import { RangeChart } from './RangeChart';
 import { ActionPalette } from './ActionPalette';
-import { RangeDropdowns } from './RangeDropdowns';
 import { ResultsSummary } from './ResultsSummary';
 import { MobileActionBar, deriveBlendType } from './MobileActionBar';
 import { MobileDropdownBar } from './MobileDropdownBar';
 import { gradeRangeSubmission, type ChartGradeSummary, type GradeAction } from '@/lib/gradeRange';
+
+// Segment dropdown component for header-style selector
+function SegmentDropdown<T extends string>({
+  value,
+  options,
+  onChange,
+  displayValue,
+  disabled,
+}: {
+  value: T;
+  options: { value: T; label: string }[];
+  onChange: (value: T) => void;
+  displayValue?: string;
+  disabled?: boolean;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Close on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isOpen]);
+
+  const currentLabel = displayValue ?? options.find(o => o.value === value)?.label ?? value;
+
+  return (
+    <div ref={ref} className="relative inline-block">
+      <button
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+        disabled={disabled}
+        className={`
+          font-semibold text-slate-900 underline decoration-slate-300 decoration-dashed underline-offset-4 
+          transition-colors
+          ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:decoration-slate-500 cursor-pointer'}
+        `}
+      >
+        {currentLabel}
+      </button>
+      {isOpen && !disabled && (
+        <div className="absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg py-1 z-50 min-w-[100px]">
+          {options.map(({ value: optValue, label }) => (
+            <button
+              key={optValue}
+              onClick={() => {
+                onChange(optValue);
+                setIsOpen(false);
+              }}
+              className={`
+                block w-full text-left px-3 py-1.5 text-sm
+                ${optValue === value ? 'bg-slate-100 font-medium' : 'hover:bg-slate-50'}
+              `}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Constants for dropdowns
+const POSITIONS: { value: Position; label: string }[] = [
+  { value: 'UTG', label: 'UTG' },
+  { value: 'UTG+1', label: 'UTG+1' },
+  { value: 'LJ', label: 'LJ' },
+  { value: 'HJ', label: 'HJ' },
+  { value: 'CO', label: 'CO' },
+  { value: 'BTN', label: 'BTN' },
+  { value: 'SB', label: 'SB' },
+  { value: 'BB', label: 'BB' },
+];
+
+const POSITION_ORDER: Position[] = ['UTG', 'UTG+1', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
+
+function getValidOpponents(heroPosition: Position, scenario: Scenario): Position[] {
+  const heroIndex = POSITION_ORDER.indexOf(heroPosition);
+  if (scenario === 'vs-raise') return POSITION_ORDER.slice(0, heroIndex);
+  if (scenario === 'vs-3bet') return POSITION_ORDER.filter((_, idx) => idx !== heroIndex);
+  return [];
+}
+
+const STACK_SIZES: { value: StackSize; label: string }[] = [
+  { value: '80bb', label: '80bb+' },
+  { value: '40bb', label: '40bb' },
+  { value: '20bb', label: '20bb' },
+  { value: '10bb', label: '10bb' },
+];
+
+const SCENARIOS: { value: Scenario; label: string }[] = [
+  { value: 'rfi', label: 'RFI' },
+  { value: 'vs-raise', label: 'vs Raise' },
+  { value: 'vs-3bet', label: 'vs 3-Bet' },
+];
+
+// Display names for scenarios in the header
+const SCENARIO_DISPLAY: Record<Scenario, string> = {
+  'rfi': 'Raise First In',
+  'vs-raise': 'Raise',
+  'vs-3bet': '3-Bet',
+  'vs-4bet': '4-Bet',
+  'after-limp': 'Limp',
+};
 
 /**
  * Quiz Mode - Test your poker range knowledge.
@@ -25,6 +135,17 @@ export function QuizMode() {
   // Get range data synchronously via direct import
   const range = useMemo(() => getRange(stackSize, position, scenario, opponent), [stackSize, position, scenario, opponent]);
   const rangeExists = range !== null;
+
+  // Opponent logic
+  const showOpponent = scenario !== 'rfi';
+  const validOpponents = showOpponent ? getValidOpponents(position, scenario) : [];
+  const effectiveOpponent = showOpponent && validOpponents.length > 0
+    ? (opponent && validOpponents.includes(opponent) ? opponent : validOpponents[0])
+    : null;
+  
+  if (showOpponent && effectiveOpponent !== opponent) {
+    setOpponent(effectiveOpponent);
+  }
 
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [gradeSummary, setGradeSummary] = useState<ChartGradeSummary | null>(null);
@@ -245,19 +366,41 @@ export function QuizMode() {
           <div className="flex flex-row gap-8 max-w-6xl mx-auto">
             {/* Left column - Controls */}
             <div className="flex flex-col gap-4 w-80 shrink-0">
-              <Card>
-                <RangeDropdowns
-                  position={position}
-                  stackSize={stackSize}
-                  scenario={scenario}
-                  opponent={opponent}
-                  onPositionChange={setPosition}
-                  onStackSizeChange={setStackSize}
-                  onScenarioChange={setScenario}
-                  onOpponentChange={setOpponent}
+              {/* Header-style Range Selector */}
+              <div className="text-lg leading-relaxed">
+                <SegmentDropdown
+                  value={stackSize}
+                  options={STACK_SIZES}
+                  onChange={setStackSize}
                   disabled={isSubmitted}
                 />
-              </Card>
+                <span className="text-slate-400 mx-2">—</span>
+                <SegmentDropdown
+                  value={position}
+                  options={POSITIONS}
+                  onChange={setPosition}
+                  disabled={isSubmitted}
+                />
+                {showOpponent && validOpponents.length > 0 && (
+                  <>
+                    <span className="text-slate-400 mx-1">vs</span>
+                    <SegmentDropdown
+                      value={effectiveOpponent || validOpponents[0]}
+                      options={validOpponents.map(p => ({ value: p, label: p }))}
+                      onChange={setOpponent}
+                      disabled={isSubmitted}
+                    />
+                  </>
+                )}
+                <span className="text-slate-400 mx-1"> </span>
+                <SegmentDropdown
+                  value={scenario}
+                  options={SCENARIOS}
+                  onChange={setScenario}
+                  displayValue={SCENARIO_DISPLAY[scenario]}
+                  disabled={isSubmitted}
+                />
+              </div>
 
               {rangeExists && (
                 <Card>

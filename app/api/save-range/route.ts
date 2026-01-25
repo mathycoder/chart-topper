@@ -17,6 +17,7 @@ interface SaveRangeRequest {
   scenario: string;
   opponent?: string; // Optional for non-RFI scenarios
   data: Record<string, HandAction>;
+  description?: string; // Strategy explanation for this range
 }
 
 /**
@@ -49,7 +50,8 @@ function generateRangeFileContent(
   position: string,
   scenario: string,
   opponent: string | undefined,
-  data: Record<string, HandAction>
+  data: Record<string, HandAction>,
+  description?: string
 ): string {
   // Build variable name
   let variableName = `${position.toLowerCase().replace('+', 'Plus')}`;
@@ -64,7 +66,7 @@ function generateRangeFileContent(
     .map(([hand, action]) => `  '${hand}': ${formatAction(action)},`)
     .join('\n');
 
-  // Build meta object with optional opponentPosition
+  // Build meta object with optional opponentPosition and description
   const metaLines = [
     `    stackSize: '${stackSize}',`,
     `    position: '${position}',`,
@@ -76,6 +78,12 @@ function generateRangeFileContent(
   }
   
   metaLines.push(`    displayName: '${displayName}',`);
+  
+  if (description) {
+    // Escape single quotes and newlines in description
+    const escapedDescription = description.replace(/'/g, "\\'").replace(/\n/g, '\\n');
+    metaLines.push(`    description: '${escapedDescription}',`);
+  }
 
   return `import type { PokerRange, RangeData } from '@/types';
 
@@ -116,7 +124,7 @@ function getDisplayName(stackSize: string, position: string, scenario: string, o
 export async function POST(request: NextRequest) {
   try {
     const body: SaveRangeRequest = await request.json();
-    const { stackSize, position, scenario, opponent, data } = body;
+    const { stackSize, position, scenario, opponent, data, description } = body;
 
     // Validate required fields
     if (!stackSize || !position || !scenario || !data) {
@@ -153,7 +161,7 @@ export async function POST(request: NextRequest) {
     await mkdir(rangesDir, { recursive: true });
 
     // Generate file content
-    const content = generateRangeFileContent(stackSize, position, scenario, opponent, data);
+    const content = generateRangeFileContent(stackSize, position, scenario, opponent, data, description);
 
     // Write file
     await writeFile(filepath, content, 'utf-8');

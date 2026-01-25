@@ -1,12 +1,73 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState, useRef, useEffect } from 'react';
 import type { RangeData, Scenario, Position, StackSize } from '@/types';
 import { useUrlState } from '@/hooks';
 import { getRange } from '@/data/ranges';
 import { Card } from './shared';
 import { RangeChart } from './RangeChart';
-import { RangeDropdowns } from './RangeDropdowns';
+import { MobileDropdownBar } from './MobileDropdownBar';
+
+// Segment dropdown component for header-style selector
+function SegmentDropdown<T extends string>({
+  value,
+  options,
+  onChange,
+  displayValue,
+}: {
+  value: T;
+  options: { value: T; label: string }[];
+  onChange: (value: T) => void;
+  displayValue?: string;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Close on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isOpen]);
+
+  const currentLabel = displayValue ?? options.find(o => o.value === value)?.label ?? value;
+
+  return (
+    <div ref={ref} className="relative inline-block">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="font-semibold text-slate-900 underline decoration-slate-300 decoration-dashed underline-offset-4 hover:decoration-slate-500 cursor-pointer transition-colors"
+      >
+        {currentLabel}
+      </button>
+      {isOpen && (
+        <div className="absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg py-1 z-50 min-w-[100px]">
+          {options.map(({ value: optValue, label }) => (
+            <button
+              key={optValue}
+              onClick={() => {
+                onChange(optValue);
+                setIsOpen(false);
+              }}
+              className={`
+                block w-full text-left px-3 py-1.5 text-sm
+                ${optValue === value ? 'bg-slate-100 font-medium' : 'hover:bg-slate-50'}
+              `}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // Dropdown data for mobile
 const POSITIONS: { value: Position; label: string }[] = [
@@ -42,6 +103,15 @@ const SCENARIOS: { value: Scenario; label: string }[] = [
   { value: 'vs-3bet', label: 'vs 3-Bet' },
 ];
 
+// Display names for scenarios in the header
+const SCENARIO_DISPLAY: Record<Scenario, string> = {
+  'rfi': 'Raise First In',
+  'vs-raise': 'Raise',
+  'vs-3bet': '3-Bet',
+  'vs-4bet': '4-Bet',
+  'after-limp': 'Limp',
+};
+
 /**
  * View Mode - Browse poker ranges in read-only mode.
  * Shows the correct answers without any editing capability.
@@ -56,19 +126,22 @@ export function ViewMode() {
   // Display the range data directly
   const displaySelections = range?.data ?? {};
 
-  // Count actions in the range
+  // Count actions in the range (weighted by percentages for mixed hands)
   const countActions = (data: RangeData) => {
-    let raise = 0, call = 0, fold = 0, blended = 0;
+    let raise = 0, call = 0, fold = 0;
     for (const action of Object.values(data)) {
       if (typeof action === 'string') {
         if (action === 'raise') raise++;
         else if (action === 'call') call++;
         else fold++;
       } else {
-        blended++;
+        // Mixed hand - weight by percentage (0-100 scale, so divide by 100)
+        raise += (action.raise ?? 0) / 100;
+        call += (action.call ?? 0) / 100;
+        fold += (action.fold ?? 0) / 100;
       }
     }
-    return { raise, call, fold, blended, total: raise + call + fold + blended };
+    return { raise, call, fold };
   };
 
   const stats = range ? countActions(range.data) : null;
@@ -83,19 +156,22 @@ export function ViewMode() {
     setOpponent(effectiveOpponent);
   }
 
-  const selectClasses = `
-    px-2 py-1.5 rounded-md
-    bg-slate-50 border border-slate-200
-    text-slate-900 text-xs font-medium
-    focus:outline-none focus:ring-1 focus:ring-slate-400
-    cursor-pointer
-  `;
-
   return (
     <>
       <main className="">
         {/* Mobile Layout */}
-        <div className="lg:hidden flex flex-col pb-16">
+        <div className="lg:hidden flex flex-col pb-12">
+          {/* Mobile Header */}
+          <MobileDropdownBar
+            position={position}
+            stackSize={stackSize}
+            scenario={scenario}
+            opponent={opponent}
+            onPositionChange={setPosition}
+            onStackSizeChange={setStackSize}
+            onScenarioChange={setScenario}
+            onOpponentChange={setOpponent}
+          />
           {/* Mobile Grid */}
           <div className="flex-1 p-1 relative">
             {rangeExists ? (
@@ -128,45 +204,61 @@ export function ViewMode() {
           <div className="flex flex-row gap-8 max-w-6xl mx-auto">
             {/* Left column - Controls */}
             <div className="flex flex-col gap-4 w-80 shrink-0">
-              <Card>
-                <RangeDropdowns
-                  position={position}
-                  stackSize={stackSize}
-                  scenario={scenario}
-                  opponent={opponent}
-                  onPositionChange={setPosition}
-                  onStackSizeChange={setStackSize}
-                  onScenarioChange={setScenario}
-                  onOpponentChange={setOpponent}
+              {/* Header-style Range Selector */}
+              <div className="text-lg leading-relaxed">
+                <SegmentDropdown
+                  value={stackSize}
+                  options={STACK_SIZES}
+                  onChange={setStackSize}
                 />
-              </Card>
+                <span className="text-slate-400 mx-2">—</span>
+                <SegmentDropdown
+                  value={position}
+                  options={POSITIONS}
+                  onChange={setPosition}
+                />
+                {showOpponent && validOpponents.length > 0 && (
+                  <>
+                    <span className="text-slate-400 mx-1">vs</span>
+                    <SegmentDropdown
+                      value={effectiveOpponent || validOpponents[0]}
+                      options={validOpponents.map(p => ({ value: p, label: p }))}
+                      onChange={setOpponent}
+                    />
+                  </>
+                )}
+                <span className="text-slate-400 mx-1"> </span>
+                <SegmentDropdown
+                  value={scenario}
+                  options={SCENARIOS}
+                  onChange={setScenario}
+                  displayValue={SCENARIO_DISPLAY[scenario]}
+                />
+              </div>
 
               {/* Range Stats */}
               {rangeExists && stats && (
                 <Card>
                   <h3 className="text-sm font-semibold text-slate-700 mb-3">Range Summary</h3>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="flex flex-col gap-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-slate-500">Raise:</span>
-                      <span className="font-medium text-red-600">{stats.raise}</span>
+                      <span className="font-medium text-red-600">{(stats.raise / 169 * 100).toFixed(1)}%</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-500">Call:</span>
-                      <span className="font-medium text-green-600">{stats.call}</span>
+                      <span className="font-medium text-green-600">{(stats.call / 169 * 100).toFixed(1)}%</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-500">Fold:</span>
-                      <span className="font-medium text-blue-600">{stats.fold}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Mixed:</span>
-                      <span className="font-medium text-purple-600">{stats.blended}</span>
+                      <span className="font-medium text-blue-600">{(stats.fold / 169 * 100).toFixed(1)}%</span>
                     </div>
                   </div>
-                  <div className="mt-3 pt-3 border-t border-slate-200 flex justify-between text-sm">
-                    <span className="text-slate-500">Total hands:</span>
-                    <span className="font-semibold text-slate-700">{stats.total}</span>
-                  </div>
+                  {range?.meta.description && (
+                    <p className="mt-3 pt-3 border-t border-slate-200 text-sm text-slate-600 italic">
+                      {range.meta.description}
+                    </p>
+                  )}
                 </Card>
               )}
 
@@ -223,70 +315,16 @@ export function ViewMode() {
         </div>
       </main>
 
-      {/* Mobile Bottom Bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-3 pt-2 pb-safe z-40 lg:hidden">
-        {/* Stats row */}
-        {rangeExists && stats && (
-          <div className="flex justify-center gap-4 text-xs mb-2">
-            <span className="text-red-600 font-medium">R: {stats.raise}</span>
-            <span className="text-green-600 font-medium">C: {stats.call}</span>
-            <span className="text-blue-600 font-medium">F: {stats.fold}</span>
-            {stats.blended > 0 && <span className="text-purple-600 font-medium">Mix: {stats.blended}</span>}
+      {/* Mobile Bottom Bar - Stats only */}
+      {rangeExists && stats && (
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-3 py-2 pb-safe z-40 lg:hidden">
+          <div className="flex justify-center gap-6 text-xs">
+            <span className="text-red-600 font-medium">Raise: {(stats.raise / 169 * 100).toFixed(1)}%</span>
+            <span className="text-green-600 font-medium">Call: {(stats.call / 169 * 100).toFixed(1)}%</span>
+            <span className="text-blue-600 font-medium">Fold: {(stats.fold / 169 * 100).toFixed(1)}%</span>
           </div>
-        )}
-        
-        {/* Dropdowns row */}
-        <div className="flex items-center gap-1.5 pb-2">
-          <select
-            value={position}
-            onChange={(e) => setPosition(e.target.value as Position)}
-            className={selectClasses}
-          >
-            {POSITIONS.map(({ value, label }) => (
-              <option key={value} value={value}>{label}</option>
-            ))}
-          </select>
-          
-          {showOpponent && validOpponents.length > 0 && (
-            <>
-              <span className="text-slate-400 text-xs">vs</span>
-              <select
-                value={effectiveOpponent || ''}
-                onChange={(e) => setOpponent(e.target.value as Position)}
-                className={selectClasses}
-              >
-                {validOpponents.map((pos) => (
-                  <option key={pos} value={pos}>{pos}</option>
-                ))}
-              </select>
-            </>
-          )}
-          
-          <span className="text-slate-300 text-xs">|</span>
-          
-          <select
-            value={stackSize}
-            onChange={(e) => setStackSize(e.target.value as StackSize)}
-            className={selectClasses}
-          >
-            {STACK_SIZES.map(({ value, label }) => (
-              <option key={value} value={value}>{label}</option>
-            ))}
-          </select>
-          
-          <span className="text-slate-300 text-xs">|</span>
-          
-          <select
-            value={scenario}
-            onChange={(e) => setScenario(e.target.value as Scenario)}
-            className={selectClasses}
-          >
-            {SCENARIOS.map(({ value, label }) => (
-              <option key={value} value={value}>{label}</option>
-            ))}
-          </select>
         </div>
-      </div>
+      )}
     </>
   );
 }

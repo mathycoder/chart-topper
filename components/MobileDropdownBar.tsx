@@ -1,6 +1,75 @@
 'use client';
 
+import { useState, useRef, useEffect } from 'react';
 import type { Position, StackSize, Scenario } from '@/types';
+
+// Segment dropdown component for header-style selector (mobile version)
+function MobileSegmentDropdown<T extends string>({
+  value,
+  options,
+  onChange,
+  displayValue,
+  disabled,
+}: {
+  value: T;
+  options: { value: T; label: string }[];
+  onChange: (value: T) => void;
+  displayValue?: string;
+  disabled?: boolean;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Close on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isOpen]);
+
+  const currentLabel = displayValue ?? options.find(o => o.value === value)?.label ?? value;
+
+  return (
+    <div ref={ref} className="relative inline-block">
+      <button
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+        disabled={disabled}
+        className={`
+          font-semibold text-slate-900 underline decoration-slate-300 decoration-dashed underline-offset-4 
+          transition-colors text-sm
+          ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:decoration-slate-500 cursor-pointer'}
+        `}
+      >
+        {currentLabel}
+      </button>
+      {isOpen && !disabled && (
+        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg py-1 z-50 min-w-[80px]">
+          {options.map(({ value: optValue, label }) => (
+            <button
+              key={optValue}
+              onClick={() => {
+                onChange(optValue);
+                setIsOpen(false);
+              }}
+              className={`
+                block w-full text-left px-3 py-1.5 text-sm
+                ${optValue === value ? 'bg-slate-100 font-medium' : 'hover:bg-slate-50'}
+              `}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // Dropdown data
 const POSITIONS: { value: Position; label: string }[] = [
@@ -36,6 +105,15 @@ const SCENARIOS: { value: Scenario; label: string }[] = [
   { value: 'vs-3bet', label: 'vs 3-Bet' },
 ];
 
+// Display names for scenarios in the header
+const SCENARIO_DISPLAY: Record<Scenario, string> = {
+  'rfi': 'Raise First In',
+  'vs-raise': 'Raise',
+  'vs-3bet': '3-Bet',
+  'vs-4bet': '4-Bet',
+  'after-limp': 'Limp',
+};
+
 interface MobileDropdownBarProps {
   position: Position;
   stackSize: StackSize;
@@ -49,7 +127,7 @@ interface MobileDropdownBarProps {
 }
 
 /**
- * Mobile dropdown bar that sits at the top of the screen.
+ * Mobile header bar with clickable segments.
  * Shows Position, Stack Size, Scenario, and optionally Opponent.
  */
 export function MobileDropdownBar({
@@ -74,70 +152,41 @@ export function MobileDropdownBar({
     onOpponentChange(effectiveOpponent);
   }
 
-  const selectClasses = `
-    px-2 py-1.5 rounded-md
-    bg-white border border-slate-200
-    text-slate-900 text-xs font-medium
-    focus:outline-none focus:ring-1 focus:ring-slate-400
-    disabled:opacity-50
-    cursor-pointer
-  `;
-
   return (
-    <div className="bg-slate-50 border-b border-slate-200 px-3 py-2 lg:hidden">
-      <div className="flex items-center justify-center gap-1.5 flex-wrap">
-        <select
-          value={position}
-          onChange={(e) => onPositionChange(e.target.value as Position)}
+    <div className="bg-white border-b border-slate-200 px-3 py-2.5 lg:hidden">
+      <div className="flex items-center justify-center gap-1 flex-wrap text-sm leading-relaxed">
+        <MobileSegmentDropdown
+          value={stackSize}
+          options={STACK_SIZES}
+          onChange={onStackSizeChange}
           disabled={disabled}
-          className={selectClasses}
-        >
-          {POSITIONS.map(({ value, label }) => (
-            <option key={value} value={value}>{label}</option>
-          ))}
-        </select>
-
+        />
+        <span className="text-slate-400 mx-1">—</span>
+        <MobileSegmentDropdown
+          value={position}
+          options={POSITIONS}
+          onChange={onPositionChange}
+          disabled={disabled}
+        />
         {showOpponent && validOpponents.length > 0 && (
           <>
-            <span className="text-slate-400 text-xs">vs</span>
-            <select
-              value={effectiveOpponent || ''}
-              onChange={(e) => onOpponentChange(e.target.value as Position)}
+            <span className="text-slate-400 mx-0.5">vs</span>
+            <MobileSegmentDropdown
+              value={effectiveOpponent || validOpponents[0]}
+              options={validOpponents.map(p => ({ value: p, label: p }))}
+              onChange={onOpponentChange}
               disabled={disabled}
-              className={selectClasses}
-            >
-              {validOpponents.map((pos) => (
-                <option key={pos} value={pos}>{pos}</option>
-              ))}
-            </select>
+            />
           </>
         )}
-
-        <span className="text-slate-300 text-xs">|</span>
-
-        <select
-          value={stackSize}
-          onChange={(e) => onStackSizeChange(e.target.value as StackSize)}
-          disabled={disabled}
-          className={selectClasses}
-        >
-          {STACK_SIZES.map(({ value, label }) => (
-            <option key={value} value={value}>{label}</option>
-          ))}
-        </select>
-
-        <span className="text-slate-300 text-xs">|</span>
-
-        <select
+        <span className="text-slate-400 mx-0.5"> </span>
+        <MobileSegmentDropdown
           value={scenario}
-          onChange={(e) => onScenarioChange(e.target.value as Scenario)}
+          options={SCENARIOS}
+          onChange={onScenarioChange}
+          displayValue={SCENARIO_DISPLAY[scenario]}
           disabled={disabled}
-          className={selectClasses}
-        >
-          {SCENARIOS.map(({ value, label }) => (
-            <option key={value} value={value}>{label}</option>
-          ))}
-        </select>
+        />
       </div>
     </div>
   );

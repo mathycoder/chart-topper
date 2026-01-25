@@ -27,6 +27,7 @@ export function BuilderMode() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [existingRangeLoaded, setExistingRangeLoaded] = useState(initialRange !== null);
+  const [description, setDescription] = useState(initialRange?.meta.description ?? '');
   
   // Blend picker state
   const [blendPickerOpen, setBlendPickerOpen] = useState(false);
@@ -105,10 +106,12 @@ export function BuilderMode() {
       if (existingRange) {
         loadSelections(existingRange.data as Record<string, HandAction>);
         setExistingRangeLoaded(true);
+        setDescription(existingRange.meta.description ?? '');
       } else {
         clearSelections();
         setExistingRangeLoaded(false);
         setSaveMessage(null);
+        setDescription('');
       }
       
       prevParamsRef.current = { position, stackSize, scenario, opponent };
@@ -137,7 +140,7 @@ export function BuilderMode() {
       const response = await fetch('/api/save-range', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stackSize, position, scenario, opponent, data }),
+        body: JSON.stringify({ stackSize, position, scenario, opponent, data, description: description || undefined }),
       });
 
       const result = await response.json();
@@ -232,6 +235,20 @@ export function BuilderMode() {
                     Click a cell to set blend percentages
                   </div>
                 )}
+              </Card>
+
+              {/* Description */}
+              <Card>
+                <label className="text-sm font-semibold text-slate-700 mb-2 block">
+                  Description
+                </label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Strategy explanation for this range..."
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent resize-none"
+                  rows={3}
+                />
               </Card>
 
               {/* Action buttons */}
