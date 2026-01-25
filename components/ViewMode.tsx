@@ -96,7 +96,7 @@ export function ViewMode() {
       <main className="">
         {/* Mobile Layout */}
         <div className="lg:hidden flex flex-col pb-16">
-          {/* Mobile Grid - fills available space */}
+          {/* Mobile Grid */}
           <div className="flex-1 p-1 relative">
             {rangeExists ? (
               <RangeChart

@@ -236,6 +236,7 @@ export function HandCell({
         ${isSubmitted ? 'cursor-default' : ''}
       `}
       style={getBackgroundStyle()}
+      data-hand={hand}
       onMouseDown={handleMouseDown}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}

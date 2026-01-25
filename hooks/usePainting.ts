@@ -8,11 +8,12 @@ interface UsePaintingReturn {
   selectedAction: SimpleAction | null;
   setSelectedAction: (action: SimpleAction | null) => void;
   handlePaintStart: () => void;
+  handlePaintEnd: () => void;
 }
 
 /**
  * Hook for managing the painting interaction state on the range chart.
- * Handles mouse events and selected action state.
+ * Handles mouse and touch events and selected action state.
  */
 export function usePainting(): UsePaintingReturn {
   const [isPainting, setIsPainting] = useState(false);
@@ -22,11 +23,21 @@ export function usePainting(): UsePaintingReturn {
     setIsPainting(true);
   }, []);
 
-  // Global mouseup listener to stop painting
+  const handlePaintEnd = useCallback(() => {
+    setIsPainting(false);
+  }, []);
+
+  // Global mouseup and touchend listeners to stop painting
   useEffect(() => {
-    const handleMouseUp = () => setIsPainting(false);
-    document.addEventListener('mouseup', handleMouseUp);
-    return () => document.removeEventListener('mouseup', handleMouseUp);
+    const stopPainting = () => setIsPainting(false);
+    document.addEventListener('mouseup', stopPainting);
+    document.addEventListener('touchend', stopPainting);
+    document.addEventListener('touchcancel', stopPainting);
+    return () => {
+      document.removeEventListener('mouseup', stopPainting);
+      document.removeEventListener('touchend', stopPainting);
+      document.removeEventListener('touchcancel', stopPainting);
+    };
   }, []);
 
   return {
@@ -34,5 +45,6 @@ export function usePainting(): UsePaintingReturn {
     selectedAction,
     setSelectedAction,
     handlePaintStart,
+    handlePaintEnd,
   };
 }

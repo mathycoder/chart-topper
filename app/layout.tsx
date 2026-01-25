@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import "@/styles/globals.css";
 import { Navigation } from "@/components/Navigation";
+import { EdgeSwipeBlocker } from "@/components/EdgeSwipeBlocker";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -41,6 +42,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <EdgeSwipeBlocker />
         <Suspense fallback={<NavigationFallback />}>
           <Navigation />
         </Suspense>

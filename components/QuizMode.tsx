@@ -168,7 +168,7 @@ export function QuizMode() {
             onOpponentChange={setOpponent}
             disabled={isSubmitted}
           />
-          {/* Mobile Grid - fills available space */}
+          {/* Mobile Grid */}
           <div className="flex-1 p-1 relative">
             {/* Toggle between user answers and correct answers */}
             {isSubmitted && rangeExists && (
