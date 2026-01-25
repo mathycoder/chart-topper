@@ -38,6 +38,12 @@ const ACTIONS: { action: SimpleAction; label: string; color: string; hoverColor:
     color: 'bg-action-fold', 
     hoverColor: 'hover:bg-action-fold-hover' 
   },
+  { 
+    action: 'shove' as SimpleAction, 
+    label: 'Shove', 
+    color: 'bg-action-shove', 
+    hoverColor: 'hover:bg-action-shove-hover' 
+  },
 ];
 
 const BLEND_TYPES: { type: BlendType; label: string; colors: string[] }[] = [
@@ -64,10 +70,8 @@ export function ActionPalette({
 }: ActionPaletteProps) {
   return (
     <div className="flex flex-col gap-3">
-      <span className="text-sm font-medium text-slate-600">Select Action</span>
-      
-      {/* Simple actions */}
-      <div className="flex flex-col gap-2">
+      {/* Simple actions - 2x2 grid */}
+      <div className="grid grid-cols-2 gap-2">
         {ACTIONS.map(({ action, label, color, hoverColor }) => {
           const isSelected = selectedAction === action;
           
@@ -77,7 +81,7 @@ export function ActionPalette({
               onClick={() => onSelectAction(action)}
               disabled={disabled}
               className={`
-                flex items-center gap-3 px-4 py-2.5 rounded-lg
+                flex items-center justify-center gap-2 px-3 py-2 rounded-lg
                 font-medium text-white text-sm
                 transition-all duration-150
                 ${color}
@@ -94,7 +98,7 @@ export function ActionPalette({
             >
               <span 
                 className={`
-                  w-4 h-4 rounded-full border-2 border-white flex-shrink-0
+                  w-3 h-3 rounded-full border-2 border-white flex-shrink-0
                   ${isSelected ? 'bg-white' : 'bg-transparent'}
                 `}
               />

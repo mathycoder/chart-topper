@@ -1,134 +1,189 @@
-# Poker Range Parser Skill
+# Poker Range Parser (Sharp-based)
 
-This skill converts poker range chart screenshots into structured TypeScript data files.
+A deterministic pixel-based parser that converts poker range chart screenshots into TypeScript data files.
 
-**CRITICAL**: This is a VISUAL task, not a poker reasoning task. Do NOT use poker logic. Only report what colors you SEE.
+## How It Works
 
-## How to Use
+1. **Color Sampling**: Samples raise/call/fold colors from known cells (AA=red, 99=green, A2s=blue)
+2. **Grid Parsing**: Splits the 13x13 grid into cells and analyzes each pixel
+3. **Color Matching**: Uses LAB color space with Delta-E distance for accurate color matching
+4. **Mixed Strategy Detection**: Detects split cells (e.g., 60% raise / 40% call)
 
-1. Attach a screenshot of a poker range chart
-2. Say: "Use the range-parser skill to convert this image"
-3. Provide metadata: stack size, position, scenario
+## Quick Start
 
-## Two-Pass Process
+```bash
+# 1. Take a screenshot of JUST the 13x13 grid (no legend, no title)
+#    - From AA (top-left) to 22 (bottom-right)
+#    - Save to tmp/chart.png
 
-### PASS 1: Color Identification (NO REASONING)
+# 2. Parse the range
+npx tsx tools/range-parser/parseRange.ts tmp/chart.png --position UTG --scenario rfi
 
-Go through all 169 cells and report ONLY the color you see. Do not think about poker. Do not reason about what "should" be a raise or fold. Just see colors.
-
-Output format for Pass 1:
-```
-Row 0: RED, RED, RED, RED, RED, BLUE, BLUE, BLUE, RED, RED, RED, RED, RED
-Row 1: RED, RED, RED, RED, RED, BLUE, BLUE, BLUE, RED, BLUE, BLUE, BLUE, BLUE
-Row 2: ...
-```
-
-**Rules for Pass 1:**
-- Use only these color words: RED, BLUE, GREEN, GRAY, WHITE, PINK, OTHER
-- If a color is ambiguous, write "RED?" or "BLUE?" with a question mark
-- Do NOT write "raise", "fold", or "call" in this pass
-- Do NOT add comments about poker strategy
-- Do NOT skip cells or summarize ("rest are blue") - list every single cell
-
-### PASS 2: Color-to-Action Mapping
-
-After Pass 1 is complete, convert colors to actions using this fixed mapping:
-
-| Color | Action |
-|-------|--------|
-| RED | raise |
-| PINK | raise |
-| GREEN | call |
-| BLUE | fold |
-| GRAY | fold |
-
-Then generate the TypeScript file.
-
-## Chart Structure Reference
-
-```
-     Col0 Col1 Col2 Col3 Col4 Col5 Col6 Col7 Col8 Col9 Col10 Col11 Col12
-Row0  AA   AKs  AQs  AJs  ATs  A9s  A8s  A7s  A6s  A5s  A4s   A3s   A2s
-Row1  AKo  KK   KQs  KJs  KTs  K9s  K8s  K7s  K6s  K5s  K4s   K3s   K2s
-Row2  AQo  KQo  QQ   QJs  QTs  Q9s  Q8s  Q7s  Q6s  Q5s  Q4s   Q3s   Q2s
-Row3  AJo  KJo  QJo  JJ   JTs  J9s  J8s  J7s  J6s  J5s  J4s   J3s   J2s
-Row4  ATo  KTo  QTo  JTo  TT   T9s  T8s  T7s  T6s  T5s  T4s   T3s   T2s
-Row5  A9o  K9o  Q9o  J9o  T9o  99   98s  97s  96s  95s  94s   93s   92s
-Row6  A8o  K8o  Q8o  J8o  T8o  98o  88   87s  86s  85s  84s   83s   82s
-Row7  A7o  K7o  Q7o  J7o  T7o  97o  87o  77   76s  75s  74s   73s   72s
-Row8  A6o  K6o  Q6o  J6o  T6o  96o  86o  76o  66   65s  64s   63s   62s
-Row9  A5o  K5o  Q5o  J5o  T5o  95o  85o  75o  65o  55   54s   53s   52s
-Row10 A4o  K4o  Q4o  J4o  T4o  94o  84o  74o  64o  54o  44    43s   42s
-Row11 A3o  K3o  Q3o  J3o  T3o  93o  83o  73o  63o  53o  43o   33    32s
-Row12 A2o  K2o  Q2o  J2o  T2o  92o  82o  72o  62o  52o  42o   32o   22
+# 3. Output will be in data/ranges/
 ```
 
-## Output Format
+## Screenshot Requirements
+
+For best results, your screenshot should include **only the 13x13 grid**:
+
+```
+┌────────────────────────────────────────────┐
+│ AA  AKs AQs AJs ATs A9s A8s A7s ... A2s   │
+│ AKo KK  KQs KJs KTs K9s K8s K7s ... K2s   │
+│ AQo KQo QQ  QJs QTs Q9s Q8s Q7s ... Q2s   │
+│ ...                                        │
+│ A2o K2o Q2o J2o T2o 92o 82o 72o ... 22    │
+└────────────────────────────────────────────┘
+```
+
+**Do NOT include:**
+- Legend (Raise/Call/Fold labels)
+- Title or header text
+- Extra padding or borders
+
+The parser samples colors from known cells:
+- **Raise**: AA cell (should be red/raise in most charts)
+- **Call**: 99 cell (should be green/call)
+- **Fold**: A2s cell (should be blue/fold)
+
+## CLI Options
+
+```
+Usage: npx tsx tools/range-parser/parseRange.ts <image-path> [options]
+
+Options:
+  --stack <size>      Stack size (default: 80bb)
+  --position <pos>    Position: UTG, UTG+1, LJ, HJ, CO, BTN, SB, BB
+  --scenario <type>   Scenario: rfi, vs-3bet, vs-4bet, vs-raise
+  --opponent <pos>    Opponent position (for vs-* scenarios)
+  --output <path>     Output file path (default: auto-generated in data/ranges/)
+  --preview-only      Only generate preview crops, don't parse
+  --no-preview        Skip generating preview crops
+```
+
+## Examples
+
+```bash
+# UTG Raise First In
+npx tsx tools/range-parser/parseRange.ts tmp/chart.png --position UTG --scenario rfi
+
+# UTG+1 vs UTG Raise
+npx tsx tools/range-parser/parseRange.ts tmp/chart.png --position "UTG+1" --scenario vs-raise --opponent UTG
+
+# Button RFI with custom output path
+npx tsx tools/range-parser/parseRange.ts tmp/chart.png --position BTN --scenario rfi --output data/ranges/my-btn-range.ts
+```
+
+## Verifying Configuration
+
+If parsing results seem off, check the crop previews:
+
+```bash
+npx tsx tools/range-parser/parseRange.ts tmp/chart.png --preview-only
+```
+
+This generates:
+- `tmp/preview-grid.png` - Should show the full 13x13 grid
+- `tmp/preview-legend-raise.png` - Should show AA (red)
+- `tmp/preview-legend-call.png` - Should show 99 (green)
+- `tmp/preview-legend-fold.png` - Should show A2s (blue)
+
+## Configuration
+
+The parser uses crop regions defined in `config.ts`. The default config is optimized for grid-only screenshots around 1190×934 pixels.
+
+If your screenshots have different dimensions, adjust these values:
 
 ```typescript
-import type { PokerRange, RangeData } from '@/types';
-
-const data: RangeData = {
-  // Row 0
-  'AA': 'raise',
-  'AKs': 'raise',
-  // ... all 169 hands, no comments about strategy
-};
-
-export const [variableName]: PokerRange = {
-  meta: {
-    stackSize: '[stackSize]',
-    position: '[position]',
-    scenario: '[scenario]',
-    displayName: '[displayName]',
+export const DEFAULT_CONFIG: RangeChartConfig = {
+  // Grid covers the entire image with small margins
+  gridBox: { x: 8, y: 8, w: 1175, h: 920 },
+  legend: {
+    // Sample colors from known solid cells:
+    // AA (row 0, col 0) for raise color
+    raiseBox: { x: 20, y: 20, w: 60, h: 45 },
+    // 99 (row 5, col 5) for call color
+    callBox: { x: 468, y: 365, w: 60, h: 45 },
+    // A2s (row 0, col 12) for fold color
+    foldBox: { x: 1100, y: 20, w: 60, h: 45 },
   },
-  data,
+  cellInsetPct: 0.15,  // Ignore 15% of cell edges to avoid borders
 };
-
-export default [variableName];
 ```
 
-## Example Execution
+## Output
 
-**User**: "Use the range-parser skill. 80bb UTG RFI." [image attached]
+The parser generates:
 
-**AI Response**:
+1. **TypeScript range file** in `data/ranges/`
+2. **JSON debug output** in `tmp/parsed-range.json`
+3. **Console stats** showing action counts and detected colors
 
-### Pass 1: Color Identification
+### Sample Output
 
 ```
-Row 0:  RED, RED, RED, RED, RED, BLUE, BLUE, BLUE, RED, RED, RED, RED, RED
-Row 1:  RED, RED, RED, RED, RED, BLUE, BLUE, BLUE, RED, BLUE, BLUE, BLUE, BLUE
-Row 2:  RED, RED, RED, RED, RED, RED, BLUE, BLUE, BLUE, BLUE, BLUE, BLUE, BLUE
-Row 3:  RED, RED, BLUE, RED, RED, RED, BLUE, BLUE, BLUE, BLUE, BLUE, BLUE, BLUE
-Row 4:  RED, BLUE, BLUE, BLUE, RED, RED, RED, BLUE, BLUE, BLUE, BLUE, BLUE, BLUE
-Row 5:  BLUE, BLUE, BLUE, BLUE, BLUE, RED, RED, BLUE, BLUE, BLUE, BLUE, BLUE, BLUE
-Row 6:  BLUE, BLUE, BLUE, BLUE, BLUE, BLUE, RED, BLUE, BLUE, BLUE, BLUE, BLUE, BLUE
-Row 7:  BLUE, BLUE, BLUE, BLUE, BLUE, BLUE, BLUE, RED, RED, BLUE, BLUE, BLUE, BLUE
-Row 8:  BLUE, BLUE, BLUE, BLUE, BLUE, BLUE, BLUE, BLUE, RED, RED, BLUE, BLUE, BLUE
-Row 9:  BLUE, BLUE, BLUE, BLUE, BLUE, BLUE, BLUE, BLUE, BLUE, RED, RED, BLUE, BLUE
-Row 10: BLUE, BLUE, BLUE, BLUE, BLUE, BLUE, BLUE, BLUE, BLUE, BLUE, RED, BLUE, BLUE
-Row 11: BLUE, BLUE, BLUE, BLUE, BLUE, BLUE, BLUE, BLUE, BLUE, BLUE, BLUE, BLUE, BLUE
-Row 12: BLUE, BLUE, BLUE, BLUE, BLUE, BLUE, BLUE, BLUE, BLUE, BLUE, BLUE, BLUE, BLUE
+Parsing range chart...
+
+Legend colors detected (RGB):
+  Raise: rgb(235, 66, 68)
+  Call:  rgb(114, 192, 116)
+  Fold:  rgb(80, 136, 191)
+
+Action counts:
+  Raise: 3
+  Call: 6
+  Fold: 141
+  Blended: 19
+  Total: 169
+
+Range file written to: data/ranges/80bb-utgplus1-vs-raise-vs-utg.ts
 ```
 
-### Pass 2: Mapping
+## Mixed Strategies (Splits)
 
-RED → raise, BLUE → fold
+The parser detects cells with multiple colors and outputs blended actions:
 
-[Then generate TypeScript file]
+```typescript
+// Pure action
+'AA': 'raise',
 
-## Ambiguous Cells
+// Mixed strategy (70% raise, 30% call)
+'A5s': { raise: 70, call: 30 },
+```
 
-If you see a cell that could be two colors:
-1. Mark it with "?" in Pass 1: `RED?`
-2. After Pass 1, list all ambiguous cells: "Cells marked uncertain: Row 1 Col 8 (RED?)"
-3. Ask user to confirm before proceeding to Pass 2
+Detection thresholds (tune in `parseRangeChart.ts`):
+- **>85% one color** → Pure action
+- **Second color <12%** → Pure action (ignore noise)
+- **Otherwise** → Blended action (rounded to 10%)
 
-## Verification
+## Troubleshooting
 
-After generating, count:
-- Total RED cells = X (should match raise count)
-- Total BLUE cells = Y (should match fold count)
-- Total GREEN cells = Z (should match call count)
-- X + Y + Z should = 169
+### Colors detected incorrectly
+- Ensure AA is a solid raise (red) cell in your chart
+- Ensure 99 is a solid call (green) cell
+- Ensure A2s is a solid fold (blue) cell
+- If not, adjust the sample box positions in `config.ts`
+
+### Grid misaligned
+- Run with `--preview-only` and check `tmp/preview-grid.png`
+- Adjust `gridBox` coordinates to capture exactly the 13x13 cells
+
+### Cells misidentified near borders
+- Increase `cellInsetPct` to ignore more edge pixels
+- Default is 0.15 (15% inset from each edge)
+
+### Different image dimensions
+- Get your image dimensions: check file properties or use an image editor
+- Adjust `gridBox` and legend sample positions proportionally
+
+## File Structure
+
+```
+tools/range-parser/
+├── config.ts          # Crop region configuration
+├── parseRange.ts      # Main CLI entry point
+├── parseRangeChart.ts # Core parsing logic
+├── previewCrops.ts    # Preview crop generator
+├── template.ts        # Range file template (reference)
+└── README.md          # This file
+```

@@ -1,14 +1,15 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import type { SimpleAction, HandAction, BlendedAction } from '@/types';
+import type { SimpleAction, HandAction, BlendedAction, Scenario } from '@/types';
 import { isSimpleAction } from '@/types';
 import { useUrlState, useRangeSelections, usePainting } from '@/hooks';
-import { Card, PageHeader } from './shared';
+import { Card } from './shared';
 import { RangeChart } from './RangeChart';
 import { ActionPalette } from './ActionPalette';
 import { RangeDropdowns } from './RangeDropdowns';
 import { BlendPicker } from './BlendPicker';
+import { MobileActionBar } from './MobileActionBar';
 
 /**
  * Builder Mode - Create and save poker ranges.
@@ -96,7 +97,6 @@ export function BuilderMode() {
         if (result.exists && result.data) {
           loadSelections(result.data as Record<string, HandAction>);
           setExistingRangeLoaded(true);
-          setSaveMessage({ type: 'success', text: `Loaded: ${result.filename}` });
         } else {
           clearSelections();
           setExistingRangeLoaded(false);
@@ -156,72 +156,22 @@ export function BuilderMode() {
   };
 
   return (
-    <main className={`min-h-screen p-4 lg:p-8 ${painting.isPainting ? 'select-none' : ''} max-w-[1050px] mx-auto`}>
-      <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 max-w-6xl mx-auto">
-        {/* Left column - Controls */}
-        <div className="flex flex-col gap-4 lg:w-80 lg:flex-shrink-0">
-          <PageHeader
-            title="Builder Mode"
-            description="Create and save your poker ranges"
-          />
-
-          <Card>
-            <RangeDropdowns
-              position={position}
-              stackSize={stackSize}
-              scenario={scenario}
-              opponent={opponent}
-              onPositionChange={setPosition}
-              onStackSizeChange={setStackSize}
-              onScenarioChange={setScenario}
-              onOpponentChange={setOpponent}
-            />
-          </Card>
-
-          <Card>
-            <ActionPalette
-              selectedAction={blendMode ? null : painting.selectedAction}
-              onSelectAction={handleSelectAction}
-              mode="builder"
-              showBlendOptions={true}
-              onBlendClick={handleBlendClick}
-            />
-            {blendMode && (
-              <div className="mt-2 px-3 py-2 bg-slate-100 rounded-lg text-sm text-slate-600">
-                Click a cell to set blend percentages
-              </div>
-            )}
-          </Card>
-
-          {/* Action buttons */}
-          <div className="flex gap-2">
-            <button
-              onClick={handleClear}
-              className="flex-1 px-4 py-3 rounded-lg font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 transition-all duration-150"
-            >
-              Clear
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={!allFilled || isSaving}
-              className={`
-                flex-1 px-4 py-3 rounded-lg font-semibold text-white
-                transition-all duration-150
-                ${allFilled && !isSaving
-                  ? 'bg-green-600 hover:bg-green-700 cursor-pointer'
-                  : 'bg-slate-300 cursor-not-allowed'
-                }
-              `}
-            >
-              {isSaving ? 'Saving...' : existingRangeLoaded ? 'Update' : 'Save'}
-            </button>
-          </div>
-
-          {/* Save message */}
+    <>
+      <main className={`${painting.isPainting ? 'select-none' : ''}`}>
+        {/* Mobile Layout */}
+        <div className="lg:hidden flex flex-col pb-24">
+          {/* Blend mode indicator */}
+          {blendMode && (
+            <div className="mx-3 mt-2 px-3 py-1.5 bg-purple-100 rounded-lg text-xs text-purple-700 text-center">
+              Tap a cell to set blend percentages
+            </div>
+          )}
+          
+          {/* Save message on mobile */}
           {saveMessage && (
             <div
               className={`
-                py-2 px-4 rounded-lg text-sm font-medium text-center
+                mx-3 mt-2 py-1.5 px-3 rounded-lg text-xs font-medium text-center
                 ${saveMessage.type === 'success' 
                   ? 'bg-green-100 text-green-700' 
                   : 'bg-red-100 text-red-700'
@@ -231,21 +181,131 @@ export function BuilderMode() {
               {saveMessage.text}
             </div>
           )}
+          
+          {/* Mobile Grid */}
+          <div className="flex-1 p-3">
+            <RangeChart
+              userSelections={userSelections}
+              isSubmitted={false}
+              isPainting={painting.isPainting && !blendMode}
+              selectedAction={blendMode ? null : painting.selectedAction}
+              onPaint={paintCell}
+              onPaintStart={handlePaintStart}
+              blendMode={blendMode}
+            />
+          </div>
         </div>
 
-        {/* Right column - Grid */}
-        <div className="flex-1 min-w-0">
-          <RangeChart
-            userSelections={userSelections}
-            isSubmitted={false}
-            isPainting={painting.isPainting && !blendMode}
-            selectedAction={blendMode ? null : painting.selectedAction}
-            onPaint={paintCell}
-            onPaintStart={handlePaintStart}
-            blendMode={blendMode}
-          />
+        {/* Desktop Layout */}
+        <div className="hidden lg:block p-4 lg:p-8 max-w-[1050px] mx-auto">
+          <div className="flex flex-row gap-8 max-w-6xl mx-auto">
+            {/* Left column - Controls */}
+            <div className="flex flex-col gap-4 w-80 flex-shrink-0">
+              <Card>
+                <RangeDropdowns
+                  position={position}
+                  stackSize={stackSize}
+                  scenario={scenario}
+                  opponent={opponent}
+                  onPositionChange={setPosition}
+                  onStackSizeChange={setStackSize}
+                  onScenarioChange={setScenario}
+                  onOpponentChange={setOpponent}
+                />
+              </Card>
+
+              <Card>
+                <ActionPalette
+                  selectedAction={blendMode ? null : painting.selectedAction}
+                  onSelectAction={handleSelectAction}
+                  mode="builder"
+                  showBlendOptions={true}
+                  onBlendClick={handleBlendClick}
+                />
+                {blendMode && (
+                  <div className="mt-2 px-3 py-2 bg-slate-100 rounded-lg text-sm text-slate-600">
+                    Click a cell to set blend percentages
+                  </div>
+                )}
+              </Card>
+
+              {/* Action buttons */}
+              <div className="flex gap-2">
+                <button
+                  onClick={handleClear}
+                  className="flex-1 px-4 py-3 rounded-lg font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 transition-all duration-150"
+                >
+                  Clear
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={!allFilled || isSaving}
+                  className={`
+                    flex-1 px-4 py-3 rounded-lg font-semibold text-white
+                    transition-all duration-150
+                    ${allFilled && !isSaving
+                      ? 'bg-green-600 hover:bg-green-700 cursor-pointer'
+                      : 'bg-slate-300 cursor-not-allowed'
+                    }
+                  `}
+                >
+                  {isSaving ? 'Saving...' : existingRangeLoaded ? 'Update' : 'Save'}
+                </button>
+              </div>
+
+              {/* Save message */}
+              {saveMessage && (
+                <div
+                  className={`
+                    py-2 px-4 rounded-lg text-sm font-medium text-center
+                    ${saveMessage.type === 'success' 
+                      ? 'bg-green-100 text-green-700' 
+                      : 'bg-red-100 text-red-700'
+                    }
+                  `}
+                >
+                  {saveMessage.text}
+                </div>
+              )}
+            </div>
+
+            {/* Right column - Grid */}
+            <div className="flex-1 min-w-0">
+              <RangeChart
+                userSelections={userSelections}
+                isSubmitted={false}
+                isPainting={painting.isPainting && !blendMode}
+                selectedAction={blendMode ? null : painting.selectedAction}
+                onPaint={paintCell}
+                onPaintStart={handlePaintStart}
+                blendMode={blendMode}
+              />
+            </div>
+          </div>
         </div>
-      </div>
+      </main>
+
+      {/* Mobile Action Bar */}
+      <MobileActionBar
+        mode="builder"
+        selectedAction={painting.selectedAction}
+        onSelectAction={handleSelectAction}
+        blendMode={blendMode}
+        onBlendClick={handleBlendClick}
+        canSave={allFilled}
+        isSaving={isSaving}
+        onClear={handleClear}
+        onSave={handleSave}
+        showShove={true}
+        position={position}
+        stackSize={stackSize}
+        scenario={scenario}
+        opponent={opponent}
+        onPositionChange={setPosition}
+        onStackSizeChange={setStackSize}
+        onScenarioChange={setScenario}
+        onOpponentChange={setOpponent}
+      />
 
       {/* Blend Picker Modal */}
       <BlendPicker
@@ -259,7 +319,7 @@ export function BuilderMode() {
         onConfirm={handleBlendConfirm}
         onClose={handleBlendClose}
       />
-    </main>
+    </>
   );
 }
 

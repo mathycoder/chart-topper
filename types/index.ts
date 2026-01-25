@@ -11,17 +11,14 @@ export type Rank = (typeof RANKS)[number];
 // ============================================
 
 // Simple action - 100% one choice
-export type SimpleAction = 'raise' | 'call' | 'fold';
-
-// If you later add jams, add it here and it will propagate.
-// export type SimpleAction = 'raise' | 'call' | 'fold' | 'shove';
+export type SimpleAction = 'raise' | 'call' | 'fold' | 'shove';
 
 // Blended action - percentages for mixed strategies (must sum to 100)
 export type BlendedAction = {
   raise?: number; // 0-100
   call?: number;  // 0-100
   fold?: number;  // 0-100
-  // shove?: number; // 0-100 (optional later)
+  shove?: number; // 0-100
 };
 
 // Hand entry can be simple OR blended

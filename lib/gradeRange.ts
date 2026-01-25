@@ -497,6 +497,7 @@ export function gradeRangeSubmission(args: {
     raise: { expected: 0, correct: 0, halfCredit: 0, accuracy: 0 },
     call: { expected: 0, correct: 0, halfCredit: 0, accuracy: 0 },
     fold: { expected: 0, correct: 0, halfCredit: 0, accuracy: 0 },
+    shove: { expected: 0, correct: 0, halfCredit: 0, accuracy: 0 },
   };
 
   const diffs: HandDiff[] = [];

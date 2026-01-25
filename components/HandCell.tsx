@@ -10,6 +10,7 @@ const ACTION_COLORS = {
   raise: 'var(--color-action-raise)',
   call: 'var(--color-action-call)',
   fold: 'var(--color-action-fold)',
+  shove: 'var(--color-action-shove)',
 };
 
 interface HandCellProps {
@@ -42,7 +43,7 @@ interface HandCellProps {
 function buildBlendedGradient(action: BlendedAction): string {
   const segments: { color: string; percent: number }[] = [];
   
-  // Add segments in consistent order: raise, call, fold
+  // Add segments in consistent order: raise, call, fold, shove
   if (action.raise && action.raise > 0) {
     segments.push({ color: ACTION_COLORS.raise, percent: action.raise });
   }
@@ -51,6 +52,9 @@ function buildBlendedGradient(action: BlendedAction): string {
   }
   if (action.fold && action.fold > 0) {
     segments.push({ color: ACTION_COLORS.fold, percent: action.fold });
+  }
+  if (action.shove && action.shove > 0) {
+    segments.push({ color: ACTION_COLORS.shove, percent: action.shove });
   }
   
   if (segments.length === 0) return 'var(--color-cell-empty)';
@@ -169,6 +173,7 @@ export function HandCell({
       case 'raise': return 'bg-action-raise';
       case 'call': return 'bg-action-call';
       case 'fold': return 'bg-action-fold';
+      case 'shove': return 'bg-action-shove';
       default: return 'bg-cell-empty';
     }
   };

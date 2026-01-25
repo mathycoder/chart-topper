@@ -17,12 +17,12 @@ interface RangeDropdownsProps {
 const POSITIONS: { value: Position; label: string }[] = [
   { value: 'UTG', label: 'UTG' },
   { value: 'UTG+1', label: 'UTG+1' },
-  { value: 'LJ', label: 'LJ (Lojack)' },
-  { value: 'HJ', label: 'HJ (Hijack)' },
-  { value: 'CO', label: 'CO (Cutoff)' },
-  { value: 'BTN', label: 'BTN (Button)' },
-  { value: 'SB', label: 'SB (Small Blind)' },
-  { value: 'BB', label: 'BB (Big Blind)' },
+  { value: 'LJ', label: 'LJ' },
+  { value: 'HJ', label: 'HJ' },
+  { value: 'CO', label: 'CO' },
+  { value: 'BTN', label: 'BTN' },
+  { value: 'SB', label: 'SB' },
+  { value: 'BB', label: 'BB' },
 ];
 
 // Position order for determining valid opponents (earlier positions can raise first)
@@ -57,7 +57,7 @@ const STACK_SIZES: { value: StackSize; label: string }[] = [
 ];
 
 const SCENARIOS: { value: Scenario; label: string }[] = [
-  { value: 'rfi', label: 'RFI (Raise First In)' },
+  { value: 'rfi', label: 'RFI' },
   { value: 'vs-raise', label: 'vs Raise' },
   { value: 'vs-3bet', label: 'vs 3-Bet' },
 ];

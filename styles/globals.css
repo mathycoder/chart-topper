@@ -13,11 +13,13 @@
   --color-action-raise: #dc2626;
   --color-action-call: #16a34a;
   --color-action-fold: #2563eb;
+  --color-action-shove: #9333ea;
   
   /* Hover variants */
   --color-action-raise-hover: #b91c1c;
   --color-action-call-hover: #15803d;
   --color-action-fold-hover: #1d4ed8;
+  --color-action-shove-hover: #7e22ce;
   
   /* Cell states */
   --color-cell-empty: #f8fafc;
@@ -63,4 +65,23 @@ body {
 .painting {
   user-select: none;
   -webkit-user-select: none;
+}
+
+/* Safe area insets for mobile (iPhone notch, etc.) */
+.pb-safe {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+}
+
+/* Ensure content doesn't scroll behind fixed bottom bar */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .pb-16 {
+    padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+  }
+}
+
+/* Mobile viewport height fix */
+@supports (height: 100dvh) {
+  .min-h-screen {
+    min-height: 100dvh;
+  }
 }

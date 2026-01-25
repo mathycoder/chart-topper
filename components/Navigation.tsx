@@ -4,8 +4,9 @@ import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 
 const NAV_ITEMS = [
-  { href: '/', label: 'Quiz Mode', description: 'Test your range knowledge' },
-  { href: '/builder', label: 'Builder Mode', description: 'Create & save ranges' },
+  { href: '/', label: 'Quiz', description: 'Test your range knowledge' },
+  { href: '/view', label: 'View', description: 'Browse ranges' },
+  { href: '/builder', label: 'Builder', description: 'Create & save ranges' },
 ];
 
 /**
@@ -32,7 +33,7 @@ export function Navigation() {
           </div>
 
           {/* Navigation tabs */}
-          <div className="flex gap-1">
+          <div className="flex items-center gap-1">
             {NAV_ITEMS.map(({ href, label }) => {
               const isActive = pathname === href;
               
@@ -41,7 +42,7 @@ export function Navigation() {
                   key={href}
                   href={buildHref(href)}
                   className={`
-                    px-4 py-2 rounded-lg text-sm font-medium
+                    px-3 py-2 lg:px-4 rounded-lg text-sm font-medium
                     transition-all duration-150
                     ${isActive
                       ? 'bg-slate-900 text-white'
