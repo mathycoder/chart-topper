@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import type { PokerRange, RangeData, RangeNotes, Scenario, SimpleAction, QuizAction } from '@/types';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import type { Scenario, SimpleAction, QuizAction } from '@/types';
 import { useUrlState, useQuizSelections, usePainting } from '@/hooks';
+import { getRange } from '@/data/ranges';
 import { Card } from './shared';
 import { RangeChart } from './RangeChart';
 import { ActionPalette } from './ActionPalette';
@@ -11,14 +12,6 @@ import { RangeDropdowns } from './RangeDropdowns';
 import { MobileActionBar, deriveBlendType } from './MobileActionBar';
 import { MobileDropdownBar } from './MobileDropdownBar';
 import { gradeRangeSubmission, type ChartGradeSummary, type GradeAction } from '@/lib/gradeRange';
-
-const SCENARIO_NAMES: Record<Scenario, string> = {
-  'rfi': 'Raise First In',
-  'vs-raise': 'vs Raise',
-  'vs-3bet': 'vs 3-Bet',
-  'vs-4bet': 'vs 4-Bet',
-  'after-limp': 'After Limp',
-};
 
 /**
  * Quiz Mode - Test your poker range knowledge.
@@ -29,9 +22,10 @@ export function QuizMode() {
   const { position, stackSize, scenario, opponent, setPosition, setStackSize, setScenario, setOpponent } = useUrlState('/');
   const { userSelections, setCell, clearSelections, resetToFold, filledCount, totalCells, allFilled } = useQuizSelections();
 
-  const [range, setRange] = useState<PokerRange | null>(null);
-  const [rangeExists, setRangeExists] = useState(true);
-  const [isLoading, setIsLoading] = useState(true);
+  // Get range data synchronously via direct import
+  const range = useMemo(() => getRange(stackSize, position, scenario, opponent), [stackSize, position, scenario, opponent]);
+  const rangeExists = range !== null;
+
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [gradeSummary, setGradeSummary] = useState<ChartGradeSummary | null>(null);
   const [showCorrectAnswers, setShowCorrectAnswers] = useState(false);
@@ -42,6 +36,27 @@ export function QuizMode() {
 
   // Painting state
   const painting = usePainting();
+
+  // Track previous range params to detect changes
+  const prevParamsRef = useRef({ position, stackSize, scenario, opponent });
+  
+  // Reset quiz state when range parameters change
+  useEffect(() => {
+    const prev = prevParamsRef.current;
+    const paramsChanged = prev.position !== position || 
+                          prev.stackSize !== stackSize || 
+                          prev.scenario !== scenario || 
+                          prev.opponent !== opponent;
+    
+    if (paramsChanged) {
+      setIsSubmitted(false);
+      setGradeSummary(null);
+      setSelectedActions(new Set());
+      setMultiSelectMode(false);
+      resetToFold();
+      prevParamsRef.current = { position, stackSize, scenario, opponent };
+    }
+  }, [position, stackSize, scenario, opponent, resetToFold]);
   
   // Toggle action selection (multi-select for blends)
   const handleToggleAction = useCallback((action: SimpleAction) => {
@@ -89,59 +104,6 @@ export function QuizMode() {
       setCell(hand, effectiveAction);
     }
   }, [painting, effectiveAction, isSubmitted, setCell]);
-
-  // Load range when dropdowns change
-  useEffect(() => {
-    const loadRange = async () => {
-      setIsLoading(true);
-      setIsSubmitted(false);
-      setGradeSummary(null);
-      setSelectedActions(new Set());
-      setMultiSelectMode(false);
-      resetToFold();
-
-      try {
-        const params = new URLSearchParams({ stackSize, position, scenario });
-        if (opponent) params.set('opponent', opponent);
-        const response = await fetch(`/api/load-range?${params}`);
-        const result = await response.json();
-
-        if (result.exists && result.data) {
-          // Build display name based on scenario
-          let displayName = `${stackSize}+ ${position} - ${SCENARIO_NAMES[scenario]}`;
-          if (opponent && scenario !== 'rfi') {
-            displayName = `${stackSize}+ ${position} vs ${opponent} - ${SCENARIO_NAMES[scenario]}`;
-          }
-          
-          const rangeData = result.data as RangeData;
-          
-          setRange({
-            meta: {
-              stackSize,
-              position,
-              scenario,
-              opponentPosition: opponent || undefined,
-              displayName,
-            },
-            data: rangeData,
-            notes: result.notes as RangeNotes | undefined,
-          });
-          setRangeExists(true);
-        } else {
-          setRange(null);
-          setRangeExists(false);
-        }
-      } catch (error) {
-        console.error('Failed to load range:', error);
-        setRange(null);
-        setRangeExists(false);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadRange();
-  }, [position, stackSize, scenario, opponent, resetToFold]);
 
   // Convert userSelections to GradeAction format for grading
   const userResultsForGrading = useMemo(() => {
@@ -262,7 +224,7 @@ export function QuizMode() {
               blendMode={rangeExists && !isSubmitted && hasBlendSelected}
             />
             
-            {!rangeExists && !isLoading && (
+            {!rangeExists && (
               <div className="absolute inset-3 bg-slate-800 rounded-lg flex flex-col items-center justify-center text-center p-6">
                 <p className="text-slate-400 text-base mb-4">
                   This range hasn&apos;t been created yet
@@ -275,12 +237,6 @@ export function QuizMode() {
                 </a>
               </div>
             )}
-
-            {isLoading && (
-              <div className="absolute inset-3 bg-white/80 backdrop-blur-sm rounded-lg flex items-center justify-center">
-                <div className="text-slate-600">Loading...</div>
-              </div>
-            )}
           </div>
         </div>
 
@@ -288,7 +244,7 @@ export function QuizMode() {
         <div className="hidden lg:block p-4 lg:p-8 max-w-[1050px] mx-auto">
           <div className="flex flex-row gap-8 max-w-6xl mx-auto">
             {/* Left column - Controls */}
-            <div className="flex flex-col gap-4 w-80 flex-shrink-0">
+            <div className="flex flex-col gap-4 w-80 shrink-0">
               <Card>
                 <RangeDropdowns
                   position={position}
@@ -397,7 +353,7 @@ export function QuizMode() {
                 blendMode={rangeExists && !isSubmitted && hasBlendSelected}
               />
               
-              {!rangeExists && !isLoading && (
+              {!rangeExists && (
                 <div className="absolute inset-0 bg-slate-800 rounded-lg flex flex-col items-center justify-center text-center p-6">
                   <p className="text-slate-400 text-lg mb-4">
                     This range hasn&apos;t been created yet
@@ -408,12 +364,6 @@ export function QuizMode() {
                   >
                     Create in Builder
                   </a>
-                </div>
-              )}
-
-              {isLoading && (
-                <div className="absolute inset-0 bg-white/80 backdrop-blur-sm rounded-lg flex items-center justify-center">
-                  <div className="text-slate-600">Loading...</div>
                 </div>
               )}
             </div>

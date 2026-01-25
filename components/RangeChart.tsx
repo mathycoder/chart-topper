@@ -49,7 +49,7 @@ export function RangeChart({
 }: RangeChartProps) {
   return (
     <div 
-      className="grid rounded-sm shadow-inner overflow-hidden"
+      className="grid rounded-sm shadow-inner overflow-hidden transitions-enabled"
       style={{
         gridTemplateColumns: 'repeat(13, minmax(0, 1fr))',
         gridTemplateRows: 'repeat(13, minmax(0, 1fr))',

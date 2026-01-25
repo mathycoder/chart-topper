@@ -34,12 +34,13 @@ interface UseQuizSelectionsReturn {
 /**
  * Hook for managing user selections on the range chart (Builder mode).
  * Supports both simple actions and blended actions.
+ * @param initialData - Optional initial data to populate selections
  */
-export function useRangeSelections(): UseRangeSelectionsReturn {
+export function useRangeSelections(initialData?: Record<string, HandAction>): UseRangeSelectionsReturn {
   const [userSelections, setUserSelections] = useState<BuilderSelections>(() => {
     const initial: BuilderSelections = {};
     ALL_HANDS.forEach(hand => {
-      initial[hand] = null;
+      initial[hand] = initialData?.[hand] ?? null;
     });
     return initial;
   });
@@ -102,10 +103,11 @@ export function useRangeSelections(): UseRangeSelectionsReturn {
  * Supports simple actions and blend types for answering.
  */
 export function useQuizSelections(): UseQuizSelectionsReturn {
+  // Initialize with 'fold' to avoid visual flash from null → fold on first render
   const [userSelections, setUserSelections] = useState<QuizSelections>(() => {
     const initial: QuizSelections = {};
     ALL_HANDS.forEach(hand => {
-      initial[hand] = null;
+      initial[hand] = 'fold';
     });
     return initial;
   });

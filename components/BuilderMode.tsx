@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import type { SimpleAction, HandAction, BlendedAction, Scenario } from '@/types';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import type { SimpleAction, HandAction, BlendedAction } from '@/types';
 import { isSimpleAction } from '@/types';
 import { useUrlState, useRangeSelections, usePainting } from '@/hooks';
+import { getRange } from '@/data/ranges';
 import { Card } from './shared';
 import { RangeChart } from './RangeChart';
 import { ActionPalette } from './ActionPalette';
@@ -18,11 +19,14 @@ import { MobileActionBar } from './MobileActionBar';
  */
 export function BuilderMode() {
   const { position, stackSize, scenario, opponent, setPosition, setStackSize, setScenario, setOpponent } = useUrlState('/builder');
-  const { userSelections, setCell, loadSelections, clearSelections, filledCount, totalCells, allFilled } = useRangeSelections();
+  
+  // Get initial range data synchronously for instant render
+  const initialRange = useMemo(() => getRange(stackSize, position, scenario, opponent), []);
+  const { userSelections, setCell, loadSelections, clearSelections, filledCount, totalCells, allFilled } = useRangeSelections(initialRange?.data);
 
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [existingRangeLoaded, setExistingRangeLoaded] = useState(false);
+  const [existingRangeLoaded, setExistingRangeLoaded] = useState(initialRange !== null);
   
   // Blend picker state
   const [blendPickerOpen, setBlendPickerOpen] = useState(false);
@@ -31,6 +35,9 @@ export function BuilderMode() {
 
   // Painting state
   const painting = usePainting();
+
+  // Track previous range params to detect changes
+  const prevParamsRef = useRef({ position, stackSize, scenario, opponent });
 
   // Paint cell callback - now handles blend mode
   const paintCell = useCallback((hand: string) => {
@@ -48,7 +55,6 @@ export function BuilderMode() {
     if (blendMode) {
       // In blend mode, clicking opens the picker
       setBlendPickerHand(hand);
-      const existingAction = userSelections[hand];
       setBlendPickerOpen(true);
     } else {
       painting.handlePaintStart();
@@ -56,7 +62,7 @@ export function BuilderMode() {
         setCell(hand, painting.selectedAction);
       }
     }
-  }, [blendMode, painting, setCell, userSelections]);
+  }, [blendMode, painting, setCell]);
 
   // Handle blend button click
   const handleBlendClick = useCallback(() => {
@@ -87,27 +93,26 @@ export function BuilderMode() {
 
   // Load existing range when dropdowns change
   useEffect(() => {
-    const loadExistingRange = async () => {
-      try {
-        const params = new URLSearchParams({ stackSize, position, scenario });
-        if (opponent) params.set('opponent', opponent);
-        const response = await fetch(`/api/load-range?${params}`);
-        const result = await response.json();
-
-        if (result.exists && result.data) {
-          loadSelections(result.data as Record<string, HandAction>);
-          setExistingRangeLoaded(true);
-        } else {
-          clearSelections();
-          setExistingRangeLoaded(false);
-          setSaveMessage(null);
-        }
-      } catch (error) {
-        console.error('Failed to load range:', error);
+    const prev = prevParamsRef.current;
+    const paramsChanged = prev.position !== position || 
+                          prev.stackSize !== stackSize || 
+                          prev.scenario !== scenario || 
+                          prev.opponent !== opponent;
+    
+    if (paramsChanged) {
+      const existingRange = getRange(stackSize, position, scenario, opponent);
+      
+      if (existingRange) {
+        loadSelections(existingRange.data as Record<string, HandAction>);
+        setExistingRangeLoaded(true);
+      } else {
+        clearSelections();
+        setExistingRangeLoaded(false);
+        setSaveMessage(null);
       }
-    };
-
-    loadExistingRange();
+      
+      prevParamsRef.current = { position, stackSize, scenario, opponent };
+    }
   }, [position, stackSize, scenario, opponent, loadSelections, clearSelections]);
 
   // Clear save message after delay
@@ -200,7 +205,7 @@ export function BuilderMode() {
         <div className="hidden lg:block p-4 lg:p-8 max-w-[1050px] mx-auto">
           <div className="flex flex-row gap-8 max-w-6xl mx-auto">
             {/* Left column - Controls */}
-            <div className="flex flex-col gap-4 w-80 flex-shrink-0">
+            <div className="flex flex-col gap-4 w-80 shrink-0">
               <Card>
                 <RangeDropdowns
                   position={position}

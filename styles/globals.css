@@ -52,12 +52,12 @@ body {
   font-family: var(--font-sans), system-ui, sans-serif;
 }
 
-/* Smooth transitions for cell painting */
-.hand-cell {
+/* Smooth transitions for cell painting - only enabled after initial render */
+.transitions-enabled .hand-cell {
   transition: background-color 0.1s ease-out, transform 0.1s ease-out;
 }
 
-.hand-cell:hover {
+.transitions-enabled .hand-cell:hover {
   transform: scale(1.02);
 }
 

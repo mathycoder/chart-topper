@@ -1,9 +1,6 @@
 import { Suspense } from 'react';
 import { BuilderMode } from '@/components/BuilderMode';
 
-// Force dynamic rendering to avoid static generation issues with useSearchParams
-export const dynamic = 'force-dynamic';
-
 function BuilderModeLoading() {
   return (
     <div className="min-h-screen flex items-center justify-center">
