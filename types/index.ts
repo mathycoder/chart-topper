@@ -101,14 +101,15 @@ export type StackSize = '10bb' | '20bb' | '40bb' | '80bb';
 export type Position = 'UTG' | 'UTG+1' | 'LJ' | 'HJ' | 'CO' | 'BTN' | 'SB' | 'BB';
 
 // Scenario types - what situation is this range for?
-export type Scenario = 'rfi' | 'vs-3bet' | 'vs-4bet' | 'after-limp' | 'vs-raise';
+export type Scenario = 'rfi' | 'vs-3bet' | 'vs-4bet' | 'after-limp' | 'vs-raise' | 'vs-raise-call';
 
 // Range metadata - describes what situation this range applies to
 export type RangeMeta = {
   stackSize: StackSize;
   position: Position;
   scenario: Scenario;
-  opponentPosition?: Position; // Only for non-RFI scenarios (who raised/3bet/etc.)
+  opponentPosition?: Position; // Raiser for vs-raise, vs-raise-call scenarios
+  callerPosition?: Position; // Caller for vs-raise-call (3-way pot) scenarios
   displayName: string; // Human-readable: "80bb+ UTG - Raise First In"
   description?: string; // Strategy explanation for this range
 };

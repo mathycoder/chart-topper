@@ -7,10 +7,12 @@ interface RangeDropdownsProps {
   stackSize: StackSize;
   scenario: Scenario;
   opponent: Position | null;
+  caller: Position | null;
   onPositionChange: (position: Position) => void;
   onStackSizeChange: (stackSize: StackSize) => void;
   onScenarioChange: (scenario: Scenario) => void;
   onOpponentChange: (opponent: Position | null) => void;
+  onCallerChange: (caller: Position | null) => void;
   disabled?: boolean;
 }
 
@@ -29,14 +31,14 @@ const POSITIONS: { value: Position; label: string }[] = [
 const POSITION_ORDER: Position[] = ['UTG', 'UTG+1', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
 
 /**
- * Get valid opponent positions for a given hero position and scenario.
- * For "vs Raise" - opponent must have acted before hero (earlier position)
+ * Get valid opponent (raiser) positions for a given hero position and scenario.
+ * For "vs Raise" / "vs Raise + Call" - opponent must have acted before hero (earlier position)
  * For "vs 3-Bet" - any position can 3-bet after hero's open raise
  */
 function getValidOpponents(heroPosition: Position, scenario: Scenario): Position[] {
   const heroIndex = POSITION_ORDER.indexOf(heroPosition);
   
-  if (scenario === 'vs-raise') {
+  if (scenario === 'vs-raise' || scenario === 'vs-raise-call') {
     // Opponent raised before hero, so must be in earlier position
     return POSITION_ORDER.slice(0, heroIndex);
   }
@@ -49,6 +51,30 @@ function getValidOpponents(heroPosition: Position, scenario: Scenario): Position
   return [];
 }
 
+/**
+ * Get valid caller positions for vs-raise-call scenario.
+ * Caller must be between the raiser and hero in position order.
+ */
+function getValidCallers(heroPosition: Position, raiserPosition: Position): Position[] {
+  const heroIndex = POSITION_ORDER.indexOf(heroPosition);
+  const raiserIndex = POSITION_ORDER.indexOf(raiserPosition);
+  // Caller must be between raiser and hero (exclusive on both ends)
+  return POSITION_ORDER.slice(raiserIndex + 1, heroIndex);
+}
+
+/**
+ * Get valid hero positions for a given scenario.
+ */
+function getValidHeroPositions(scenario: Scenario): Position[] {
+  if (scenario === 'vs-raise-call') {
+    return POSITION_ORDER.slice(2); // LJ and later (need raiser + caller before)
+  }
+  if (scenario === 'vs-raise') {
+    return POSITION_ORDER.slice(1); // UTG+1 and later (need raiser before)
+  }
+  return POSITION_ORDER;
+}
+
 const STACK_SIZES: { value: StackSize; label: string }[] = [
   { value: '80bb', label: '80bb+' },
   { value: '40bb', label: '40bb' },
@@ -59,21 +85,24 @@ const STACK_SIZES: { value: StackSize; label: string }[] = [
 const SCENARIOS: { value: Scenario; label: string }[] = [
   { value: 'rfi', label: 'RFI' },
   { value: 'vs-raise', label: 'vs Raise' },
+  { value: 'vs-raise-call', label: 'vs Raise + Call' },
   { value: 'vs-3bet', label: 'vs 3-Bet' },
 ];
 
 /**
- * Dropdown selectors for Position, Stack Size, Scenario, and Opponent.
+ * Dropdown selectors for Position, Stack Size, Scenario, Opponent, and Caller.
  */
 export function RangeDropdowns({
   position,
   stackSize,
   scenario,
   opponent,
+  caller,
   onPositionChange,
   onStackSizeChange,
   onScenarioChange,
   onOpponentChange,
+  onCallerChange,
   disabled = false,
 }: RangeDropdownsProps) {
   const selectClasses = `
@@ -84,6 +113,17 @@ export function RangeDropdowns({
     disabled:opacity-50 disabled:cursor-not-allowed
     cursor-pointer
   `;
+
+  // Filter valid hero positions based on scenario
+  const validHeroPositions = getValidHeroPositions(scenario);
+  const effectivePosition = validHeroPositions.includes(position) 
+    ? position 
+    : validHeroPositions[0];
+  
+  // Auto-correct position if it's not valid for this scenario
+  if (effectivePosition !== position) {
+    onPositionChange(effectivePosition);
+  }
 
   // Only show opponent dropdown for non-RFI scenarios
   const showOpponent = scenario !== 'rfi';
@@ -100,6 +140,27 @@ export function RangeDropdowns({
     onOpponentChange(effectiveOpponent);
   }
 
+  // Caller dropdown - only for vs-raise-call scenario
+  const showCaller = scenario === 'vs-raise-call';
+  const validCallers = showCaller && effectiveOpponent 
+    ? getValidCallers(position, effectiveOpponent) 
+    : [];
+
+  // Auto-select first valid caller
+  const effectiveCaller = showCaller && validCallers.length > 0
+    ? (caller && validCallers.includes(caller) ? caller : validCallers[0])
+    : null;
+
+  // Sync effective caller to parent if it changed
+  if (showCaller && effectiveCaller !== caller) {
+    onCallerChange(effectiveCaller);
+  }
+
+  // Clear caller when switching away from vs-raise-call
+  if (!showCaller && caller !== null) {
+    onCallerChange(null);
+  }
+
   return (
     <div className="flex flex-wrap gap-3 justify-center">
       {/* Position */}
@@ -113,7 +174,7 @@ export function RangeDropdowns({
           disabled={disabled}
           className={selectClasses}
         >
-          {POSITIONS.map(({ value, label }) => (
+          {POSITIONS.filter(p => validHeroPositions.includes(p.value)).map(({ value, label }) => (
             <option key={value} value={value}>
               {label}
             </option>
@@ -159,11 +220,11 @@ export function RangeDropdowns({
         </select>
       </div>
 
-      {/* Opponent - only shown for non-RFI scenarios */}
+      {/* Opponent (Raiser) - only shown for non-RFI scenarios */}
       {showOpponent && validOpponents.length > 0 && (
         <div className="flex flex-col gap-1">
           <label className="text-xs font-medium text-slate-500 uppercase tracking-wide">
-            Opponent
+            {scenario === 'vs-raise-call' ? 'Raiser' : 'Opponent'}
           </label>
           <select
             value={effectiveOpponent || ''}
@@ -172,6 +233,30 @@ export function RangeDropdowns({
             className={selectClasses}
           >
             {validOpponents.map((pos) => {
+              const posData = POSITIONS.find(p => p.value === pos);
+              return (
+                <option key={pos} value={pos}>
+                  {posData?.label || pos}
+                </option>
+              );
+            })}
+          </select>
+        </div>
+      )}
+
+      {/* Caller - only shown for vs-raise-call scenario */}
+      {showCaller && validCallers.length > 0 && (
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+            Caller
+          </label>
+          <select
+            value={effectiveCaller || ''}
+            onChange={(e) => onCallerChange(e.target.value as Position)}
+            disabled={disabled}
+            className={selectClasses}
+          >
+            {validCallers.map((pos) => {
               const posData = POSITIONS.find(p => p.value === pos);
               return (
                 <option key={pos} value={pos}>

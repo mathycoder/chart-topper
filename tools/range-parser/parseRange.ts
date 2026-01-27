@@ -11,8 +11,9 @@ Usage: npx tsx tools/range-parser/parseRange.ts <image-path> [options]
 Options:
   --stack <size>      Stack size (default: 80bb)
   --position <pos>    Position: UTG, UTG+1, LJ, HJ, CO, BTN, SB, BB
-  --scenario <type>   Scenario: rfi, vs-3bet, vs-4bet, vs-raise
-  --opponent <pos>    Opponent position (for vs-* scenarios)
+  --scenario <type>   Scenario: rfi, vs-3bet, vs-4bet, vs-raise, vs-raise-call
+  --opponent <pos>    Opponent/raiser position (for vs-* scenarios)
+  --caller <pos>      Caller position (for vs-raise-call scenario only)
   --output <path>     Output file path (default: auto-generated in data/ranges/)
   --preview-only      Only generate preview crops, don't parse
   --no-preview        Skip generating preview crops
@@ -20,6 +21,7 @@ Options:
 Examples:
   npx tsx tools/range-parser/parseRange.ts tmp/chart.png --position UTG --scenario rfi
   npx tsx tools/range-parser/parseRange.ts tmp/chart.png --position UTG+1 --scenario vs-raise --opponent UTG
+  npx tsx tools/range-parser/parseRange.ts tmp/chart.png --position BTN --scenario vs-raise-call --opponent UTG --caller HJ
 `;
 
 // Parse CLI args
@@ -51,10 +53,19 @@ function parseArgs(args: string[]) {
 }
 
 // Generate filename from metadata
-// Format: {stack}-{position}-vs-{opponent}-{scenario}.ts (for vs-* scenarios)
 // Format: {stack}-{position}-{scenario}.ts (for RFI)
-function generateFilename(stack: string, position: string, scenario: string, opponent?: string): string {
+// Format: {stack}-{position}-vs-{opponent}-{scenario}.ts (for vs-* scenarios)
+// Format: {stack}-{position}-vs-{raiser}-raise-{caller}-call.ts (for vs-raise-call)
+function generateFilename(stack: string, position: string, scenario: string, opponent?: string, caller?: string): string {
   const posSlug = position.toLowerCase().replace('+', 'plus');
+  
+  // vs-raise-call: 3-way pot with raiser and caller
+  if (scenario === 'vs-raise-call' && opponent && caller) {
+    const raiserSlug = opponent.toLowerCase().replace('+', 'plus');
+    const callerSlug = caller.toLowerCase().replace('+', 'plus');
+    return `${stack}-${posSlug}-vs-${raiserSlug}-raise-${callerSlug}-call.ts`;
+  }
+  
   if (opponent) {
     const oppSlug = opponent.toLowerCase().replace('+', 'plus');
     return `${stack}-${posSlug}-vs-${oppSlug}-${scenario}.ts`;
@@ -63,15 +74,22 @@ function generateFilename(stack: string, position: string, scenario: string, opp
 }
 
 // Generate display name from metadata
-function generateDisplayName(stack: string, position: string, scenario: string, opponent?: string): string {
+function generateDisplayName(stack: string, position: string, scenario: string, opponent?: string, caller?: string): string {
   const scenarioNames: Record<string, string> = {
     'rfi': 'Raise First In',
     'vs-3bet': 'vs 3-Bet',
     'vs-4bet': 'vs 4-Bet',
     'vs-raise': 'vs Raise',
+    'vs-raise-call': 'vs Raise + Call',
     'after-limp': 'After Limp',
   };
   const scenarioDisplay = scenarioNames[scenario] || scenario;
+  
+  // vs-raise-call: "80bb+ BTN vs UTG raise and HJ call"
+  if (scenario === 'vs-raise-call' && opponent && caller) {
+    return `${stack}+ ${position} vs ${opponent} raise and ${caller} call`;
+  }
+  
   if (opponent) {
     return `${stack}+ ${position} - ${scenarioDisplay} from ${opponent}`;
   }
@@ -129,7 +147,8 @@ function generateTsFile(
   position: string,
   scenario: string,
   displayName: string,
-  opponent?: string
+  opponent?: string,
+  caller?: string
 ): string {
   const lines: string[] = [];
 
@@ -154,7 +173,14 @@ function generateTsFile(
   lines.push('');
 
   // Generate variable name from filename pattern
-  const varName = `range${position.replace('+', 'Plus')}${scenario.charAt(0).toUpperCase() + scenario.slice(1).replace(/-([a-z])/g, (_, c) => c.toUpperCase())}`;
+  let varName = `range${position.replace('+', 'Plus')}`;
+  if (opponent) {
+    varName += `Vs${opponent.replace('+', 'Plus')}`;
+  }
+  if (caller && scenario === 'vs-raise-call') {
+    varName += `And${caller.replace('+', 'Plus')}`;
+  }
+  varName += scenario.charAt(0).toUpperCase() + scenario.slice(1).replace(/-([a-z])/g, (_, c) => c.toUpperCase());
 
   lines.push(`export const ${varName}: PokerRange = {`);
   lines.push(`  meta: {`);
@@ -163,6 +189,9 @@ function generateTsFile(
   lines.push(`    scenario: '${scenario}',`);
   if (opponent) {
     lines.push(`    opponentPosition: '${opponent}',`);
+  }
+  if (caller && scenario === 'vs-raise-call') {
+    lines.push(`    callerPosition: '${caller}',`);
   }
   lines.push(`    displayName: '${displayName}',`);
   lines.push(`  },`);
@@ -186,6 +215,7 @@ const stack = (args.stack as string) || '80bb';
 const position = (args.position as string) || 'UTG';
 const scenario = (args.scenario as string) || 'rfi';
 const opponent = args.opponent as string | undefined;
+const caller = args.caller as string | undefined;
 const previewOnly = args['preview-only'] as boolean;
 const noPreview = args['no-preview'] as boolean;
 
@@ -241,15 +271,15 @@ async function main() {
   console.log(`  Total: ${raiseCount + callCount + foldCount + blendCount}`);
 
   // Generate output
-  const displayName = generateDisplayName(stack, position, scenario, opponent);
-  const tsContent = generateTsFile(data, stack, position, scenario, displayName, opponent);
+  const displayName = generateDisplayName(stack, position, scenario, opponent, caller);
+  const tsContent = generateTsFile(data, stack, position, scenario, displayName, opponent, caller);
 
   // Determine output path
   let outputPath: string;
   if (args.output) {
     outputPath = args.output as string;
   } else {
-    const filename = generateFilename(stack, position, scenario, opponent);
+    const filename = generateFilename(stack, position, scenario, opponent, caller);
     outputPath = path.join(process.cwd(), 'data', 'ranges', filename);
   }
 

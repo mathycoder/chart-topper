@@ -21,13 +21,40 @@ import range80bbBbVsUtgVsRaise from './80bb-bb-vs-utg-vs-raise';
 import range80bbBbVsLjVsRaise from './80bb-bb-vs-lj-vs-raise';
 import range80bbBbVsBtnVsRaise from './80bb-bb-vs-btn-vs-raise';
 
+import range80bbHjVsUtgRaiseLjCall from './80bb-hj-vs-utg-raise-lj-call';
+import range80bbSbVsUtgRaiseLjCall from './80bb-sb-vs-utg-raise-lj-call';
+import range80bbBtnVsUtgRaiseLjCall from './80bb-btn-vs-utg-raise-lj-call';
+import range80bbBbVsUtgRaiseLjCall from './80bb-bb-vs-utg-raise-lj-call';
+import range80bbBtnVsLjRaiseCoCall from './80bb-btn-vs-lj-raise-co-call';
+import range80bbSbVsLjRaiseCoCall from './80bb-sb-vs-lj-raise-co-call';
+import range80bbBbVsLjRaiseCoCall from './80bb-bb-vs-lj-raise-co-call';
+import range80bbSbVsCoRaiseBtnCall from './80bb-sb-vs-co-raise-btn-call';
+import range80bbBbVsCoRaiseBtnCall from './80bb-bb-vs-co-raise-btn-call';
+import range80bbBbVsBtnRaiseSbCall from './80bb-bb-vs-btn-raise-sb-call';
+
 /**
  * Build a lookup key from range parameters.
- * Format: {stackSize}-{position}[-vs-{opponent}]-{scenario}
+ * Format for RFI: {stackSize}-{position}-rfi
+ * Format for vs-raise: {stackSize}-{position}-vs-{opponent}-vs-raise
+ * Format for vs-raise-call: {stackSize}-{position}-vs-{raiser}-raise-{caller}-call
  */
-function buildKey(stackSize: StackSize, position: Position, scenario: Scenario, opponent?: Position | null): string {
+function buildKey(
+  stackSize: StackSize,
+  position: Position,
+  scenario: Scenario,
+  opponent?: Position | null,
+  caller?: Position | null
+): string {
   const positionSlug = position.toLowerCase().replace('+', 'plus');
   
+  // vs-raise-call: 3-way pot with raiser and caller
+  if (scenario === 'vs-raise-call' && opponent && caller) {
+    const raiserSlug = opponent.toLowerCase().replace('+', 'plus');
+    const callerSlug = caller.toLowerCase().replace('+', 'plus');
+    return `${stackSize}-${positionSlug}-vs-${raiserSlug}-raise-${callerSlug}-call`;
+  }
+  
+  // Other vs-* scenarios with single opponent
   if (opponent && scenario !== 'rfi') {
     const opponentSlug = opponent.toLowerCase().replace('+', 'plus');
     return `${stackSize}-${positionSlug}-vs-${opponentSlug}-${scenario}`;
@@ -61,6 +88,19 @@ const RANGE_REGISTRY: Record<string, PokerRange> = {
   '80bb-bb-vs-utg-vs-raise': range80bbBbVsUtgVsRaise,
   '80bb-bb-vs-lj-vs-raise': range80bbBbVsLjVsRaise,
   '80bb-bb-vs-btn-vs-raise': range80bbBbVsBtnVsRaise,
+  
+  // vs Raise + Call ranges (3-way pots)
+  // Key format: {stack}-{position}-vs-{raiser}-raise-{caller}-call
+  '80bb-hj-vs-utg-raise-lj-call': range80bbHjVsUtgRaiseLjCall,
+  '80bb-sb-vs-utg-raise-lj-call': range80bbSbVsUtgRaiseLjCall,
+  '80bb-btn-vs-utg-raise-lj-call': range80bbBtnVsUtgRaiseLjCall,
+  '80bb-bb-vs-utg-raise-lj-call': range80bbBbVsUtgRaiseLjCall,
+  '80bb-btn-vs-lj-raise-co-call': range80bbBtnVsLjRaiseCoCall,
+  '80bb-sb-vs-lj-raise-co-call': range80bbSbVsLjRaiseCoCall,
+  '80bb-bb-vs-lj-raise-co-call': range80bbBbVsLjRaiseCoCall,
+  '80bb-sb-vs-co-raise-btn-call': range80bbSbVsCoRaiseBtnCall,
+  '80bb-bb-vs-co-raise-btn-call': range80bbBbVsCoRaiseBtnCall,
+  '80bb-bb-vs-btn-raise-sb-call': range80bbBbVsBtnRaiseSbCall,
 };
 
 /**
@@ -71,9 +111,10 @@ export function getRange(
   stackSize: StackSize,
   position: Position,
   scenario: Scenario,
-  opponent?: Position | null
+  opponent?: Position | null,
+  caller?: Position | null
 ): PokerRange | null {
-  const key = buildKey(stackSize, position, scenario, opponent);
+  const key = buildKey(stackSize, position, scenario, opponent, caller);
   return RANGE_REGISTRY[key] ?? null;
 }
 
@@ -84,9 +125,10 @@ export function rangeExists(
   stackSize: StackSize,
   position: Position,
   scenario: Scenario,
-  opponent?: Position | null
+  opponent?: Position | null,
+  caller?: Position | null
 ): boolean {
-  const key = buildKey(stackSize, position, scenario, opponent);
+  const key = buildKey(stackSize, position, scenario, opponent, caller);
   return key in RANGE_REGISTRY;
 }
 

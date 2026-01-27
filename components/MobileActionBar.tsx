@@ -18,9 +18,25 @@ const POSITION_ORDER: Position[] = ['UTG', 'UTG+1', 'LJ', 'HJ', 'CO', 'BTN', 'SB
 
 function getValidOpponents(heroPosition: Position, scenario: Scenario): Position[] {
   const heroIndex = POSITION_ORDER.indexOf(heroPosition);
-  if (scenario === 'vs-raise') return POSITION_ORDER.slice(0, heroIndex);
+  if (scenario === 'vs-raise' || scenario === 'vs-raise-call') return POSITION_ORDER.slice(0, heroIndex);
   if (scenario === 'vs-3bet') return POSITION_ORDER.filter((_, idx) => idx !== heroIndex);
   return [];
+}
+
+function getValidCallers(heroPosition: Position, raiserPosition: Position): Position[] {
+  const heroIndex = POSITION_ORDER.indexOf(heroPosition);
+  const raiserIndex = POSITION_ORDER.indexOf(raiserPosition);
+  return POSITION_ORDER.slice(raiserIndex + 1, heroIndex);
+}
+
+function getValidHeroPositions(scenario: Scenario): Position[] {
+  if (scenario === 'vs-raise-call') {
+    return POSITION_ORDER.slice(2);
+  }
+  if (scenario === 'vs-raise') {
+    return POSITION_ORDER.slice(1);
+  }
+  return POSITION_ORDER;
 }
 
 const STACK_SIZES: { value: StackSize; label: string }[] = [
@@ -33,6 +49,7 @@ const STACK_SIZES: { value: StackSize; label: string }[] = [
 const SCENARIOS: { value: Scenario; label: string }[] = [
   { value: 'rfi', label: 'RFI' },
   { value: 'vs-raise', label: 'vs Raise' },
+  { value: 'vs-raise-call', label: 'vs Raise + Call' },
   { value: 'vs-3bet', label: 'vs 3-Bet' },
 ];
 
@@ -42,10 +59,12 @@ interface DropdownProps {
   stackSize: StackSize;
   scenario: Scenario;
   opponent: Position | null;
+  caller: Position | null;
   onPositionChange: (position: Position) => void;
   onStackSizeChange: (stackSize: StackSize) => void;
   onScenarioChange: (scenario: Scenario) => void;
   onOpponentChange: (opponent: Position | null) => void;
+  onCallerChange: (caller: Position | null) => void;
 }
 
 interface MobileActionBarQuizProps {
@@ -238,9 +257,19 @@ export function MobileActionBar(props: MobileActionBarProps) {
   const { 
     selectedAction, onSelectAction, blendMode = false, onBlendClick, disabled = false, 
     canSave, isSaving = false, onClear, onSave,
-    position, stackSize, scenario, opponent,
-    onPositionChange, onStackSizeChange, onScenarioChange, onOpponentChange
+    position, stackSize, scenario, opponent, caller,
+    onPositionChange, onStackSizeChange, onScenarioChange, onOpponentChange, onCallerChange
   } = props;
+  
+  // Filter valid hero positions based on scenario
+  const validHeroPositions = getValidHeroPositions(scenario);
+  const effectivePosition = validHeroPositions.includes(position) 
+    ? position 
+    : validHeroPositions[0];
+  
+  if (effectivePosition !== position) {
+    onPositionChange(effectivePosition);
+  }
   
   const showOpponent = scenario !== 'rfi';
   const validOpponents = showOpponent ? getValidOpponents(position, scenario) : [];
@@ -250,6 +279,23 @@ export function MobileActionBar(props: MobileActionBarProps) {
   
   if (showOpponent && effectiveOpponent !== opponent) {
     onOpponentChange(effectiveOpponent);
+  }
+  
+  // Caller logic - only for vs-raise-call
+  const showCaller = scenario === 'vs-raise-call';
+  const validCallers = showCaller && effectiveOpponent 
+    ? getValidCallers(position, effectiveOpponent) 
+    : [];
+  const effectiveCaller = showCaller && validCallers.length > 0
+    ? (caller && validCallers.includes(caller) ? caller : validCallers[0])
+    : null;
+  
+  if (showCaller && effectiveCaller !== caller) {
+    onCallerChange(effectiveCaller);
+  }
+  
+  if (!showCaller && caller !== null) {
+    onCallerChange(null);
   }
   
   const selectClasses = `
@@ -346,7 +392,7 @@ export function MobileActionBar(props: MobileActionBarProps) {
           onChange={(e) => onPositionChange(e.target.value as Position)}
           className={selectClasses}
         >
-          {POSITIONS.map(({ value, label }) => (
+          {POSITIONS.filter(p => validHeroPositions.includes(p.value)).map(({ value, label }) => (
             <option key={value} value={value}>{label}</option>
           ))}
         </select>
@@ -360,6 +406,21 @@ export function MobileActionBar(props: MobileActionBarProps) {
               className={selectClasses}
             >
               {validOpponents.map((pos) => (
+                <option key={pos} value={pos}>{pos}</option>
+              ))}
+            </select>
+          </>
+        )}
+        
+        {showCaller && validCallers.length > 0 && (
+          <>
+            <span className="text-slate-400 text-xs">+</span>
+            <select
+              value={effectiveCaller || ''}
+              onChange={(e) => onCallerChange(e.target.value as Position)}
+              className={selectClasses}
+            >
+              {validCallers.map((pos) => (
                 <option key={pos} value={pos}>{pos}</option>
               ))}
             </select>

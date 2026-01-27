@@ -85,9 +85,35 @@ const POSITION_ORDER: Position[] = ['UTG', 'UTG+1', 'LJ', 'HJ', 'CO', 'BTN', 'SB
 
 function getValidOpponents(heroPosition: Position, scenario: Scenario): Position[] {
   const heroIndex = POSITION_ORDER.indexOf(heroPosition);
-  if (scenario === 'vs-raise') return POSITION_ORDER.slice(0, heroIndex);
+  if (scenario === 'vs-raise' || scenario === 'vs-raise-call') return POSITION_ORDER.slice(0, heroIndex);
   if (scenario === 'vs-3bet') return POSITION_ORDER.filter((_, idx) => idx !== heroIndex);
   return [];
+}
+
+function getValidCallers(heroPosition: Position, raiserPosition: Position): Position[] {
+  const heroIndex = POSITION_ORDER.indexOf(heroPosition);
+  const raiserIndex = POSITION_ORDER.indexOf(raiserPosition);
+  return POSITION_ORDER.slice(raiserIndex + 1, heroIndex);
+}
+
+/**
+ * Get valid hero positions for a given scenario.
+ * - RFI: any position can open
+ * - vs-raise: need at least 1 position before hero (for raiser)
+ * - vs-raise-call: need at least 2 positions before hero (for raiser and caller)
+ * - vs-3bet: any position can open and face 3-bet
+ */
+function getValidHeroPositions(scenario: Scenario): Position[] {
+  if (scenario === 'vs-raise-call') {
+    // Need at least 2 positions before hero (raiser + caller)
+    return POSITION_ORDER.slice(2); // LJ and later
+  }
+  if (scenario === 'vs-raise') {
+    // Need at least 1 position before hero (raiser)
+    return POSITION_ORDER.slice(1); // UTG+1 and later
+  }
+  // RFI and vs-3bet: any position
+  return POSITION_ORDER;
 }
 
 const STACK_SIZES: { value: StackSize; label: string }[] = [
@@ -100,6 +126,7 @@ const STACK_SIZES: { value: StackSize; label: string }[] = [
 const SCENARIOS: { value: Scenario; label: string }[] = [
   { value: 'rfi', label: 'RFI' },
   { value: 'vs-raise', label: 'vs Raise' },
+  { value: 'vs-raise-call', label: 'vs Raise + Call' },
   { value: 'vs-3bet', label: 'vs 3-Bet' },
 ];
 
@@ -107,6 +134,7 @@ const SCENARIOS: { value: Scenario; label: string }[] = [
 const SCENARIO_DISPLAY: Record<Scenario, string> = {
   'rfi': 'Raise First In',
   'vs-raise': 'Raise',
+  'vs-raise-call': 'Raise + Call',
   'vs-3bet': '3-Bet',
   'vs-4bet': '4-Bet',
   'after-limp': 'Limp',
@@ -117,14 +145,25 @@ const SCENARIO_DISPLAY: Record<Scenario, string> = {
  * Shows the correct answers without any editing capability.
  */
 export function ViewMode() {
-  const { position, stackSize, scenario, opponent, setPosition, setStackSize, setScenario, setOpponent } = useUrlState('/view');
+  const { position, stackSize, scenario, opponent, caller, setPosition, setStackSize, setScenario, setOpponent, setCaller } = useUrlState('/view');
 
   // Get range data synchronously via direct import
-  const range = useMemo(() => getRange(stackSize, position, scenario, opponent), [stackSize, position, scenario, opponent]);
+  const range = useMemo(() => getRange(stackSize, position, scenario, opponent, caller), [stackSize, position, scenario, opponent, caller]);
   const rangeExists = range !== null;
 
   // Display the range data directly
   const displaySelections = range?.data ?? {};
+
+  // Filter valid hero positions based on scenario
+  const validHeroPositions = getValidHeroPositions(scenario);
+  const effectivePosition = validHeroPositions.includes(position) 
+    ? position 
+    : validHeroPositions[0];
+  
+  // Auto-correct position if it's not valid for this scenario
+  if (effectivePosition !== position) {
+    setPosition(effectivePosition);
+  }
 
   // Count actions in the range (weighted by percentages for mixed hands)
   const countActions = (data: RangeData) => {
@@ -156,6 +195,23 @@ export function ViewMode() {
     setOpponent(effectiveOpponent);
   }
 
+  // Caller logic - only for vs-raise-call
+  const showCaller = scenario === 'vs-raise-call';
+  const validCallers = showCaller && effectiveOpponent 
+    ? getValidCallers(position, effectiveOpponent) 
+    : [];
+  const effectiveCaller = showCaller && validCallers.length > 0
+    ? (caller && validCallers.includes(caller) ? caller : validCallers[0])
+    : null;
+  
+  if (showCaller && effectiveCaller !== caller) {
+    setCaller(effectiveCaller);
+  }
+  
+  if (!showCaller && caller !== null) {
+    setCaller(null);
+  }
+
   return (
     <>
       <main className="">
@@ -167,10 +223,12 @@ export function ViewMode() {
             stackSize={stackSize}
             scenario={scenario}
             opponent={opponent}
+            caller={caller}
             onPositionChange={setPosition}
             onStackSizeChange={setStackSize}
             onScenarioChange={setScenario}
             onOpponentChange={setOpponent}
+            onCallerChange={setCaller}
           />
           {/* Mobile Grid */}
           <div className="flex-1 p-1 relative">
@@ -214,7 +272,7 @@ export function ViewMode() {
                 <span className="text-slate-400 mx-2">—</span>
                 <SegmentDropdown
                   value={position}
-                  options={POSITIONS}
+                  options={POSITIONS.filter(p => validHeroPositions.includes(p.value))}
                   onChange={setPosition}
                 />
                 {showOpponent && validOpponents.length > 0 && (
@@ -225,15 +283,36 @@ export function ViewMode() {
                       options={validOpponents.map(p => ({ value: p, label: p }))}
                       onChange={setOpponent}
                     />
+                    {scenario === 'vs-raise-call' && <span className="text-slate-400 mx-1">raise</span>}
                   </>
                 )}
-                <span className="text-slate-400 mx-1"> </span>
-                <SegmentDropdown
-                  value={scenario}
-                  options={SCENARIOS}
-                  onChange={setScenario}
-                  displayValue={SCENARIO_DISPLAY[scenario]}
-                />
+                {showCaller && validCallers.length > 0 && (
+                  <>
+                    <SegmentDropdown
+                      value={effectiveCaller || validCallers[0]}
+                      options={validCallers.map(p => ({ value: p, label: p }))}
+                      onChange={setCaller}
+                    />
+                    <span className="mx-1"></span>
+                    <SegmentDropdown
+                      value={scenario}
+                      options={SCENARIOS}
+                      onChange={setScenario}
+                      displayValue="call"
+                    />
+                  </>
+                )}
+                {scenario !== 'vs-raise-call' && (
+                  <>
+                    <span className="text-slate-400 mx-1"> </span>
+                    <SegmentDropdown
+                      value={scenario}
+                      options={SCENARIOS}
+                      onChange={setScenario}
+                      displayValue={SCENARIO_DISPLAY[scenario]}
+                    />
+                  </>
+                )}
               </div>
 
               {/* Range Stats */}

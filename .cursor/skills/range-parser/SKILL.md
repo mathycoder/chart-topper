@@ -18,8 +18,9 @@ When the user asks to parse a range, extract these parameters from their request
 | Parameter | Required | Values | Default |
 |-----------|----------|--------|---------|
 | position | Yes | UTG, UTG+1, LJ, HJ, CO, BTN, SB, BB | - |
-| scenario | Yes | rfi, vs-raise, vs-3bet, vs-4bet | - |
+| scenario | Yes | rfi, vs-raise, vs-raise-call, vs-3bet, vs-4bet | - |
 | opponent | Only for vs-* scenarios | UTG, UTG+1, LJ, HJ, CO, BTN, SB, BB | - |
+| caller | Only for vs-raise-call | UTG, UTG+1, LJ, HJ, CO, BTN, SB, BB | - |
 | stack | No | 10bb, 20bb, 40bb, 80bb | 80bb |
 
 ## Command
@@ -27,7 +28,7 @@ When the user asks to parse a range, extract these parameters from their request
 Run from the project root:
 
 ```bash
-npx tsx tools/range-parser/parseRange.ts tmp/chart.png --position "<POSITION>" --scenario <SCENARIO> [--opponent <OPPONENT>] [--stack <STACK>]
+npx tsx tools/range-parser/parseRange.ts tmp/chart.png --position "<POSITION>" --scenario <SCENARIO> [--opponent <OPPONENT>] [--caller <CALLER>] [--stack <STACK>]
 ```
 
 ## Examples
@@ -52,10 +53,15 @@ npx tsx tools/range-parser/parseRange.ts tmp/chart.png --position CO --scenario 
 npx tsx tools/range-parser/parseRange.ts tmp/chart.png --position HJ --scenario rfi --stack 40bb
 ```
 
+**User**: "Parse BTN vs UTG raise and HJ call at 80bb"
+```bash
+npx tsx tools/range-parser/parseRange.ts tmp/chart.png --position BTN --scenario vs-raise-call --opponent UTG --caller HJ
+```
+
 ## Workflow
 
 1. Confirm the user has saved their chart screenshot to `tmp/chart.png`
-2. Extract position, scenario, opponent (if needed), and stack from the request
+2. Extract position, scenario, opponent (if needed), caller (for vs-raise-call), and stack from the request
 3. Run the command with `required_permissions: ["all"]` (needed for tsx)
 4. Report the results: colors detected, action counts, output file path
 

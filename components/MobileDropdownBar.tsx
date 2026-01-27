@@ -87,9 +87,25 @@ const POSITION_ORDER: Position[] = ['UTG', 'UTG+1', 'LJ', 'HJ', 'CO', 'BTN', 'SB
 
 function getValidOpponents(heroPosition: Position, scenario: Scenario): Position[] {
   const heroIndex = POSITION_ORDER.indexOf(heroPosition);
-  if (scenario === 'vs-raise') return POSITION_ORDER.slice(0, heroIndex);
+  if (scenario === 'vs-raise' || scenario === 'vs-raise-call') return POSITION_ORDER.slice(0, heroIndex);
   if (scenario === 'vs-3bet') return POSITION_ORDER.filter((_, idx) => idx !== heroIndex);
   return [];
+}
+
+function getValidCallers(heroPosition: Position, raiserPosition: Position): Position[] {
+  const heroIndex = POSITION_ORDER.indexOf(heroPosition);
+  const raiserIndex = POSITION_ORDER.indexOf(raiserPosition);
+  return POSITION_ORDER.slice(raiserIndex + 1, heroIndex);
+}
+
+function getValidHeroPositions(scenario: Scenario): Position[] {
+  if (scenario === 'vs-raise-call') {
+    return POSITION_ORDER.slice(2);
+  }
+  if (scenario === 'vs-raise') {
+    return POSITION_ORDER.slice(1);
+  }
+  return POSITION_ORDER;
 }
 
 const STACK_SIZES: { value: StackSize; label: string }[] = [
@@ -102,6 +118,7 @@ const STACK_SIZES: { value: StackSize; label: string }[] = [
 const SCENARIOS: { value: Scenario; label: string }[] = [
   { value: 'rfi', label: 'RFI' },
   { value: 'vs-raise', label: 'vs Raise' },
+  { value: 'vs-raise-call', label: 'vs Raise + Call' },
   { value: 'vs-3bet', label: 'vs 3-Bet' },
 ];
 
@@ -109,6 +126,7 @@ const SCENARIOS: { value: Scenario; label: string }[] = [
 const SCENARIO_DISPLAY: Record<Scenario, string> = {
   'rfi': 'Raise First In',
   'vs-raise': 'Raise',
+  'vs-raise-call': 'Raise + Call',
   'vs-3bet': '3-Bet',
   'vs-4bet': '4-Bet',
   'after-limp': 'Limp',
@@ -119,28 +137,42 @@ interface MobileDropdownBarProps {
   stackSize: StackSize;
   scenario: Scenario;
   opponent: Position | null;
+  caller: Position | null;
   onPositionChange: (position: Position) => void;
   onStackSizeChange: (stackSize: StackSize) => void;
   onScenarioChange: (scenario: Scenario) => void;
   onOpponentChange: (opponent: Position | null) => void;
+  onCallerChange: (caller: Position | null) => void;
   disabled?: boolean;
 }
 
 /**
  * Mobile header bar with clickable segments.
- * Shows Position, Stack Size, Scenario, and optionally Opponent.
+ * Shows Position, Stack Size, Scenario, Opponent, and optionally Caller.
  */
 export function MobileDropdownBar({
   position,
   stackSize,
   scenario,
   opponent,
+  caller,
   onPositionChange,
   onStackSizeChange,
   onScenarioChange,
   onOpponentChange,
+  onCallerChange,
   disabled = false,
 }: MobileDropdownBarProps) {
+  // Filter valid hero positions based on scenario
+  const validHeroPositions = getValidHeroPositions(scenario);
+  const effectivePosition = validHeroPositions.includes(position) 
+    ? position 
+    : validHeroPositions[0];
+  
+  if (effectivePosition !== position) {
+    onPositionChange(effectivePosition);
+  }
+
   const showOpponent = scenario !== 'rfi';
   const validOpponents = showOpponent ? getValidOpponents(position, scenario) : [];
   const effectiveOpponent = showOpponent && validOpponents.length > 0
@@ -150,6 +182,25 @@ export function MobileDropdownBar({
   // Sync opponent if needed
   if (showOpponent && effectiveOpponent !== opponent) {
     onOpponentChange(effectiveOpponent);
+  }
+
+  // Caller logic - only for vs-raise-call
+  const showCaller = scenario === 'vs-raise-call';
+  const validCallers = showCaller && effectiveOpponent 
+    ? getValidCallers(position, effectiveOpponent) 
+    : [];
+  const effectiveCaller = showCaller && validCallers.length > 0
+    ? (caller && validCallers.includes(caller) ? caller : validCallers[0])
+    : null;
+
+  // Sync caller if needed
+  if (showCaller && effectiveCaller !== caller) {
+    onCallerChange(effectiveCaller);
+  }
+
+  // Clear caller when switching away from vs-raise-call
+  if (!showCaller && caller !== null) {
+    onCallerChange(null);
   }
 
   return (
@@ -164,7 +215,7 @@ export function MobileDropdownBar({
         <span className="text-slate-400 mx-1">—</span>
         <MobileSegmentDropdown
           value={position}
-          options={POSITIONS}
+          options={POSITIONS.filter(p => validHeroPositions.includes(p.value))}
           onChange={onPositionChange}
           disabled={disabled}
         />
@@ -177,16 +228,40 @@ export function MobileDropdownBar({
               onChange={onOpponentChange}
               disabled={disabled}
             />
+            {scenario === 'vs-raise-call' && <span className="text-slate-400 mx-0.5">raise</span>}
           </>
         )}
-        <span className="text-slate-400 mx-0.5"> </span>
-        <MobileSegmentDropdown
-          value={scenario}
-          options={SCENARIOS}
-          onChange={onScenarioChange}
-          displayValue={SCENARIO_DISPLAY[scenario]}
-          disabled={disabled}
-        />
+        {showCaller && validCallers.length > 0 && (
+          <>
+            <span className="text-slate-400 mx-0.5">+</span>
+            <MobileSegmentDropdown
+              value={effectiveCaller || validCallers[0]}
+              options={validCallers.map(p => ({ value: p, label: p }))}
+              onChange={onCallerChange}
+              disabled={disabled}
+            />
+            <span className="mx-0.5"></span>
+            <MobileSegmentDropdown
+              value={scenario}
+              options={SCENARIOS}
+              onChange={onScenarioChange}
+              displayValue="call"
+              disabled={disabled}
+            />
+          </>
+        )}
+        {scenario !== 'vs-raise-call' && (
+          <>
+            <span className="text-slate-400 mx-0.5"> </span>
+            <MobileSegmentDropdown
+              value={scenario}
+              options={SCENARIOS}
+              onChange={onScenarioChange}
+              displayValue={SCENARIO_DISPLAY[scenario]}
+              disabled={disabled}
+            />
+          </>
+        )}
       </div>
     </div>
   );

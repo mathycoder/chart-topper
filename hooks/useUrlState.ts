@@ -9,10 +9,12 @@ interface UseUrlStateReturn {
   stackSize: StackSize;
   scenario: Scenario;
   opponent: Position | null;
+  caller: Position | null;
   setPosition: (p: Position) => void;
   setStackSize: (s: StackSize) => void;
   setScenario: (s: Scenario) => void;
   setOpponent: (o: Position | null) => void;
+  setCaller: (c: Position | null) => void;
 }
 
 /**
@@ -35,6 +37,9 @@ export function useUrlState(basePath: string): UseUrlStateReturn {
   const [opponent, setOpponent] = useState<Position | null>(
     (searchParams.get('opponent') as Position) || null
   );
+  const [caller, setCaller] = useState<Position | null>(
+    (searchParams.get('caller') as Position) || null
+  );
 
   // Sync state to URL
   useEffect(() => {
@@ -46,8 +51,12 @@ export function useUrlState(basePath: string): UseUrlStateReturn {
     if (scenario !== 'rfi' && opponent) {
       params.set('opponent', opponent);
     }
+    // Only include caller in URL for vs-raise-call scenario
+    if (scenario === 'vs-raise-call' && caller) {
+      params.set('caller', caller);
+    }
     router.replace(`${basePath}?${params.toString()}`, { scroll: false });
-  }, [position, stackSize, scenario, opponent, router, basePath]);
+  }, [position, stackSize, scenario, opponent, caller, router, basePath]);
 
   // Clear opponent when switching to RFI scenario
   useEffect(() => {
@@ -56,14 +65,23 @@ export function useUrlState(basePath: string): UseUrlStateReturn {
     }
   }, [scenario, opponent]);
 
+  // Clear caller when switching away from vs-raise-call scenario
+  useEffect(() => {
+    if (scenario !== 'vs-raise-call' && caller !== null) {
+      setCaller(null);
+    }
+  }, [scenario, caller]);
+
   return {
     position,
     stackSize,
     scenario,
     opponent,
+    caller,
     setPosition,
     setStackSize,
     setScenario,
     setOpponent,
+    setCaller,
   };
 }

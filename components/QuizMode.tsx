@@ -96,9 +96,35 @@ const POSITION_ORDER: Position[] = ['UTG', 'UTG+1', 'LJ', 'HJ', 'CO', 'BTN', 'SB
 
 function getValidOpponents(heroPosition: Position, scenario: Scenario): Position[] {
   const heroIndex = POSITION_ORDER.indexOf(heroPosition);
-  if (scenario === 'vs-raise') return POSITION_ORDER.slice(0, heroIndex);
+  if (scenario === 'vs-raise' || scenario === 'vs-raise-call') return POSITION_ORDER.slice(0, heroIndex);
   if (scenario === 'vs-3bet') return POSITION_ORDER.filter((_, idx) => idx !== heroIndex);
   return [];
+}
+
+function getValidCallers(heroPosition: Position, raiserPosition: Position): Position[] {
+  const heroIndex = POSITION_ORDER.indexOf(heroPosition);
+  const raiserIndex = POSITION_ORDER.indexOf(raiserPosition);
+  return POSITION_ORDER.slice(raiserIndex + 1, heroIndex);
+}
+
+/**
+ * Get valid hero positions for a given scenario.
+ * - RFI: any position can open
+ * - vs-raise: need at least 1 position before hero (for raiser)
+ * - vs-raise-call: need at least 2 positions before hero (for raiser and caller)
+ * - vs-3bet: any position can open and face 3-bet
+ */
+function getValidHeroPositions(scenario: Scenario): Position[] {
+  if (scenario === 'vs-raise-call') {
+    // Need at least 2 positions before hero (raiser + caller)
+    return POSITION_ORDER.slice(2); // LJ and later
+  }
+  if (scenario === 'vs-raise') {
+    // Need at least 1 position before hero (raiser)
+    return POSITION_ORDER.slice(1); // UTG+1 and later
+  }
+  // RFI and vs-3bet: any position
+  return POSITION_ORDER;
 }
 
 const STACK_SIZES: { value: StackSize; label: string }[] = [
@@ -111,6 +137,7 @@ const STACK_SIZES: { value: StackSize; label: string }[] = [
 const SCENARIOS: { value: Scenario; label: string }[] = [
   { value: 'rfi', label: 'RFI' },
   { value: 'vs-raise', label: 'vs Raise' },
+  { value: 'vs-raise-call', label: 'vs Raise + Call' },
   { value: 'vs-3bet', label: 'vs 3-Bet' },
 ];
 
@@ -118,6 +145,7 @@ const SCENARIOS: { value: Scenario; label: string }[] = [
 const SCENARIO_DISPLAY: Record<Scenario, string> = {
   'rfi': 'Raise First In',
   'vs-raise': 'Raise',
+  'vs-raise-call': 'Raise + Call',
   'vs-3bet': '3-Bet',
   'vs-4bet': '4-Bet',
   'after-limp': 'Limp',
@@ -129,12 +157,23 @@ const SCENARIO_DISPLAY: Record<Scenario, string> = {
  * Mobile: Grid-first with fixed bottom action bar
  */
 export function QuizMode() {
-  const { position, stackSize, scenario, opponent, setPosition, setStackSize, setScenario, setOpponent } = useUrlState('/');
+  const { position, stackSize, scenario, opponent, caller, setPosition, setStackSize, setScenario, setOpponent, setCaller } = useUrlState('/');
   const { userSelections, setCell, clearSelections, resetToFold, filledCount, totalCells, allFilled } = useQuizSelections();
 
   // Get range data synchronously via direct import
-  const range = useMemo(() => getRange(stackSize, position, scenario, opponent), [stackSize, position, scenario, opponent]);
+  const range = useMemo(() => getRange(stackSize, position, scenario, opponent, caller), [stackSize, position, scenario, opponent, caller]);
   const rangeExists = range !== null;
+
+  // Filter valid hero positions based on scenario
+  const validHeroPositions = getValidHeroPositions(scenario);
+  const effectivePosition = validHeroPositions.includes(position) 
+    ? position 
+    : validHeroPositions[0];
+  
+  // Auto-correct position if it's not valid for this scenario
+  if (effectivePosition !== position) {
+    setPosition(effectivePosition);
+  }
 
   // Opponent logic
   const showOpponent = scenario !== 'rfi';
@@ -145,6 +184,23 @@ export function QuizMode() {
   
   if (showOpponent && effectiveOpponent !== opponent) {
     setOpponent(effectiveOpponent);
+  }
+
+  // Caller logic - only for vs-raise-call
+  const showCaller = scenario === 'vs-raise-call';
+  const validCallers = showCaller && effectiveOpponent 
+    ? getValidCallers(position, effectiveOpponent) 
+    : [];
+  const effectiveCaller = showCaller && validCallers.length > 0
+    ? (caller && validCallers.includes(caller) ? caller : validCallers[0])
+    : null;
+  
+  if (showCaller && effectiveCaller !== caller) {
+    setCaller(effectiveCaller);
+  }
+  
+  if (!showCaller && caller !== null) {
+    setCaller(null);
   }
 
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -159,7 +215,7 @@ export function QuizMode() {
   const painting = usePainting();
 
   // Track previous range params to detect changes
-  const prevParamsRef = useRef({ position, stackSize, scenario, opponent });
+  const prevParamsRef = useRef({ position, stackSize, scenario, opponent, caller });
   
   // Reset quiz state when range parameters change
   useEffect(() => {
@@ -167,7 +223,8 @@ export function QuizMode() {
     const paramsChanged = prev.position !== position || 
                           prev.stackSize !== stackSize || 
                           prev.scenario !== scenario || 
-                          prev.opponent !== opponent;
+                          prev.opponent !== opponent ||
+                          prev.caller !== caller;
     
     if (paramsChanged) {
       setIsSubmitted(false);
@@ -175,9 +232,9 @@ export function QuizMode() {
       setSelectedActions(new Set());
       setMultiSelectMode(false);
       resetToFold();
-      prevParamsRef.current = { position, stackSize, scenario, opponent };
+      prevParamsRef.current = { position, stackSize, scenario, opponent, caller };
     }
-  }, [position, stackSize, scenario, opponent, resetToFold]);
+  }, [position, stackSize, scenario, opponent, caller, resetToFold]);
   
   // Toggle action selection (multi-select for blends)
   const handleToggleAction = useCallback((action: SimpleAction) => {
@@ -283,10 +340,12 @@ export function QuizMode() {
             stackSize={stackSize}
             scenario={scenario}
             opponent={opponent}
+            caller={caller}
             onPositionChange={setPosition}
             onStackSizeChange={setStackSize}
             onScenarioChange={setScenario}
             onOpponentChange={setOpponent}
+            onCallerChange={setCaller}
             disabled={isSubmitted}
           />
           {/* Mobile Grid */}
@@ -377,7 +436,7 @@ export function QuizMode() {
                 <span className="text-slate-400 mx-2">—</span>
                 <SegmentDropdown
                   value={position}
-                  options={POSITIONS}
+                  options={POSITIONS.filter(p => validHeroPositions.includes(p.value))}
                   onChange={setPosition}
                   disabled={isSubmitted}
                 />
@@ -390,16 +449,39 @@ export function QuizMode() {
                       onChange={setOpponent}
                       disabled={isSubmitted}
                     />
+                    {scenario === 'vs-raise-call' && <span className="text-slate-400 mx-1">raise</span>}
                   </>
                 )}
-                <span className="text-slate-400 mx-1"> </span>
-                <SegmentDropdown
-                  value={scenario}
-                  options={SCENARIOS}
-                  onChange={setScenario}
-                  displayValue={SCENARIO_DISPLAY[scenario]}
-                  disabled={isSubmitted}
-                />
+                {showCaller && validCallers.length > 0 && (
+                  <>
+                    <SegmentDropdown
+                      value={effectiveCaller || validCallers[0]}
+                      options={validCallers.map(p => ({ value: p, label: p }))}
+                      onChange={setCaller}
+                      disabled={isSubmitted}
+                    />
+                    <span className="mx-1"></span>
+                    <SegmentDropdown
+                      value={scenario}
+                      options={SCENARIOS}
+                      onChange={setScenario}
+                      displayValue="call"
+                      disabled={isSubmitted}
+                    />
+                  </>
+                )}
+                {scenario !== 'vs-raise-call' && (
+                  <>
+                    <span className="text-slate-400 mx-1"> </span>
+                    <SegmentDropdown
+                      value={scenario}
+                      options={SCENARIOS}
+                      onChange={setScenario}
+                      displayValue={SCENARIO_DISPLAY[scenario]}
+                      disabled={isSubmitted}
+                    />
+                  </>
+                )}
               </div>
 
               {rangeExists && (

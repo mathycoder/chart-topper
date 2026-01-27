@@ -18,10 +18,10 @@ import { MobileActionBar } from './MobileActionBar';
  * Mobile: Single column stacked layout
  */
 export function BuilderMode() {
-  const { position, stackSize, scenario, opponent, setPosition, setStackSize, setScenario, setOpponent } = useUrlState('/builder');
+  const { position, stackSize, scenario, opponent, caller, setPosition, setStackSize, setScenario, setOpponent, setCaller } = useUrlState('/builder');
   
   // Get initial range data synchronously for instant render
-  const initialRange = useMemo(() => getRange(stackSize, position, scenario, opponent), []);
+  const initialRange = useMemo(() => getRange(stackSize, position, scenario, opponent, caller), []);
   const { userSelections, setCell, loadSelections, clearSelections, filledCount, totalCells, allFilled } = useRangeSelections(initialRange?.data);
 
   const [isSaving, setIsSaving] = useState(false);
@@ -38,7 +38,7 @@ export function BuilderMode() {
   const painting = usePainting();
 
   // Track previous range params to detect changes
-  const prevParamsRef = useRef({ position, stackSize, scenario, opponent });
+  const prevParamsRef = useRef({ position, stackSize, scenario, opponent, caller });
 
   // Paint cell callback - now handles blend mode
   const paintCell = useCallback((hand: string) => {
@@ -98,10 +98,11 @@ export function BuilderMode() {
     const paramsChanged = prev.position !== position || 
                           prev.stackSize !== stackSize || 
                           prev.scenario !== scenario || 
-                          prev.opponent !== opponent;
+                          prev.opponent !== opponent ||
+                          prev.caller !== caller;
     
     if (paramsChanged) {
-      const existingRange = getRange(stackSize, position, scenario, opponent);
+      const existingRange = getRange(stackSize, position, scenario, opponent, caller);
       
       if (existingRange) {
         loadSelections(existingRange.data as Record<string, HandAction>);
@@ -114,9 +115,9 @@ export function BuilderMode() {
         setDescription('');
       }
       
-      prevParamsRef.current = { position, stackSize, scenario, opponent };
+      prevParamsRef.current = { position, stackSize, scenario, opponent, caller };
     }
-  }, [position, stackSize, scenario, opponent, loadSelections, clearSelections]);
+  }, [position, stackSize, scenario, opponent, caller, loadSelections, clearSelections]);
 
   // Clear save message after delay
   useEffect(() => {
@@ -140,7 +141,7 @@ export function BuilderMode() {
       const response = await fetch('/api/save-range', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stackSize, position, scenario, opponent, data, description: description || undefined }),
+        body: JSON.stringify({ stackSize, position, scenario, opponent, caller, data, description: description || undefined }),
       });
 
       const result = await response.json();
@@ -215,10 +216,12 @@ export function BuilderMode() {
                   stackSize={stackSize}
                   scenario={scenario}
                   opponent={opponent}
+                  caller={caller}
                   onPositionChange={setPosition}
                   onStackSizeChange={setStackSize}
                   onScenarioChange={setScenario}
                   onOpponentChange={setOpponent}
+                  onCallerChange={setCaller}
                 />
               </Card>
 
@@ -323,10 +326,12 @@ export function BuilderMode() {
         stackSize={stackSize}
         scenario={scenario}
         opponent={opponent}
+        caller={caller}
         onPositionChange={setPosition}
         onStackSizeChange={setStackSize}
         onScenarioChange={setScenario}
         onOpponentChange={setOpponent}
+        onCallerChange={setCaller}
       />
 
       {/* Blend Picker Modal */}

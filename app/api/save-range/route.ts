@@ -15,7 +15,8 @@ interface SaveRangeRequest {
   stackSize: string;
   position: string;
   scenario: string;
-  opponent?: string; // Optional for non-RFI scenarios
+  opponent?: string; // Raiser for vs-raise and vs-raise-call scenarios
+  caller?: string; // Caller for vs-raise-call (3-way pot) scenarios
   data: Record<string, HandAction>;
   description?: string; // Strategy explanation for this range
 }
@@ -50,6 +51,7 @@ function generateRangeFileContent(
   position: string,
   scenario: string,
   opponent: string | undefined,
+  caller: string | undefined,
   data: Record<string, HandAction>,
   description?: string
 ): string {
@@ -58,15 +60,18 @@ function generateRangeFileContent(
   if (opponent && scenario !== 'rfi') {
     variableName += `Vs${opponent.replace('+', 'Plus')}`;
   }
-  variableName += `${stackSize}${scenario.charAt(0).toUpperCase() + scenario.slice(1).replace('-', '')}`;
+  if (caller && scenario === 'vs-raise-call') {
+    variableName += `And${caller.replace('+', 'Plus')}`;
+  }
+  variableName += `${stackSize}${scenario.charAt(0).toUpperCase() + scenario.slice(1).replace(/-/g, '')}`;
   
-  const displayName = getDisplayName(stackSize, position, scenario, opponent);
+  const displayName = getDisplayName(stackSize, position, scenario, opponent, caller);
 
   const dataEntries = Object.entries(data)
     .map(([hand, action]) => `  '${hand}': ${formatAction(action)},`)
     .join('\n');
 
-  // Build meta object with optional opponentPosition and description
+  // Build meta object with optional opponentPosition, callerPosition, and description
   const metaLines = [
     `    stackSize: '${stackSize}',`,
     `    position: '${position}',`,
@@ -75,6 +80,10 @@ function generateRangeFileContent(
   
   if (opponent && scenario !== 'rfi') {
     metaLines.push(`    opponentPosition: '${opponent}',`);
+  }
+  
+  if (caller && scenario === 'vs-raise-call') {
+    metaLines.push(`    callerPosition: '${caller}',`);
   }
   
   metaLines.push(`    displayName: '${displayName}',`);
@@ -107,12 +116,18 @@ export default ${variableName};
 `;
 }
 
-function getDisplayName(stackSize: string, position: string, scenario: string, opponent?: string): string {
+function getDisplayName(stackSize: string, position: string, scenario: string, opponent?: string, caller?: string): string {
   const scenarioNames: Record<string, string> = {
     'rfi': 'Raise First In',
     'vs-raise': 'vs Raise',
+    'vs-raise-call': 'vs Raise + Call',
     'vs-3bet': 'vs 3-Bet',
   };
+  
+  // vs-raise-call: "80bb+ BTN vs UTG raise and HJ call"
+  if (scenario === 'vs-raise-call' && opponent && caller) {
+    return `${stackSize}+ ${position} vs ${opponent} raise and ${caller} call`;
+  }
   
   if (opponent && scenario !== 'rfi') {
     return `${stackSize}+ ${position} vs ${opponent} - ${scenarioNames[scenario] || scenario}`;
@@ -124,7 +139,7 @@ function getDisplayName(stackSize: string, position: string, scenario: string, o
 export async function POST(request: NextRequest) {
   try {
     const body: SaveRangeRequest = await request.json();
-    const { stackSize, position, scenario, opponent, data, description } = body;
+    const { stackSize, position, scenario, opponent, caller, data, description } = body;
 
     // Validate required fields
     if (!stackSize || !position || !scenario || !data) {
@@ -143,11 +158,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate filename based on whether opponent is present
+    // Generate filename based on scenario type
     const positionSlug = position.toLowerCase().replace('+', 'plus');
     let filename: string;
     
-    if (opponent && scenario !== 'rfi') {
+    if (scenario === 'vs-raise-call' && opponent && caller) {
+      // vs-raise-call: 80bb-btn-vs-utg-raise-hj-call.ts
+      const raiserSlug = opponent.toLowerCase().replace('+', 'plus');
+      const callerSlug = caller.toLowerCase().replace('+', 'plus');
+      filename = `${stackSize}-${positionSlug}-vs-${raiserSlug}-raise-${callerSlug}-call.ts`;
+    } else if (opponent && scenario !== 'rfi') {
       const opponentSlug = opponent.toLowerCase().replace('+', 'plus');
       filename = `${stackSize}-${positionSlug}-vs-${opponentSlug}-${scenario}.ts`;
     } else {
@@ -161,7 +181,7 @@ export async function POST(request: NextRequest) {
     await mkdir(rangesDir, { recursive: true });
 
     // Generate file content
-    const content = generateRangeFileContent(stackSize, position, scenario, opponent, data, description);
+    const content = generateRangeFileContent(stackSize, position, scenario, opponent, caller, data, description);
 
     // Write file
     await writeFile(filepath, content, 'utf-8');
