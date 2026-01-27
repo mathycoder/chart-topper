@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import type { Position, StackSize, Scenario } from '@/types';
 import { getAvailableScenarios, getAvailablePositions, getAvailableOpponents, getAvailableCallers } from '@/data/ranges';
 
@@ -184,9 +184,12 @@ export function MobileDropdownBar({
     ? position 
     : validHeroPositions[0];
   
-  if (effectivePosition !== position && validHeroPositions.length > 0) {
-    onPositionChange(effectivePosition);
-  }
+  // Auto-correct position if needed
+  useEffect(() => {
+    if (effectivePosition !== position && validHeroPositions.length > 0) {
+      onPositionChange(effectivePosition);
+    }
+  }, [effectivePosition, position, validHeroPositions.length, onPositionChange]);
 
   const showOpponent = scenario !== 'rfi';
   const validOpponents = useMemo(() => {
@@ -202,9 +205,11 @@ export function MobileDropdownBar({
     : null;
 
   // Sync opponent if needed
-  if (showOpponent && effectiveOpponent !== opponent) {
-    onOpponentChange(effectiveOpponent);
-  }
+  useEffect(() => {
+    if (showOpponent && effectiveOpponent !== opponent) {
+      onOpponentChange(effectiveOpponent);
+    }
+  }, [showOpponent, effectiveOpponent, opponent, onOpponentChange]);
 
   // Caller logic - only for vs-raise-call
   const showCaller = scenario === 'vs-raise-call';
@@ -221,14 +226,18 @@ export function MobileDropdownBar({
     : null;
 
   // Sync caller if needed
-  if (showCaller && effectiveCaller !== caller) {
-    onCallerChange(effectiveCaller);
-  }
+  useEffect(() => {
+    if (showCaller && effectiveCaller !== caller) {
+      onCallerChange(effectiveCaller);
+    }
+  }, [showCaller, effectiveCaller, caller, onCallerChange]);
 
   // Clear caller when switching away from vs-raise-call
-  if (!showCaller && caller !== null) {
-    onCallerChange(null);
-  }
+  useEffect(() => {
+    if (!showCaller && caller !== null) {
+      onCallerChange(null);
+    }
+  }, [showCaller, caller, onCallerChange]);
 
   // Filter scenarios for dropdown
   const scenarioOptions = filterByAvailability

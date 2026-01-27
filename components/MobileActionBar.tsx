@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import type { SimpleAction, BlendType, Position, StackSize, Scenario } from '@/types';
 
 // Dropdown data
@@ -267,9 +268,12 @@ export function MobileActionBar(props: MobileActionBarProps) {
     ? position 
     : validHeroPositions[0];
   
-  if (effectivePosition !== position) {
-    onPositionChange(effectivePosition);
-  }
+  // Auto-correct position if needed
+  useEffect(() => {
+    if (effectivePosition !== position) {
+      onPositionChange(effectivePosition);
+    }
+  }, [effectivePosition, position, onPositionChange]);
   
   const showOpponent = scenario !== 'rfi';
   const validOpponents = showOpponent ? getValidOpponents(position, scenario) : [];
@@ -277,9 +281,12 @@ export function MobileActionBar(props: MobileActionBarProps) {
     ? (opponent && validOpponents.includes(opponent) ? opponent : validOpponents[0])
     : null;
   
-  if (showOpponent && effectiveOpponent !== opponent) {
-    onOpponentChange(effectiveOpponent);
-  }
+  // Sync opponent if needed
+  useEffect(() => {
+    if (showOpponent && effectiveOpponent !== opponent) {
+      onOpponentChange(effectiveOpponent);
+    }
+  }, [showOpponent, effectiveOpponent, opponent, onOpponentChange]);
   
   // Caller logic - only for vs-raise-call
   const showCaller = scenario === 'vs-raise-call';
@@ -290,13 +297,19 @@ export function MobileActionBar(props: MobileActionBarProps) {
     ? (caller && validCallers.includes(caller) ? caller : validCallers[0])
     : null;
   
-  if (showCaller && effectiveCaller !== caller) {
-    onCallerChange(effectiveCaller);
-  }
+  // Sync caller if needed
+  useEffect(() => {
+    if (showCaller && effectiveCaller !== caller) {
+      onCallerChange(effectiveCaller);
+    }
+  }, [showCaller, effectiveCaller, caller, onCallerChange]);
   
-  if (!showCaller && caller !== null) {
-    onCallerChange(null);
-  }
+  // Clear caller when switching away from vs-raise-call
+  useEffect(() => {
+    if (!showCaller && caller !== null) {
+      onCallerChange(null);
+    }
+  }, [showCaller, caller, onCallerChange]);
   
   const selectClasses = `
     px-2 py-1.5 rounded-md

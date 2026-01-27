@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import type { Position, StackSize, Scenario } from '@/types';
 
 interface RangeDropdownsProps {
@@ -121,9 +122,11 @@ export function RangeDropdowns({
     : validHeroPositions[0];
   
   // Auto-correct position if it's not valid for this scenario
-  if (effectivePosition !== position) {
-    onPositionChange(effectivePosition);
-  }
+  useEffect(() => {
+    if (effectivePosition !== position) {
+      onPositionChange(effectivePosition);
+    }
+  }, [effectivePosition, position, onPositionChange]);
 
   // Only show opponent dropdown for non-RFI scenarios
   const showOpponent = scenario !== 'rfi';
@@ -136,9 +139,11 @@ export function RangeDropdowns({
     : null;
 
   // Sync effective opponent to parent if it changed
-  if (showOpponent && effectiveOpponent !== opponent) {
-    onOpponentChange(effectiveOpponent);
-  }
+  useEffect(() => {
+    if (showOpponent && effectiveOpponent !== opponent) {
+      onOpponentChange(effectiveOpponent);
+    }
+  }, [showOpponent, effectiveOpponent, opponent, onOpponentChange]);
 
   // Caller dropdown - only for vs-raise-call scenario
   const showCaller = scenario === 'vs-raise-call';
@@ -152,14 +157,18 @@ export function RangeDropdowns({
     : null;
 
   // Sync effective caller to parent if it changed
-  if (showCaller && effectiveCaller !== caller) {
-    onCallerChange(effectiveCaller);
-  }
+  useEffect(() => {
+    if (showCaller && effectiveCaller !== caller) {
+      onCallerChange(effectiveCaller);
+    }
+  }, [showCaller, effectiveCaller, caller, onCallerChange]);
 
   // Clear caller when switching away from vs-raise-call
-  if (!showCaller && caller !== null) {
-    onCallerChange(null);
-  }
+  useEffect(() => {
+    if (!showCaller && caller !== null) {
+      onCallerChange(null);
+    }
+  }, [showCaller, caller, onCallerChange]);
 
   return (
     <div className="flex flex-wrap gap-3 justify-center">
