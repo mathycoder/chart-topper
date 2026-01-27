@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import type { Position, StackSize, Scenario } from '@/types';
+import { getAvailableScenarios, getAvailablePositions, getAvailableOpponents, getAvailableCallers } from '@/data/ranges';
 
 // Segment dropdown component for header-style selector (mobile version)
 function MobileSegmentDropdown<T extends string>({
@@ -144,6 +145,8 @@ interface MobileDropdownBarProps {
   onOpponentChange: (opponent: Position | null) => void;
   onCallerChange: (caller: Position | null) => void;
   disabled?: boolean;
+  /** When true, only show options that have range data (for View/Quiz). Default: false (for Builder). */
+  filterByAvailability?: boolean;
 }
 
 /**
@@ -162,19 +165,38 @@ export function MobileDropdownBar({
   onOpponentChange,
   onCallerChange,
   disabled = false,
+  filterByAvailability = false,
 }: MobileDropdownBarProps) {
-  // Filter valid hero positions based on scenario
-  const validHeroPositions = getValidHeroPositions(scenario);
+  // Get available options - either from data availability or position logic
+  const availableScenarios = useMemo(() => 
+    filterByAvailability ? getAvailableScenarios(stackSize) : SCENARIOS.map(s => s.value),
+    [stackSize, filterByAvailability]
+  );
+
+  const validHeroPositions = useMemo(() => {
+    if (filterByAvailability) {
+      return getAvailablePositions(stackSize, scenario);
+    }
+    return getValidHeroPositions(scenario);
+  }, [stackSize, scenario, filterByAvailability]);
+
   const effectivePosition = validHeroPositions.includes(position) 
     ? position 
     : validHeroPositions[0];
   
-  if (effectivePosition !== position) {
+  if (effectivePosition !== position && validHeroPositions.length > 0) {
     onPositionChange(effectivePosition);
   }
 
   const showOpponent = scenario !== 'rfi';
-  const validOpponents = showOpponent ? getValidOpponents(position, scenario) : [];
+  const validOpponents = useMemo(() => {
+    if (!showOpponent) return [];
+    if (filterByAvailability) {
+      return getAvailableOpponents(stackSize, effectivePosition, scenario);
+    }
+    return getValidOpponents(effectivePosition, scenario);
+  }, [stackSize, effectivePosition, scenario, showOpponent, filterByAvailability]);
+
   const effectiveOpponent = showOpponent && validOpponents.length > 0
     ? (opponent && validOpponents.includes(opponent) ? opponent : validOpponents[0])
     : null;
@@ -186,9 +208,14 @@ export function MobileDropdownBar({
 
   // Caller logic - only for vs-raise-call
   const showCaller = scenario === 'vs-raise-call';
-  const validCallers = showCaller && effectiveOpponent 
-    ? getValidCallers(position, effectiveOpponent) 
-    : [];
+  const validCallers = useMemo(() => {
+    if (!showCaller || !effectiveOpponent) return [];
+    if (filterByAvailability) {
+      return getAvailableCallers(stackSize, effectivePosition, effectiveOpponent);
+    }
+    return getValidCallers(effectivePosition, effectiveOpponent);
+  }, [stackSize, effectivePosition, effectiveOpponent, showCaller, filterByAvailability]);
+
   const effectiveCaller = showCaller && validCallers.length > 0
     ? (caller && validCallers.includes(caller) ? caller : validCallers[0])
     : null;
@@ -203,6 +230,11 @@ export function MobileDropdownBar({
     onCallerChange(null);
   }
 
+  // Filter scenarios for dropdown
+  const scenarioOptions = filterByAvailability
+    ? SCENARIOS.filter(s => availableScenarios.includes(s.value))
+    : SCENARIOS;
+
   return (
     <div className="bg-white border-b border-slate-200 px-3 py-2.5 lg:hidden">
       <div className="flex items-center justify-center gap-1 flex-wrap text-sm leading-relaxed">
@@ -214,8 +246,8 @@ export function MobileDropdownBar({
         />
         <span className="text-slate-400 mx-1">—</span>
         <MobileSegmentDropdown
-          value={position}
-          options={POSITIONS.filter(p => validHeroPositions.includes(p.value))}
+          value={effectivePosition}
+          options={validHeroPositions.map(p => ({ value: p, label: p }))}
           onChange={onPositionChange}
           disabled={disabled}
         />
@@ -243,7 +275,7 @@ export function MobileDropdownBar({
             <span className="mx-0.5"></span>
             <MobileSegmentDropdown
               value={scenario}
-              options={SCENARIOS}
+              options={scenarioOptions}
               onChange={onScenarioChange}
               displayValue="call"
               disabled={disabled}
@@ -255,7 +287,7 @@ export function MobileDropdownBar({
             <span className="text-slate-400 mx-0.5"> </span>
             <MobileSegmentDropdown
               value={scenario}
-              options={SCENARIOS}
+              options={scenarioOptions}
               onChange={onScenarioChange}
               displayValue={SCENARIO_DISPLAY[scenario]}
               disabled={disabled}

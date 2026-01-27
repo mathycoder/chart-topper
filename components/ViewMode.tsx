@@ -3,7 +3,7 @@
 import { useMemo, useState, useRef, useEffect } from 'react';
 import type { RangeData, Scenario, Position, StackSize } from '@/types';
 import { useUrlState } from '@/hooks';
-import { getRange } from '@/data/ranges';
+import { getRange, getAvailableScenarios, getAvailablePositions, getAvailableOpponents, getAvailableCallers } from '@/data/ranges';
 import { Card } from './shared';
 import { RangeChart } from './RangeChart';
 import { MobileDropdownBar } from './MobileDropdownBar';
@@ -69,53 +69,6 @@ function SegmentDropdown<T extends string>({
   );
 }
 
-// Dropdown data for mobile
-const POSITIONS: { value: Position; label: string }[] = [
-  { value: 'UTG', label: 'UTG' },
-  { value: 'UTG+1', label: 'UTG+1' },
-  { value: 'LJ', label: 'LJ' },
-  { value: 'HJ', label: 'HJ' },
-  { value: 'CO', label: 'CO' },
-  { value: 'BTN', label: 'BTN' },
-  { value: 'SB', label: 'SB' },
-  { value: 'BB', label: 'BB' },
-];
-
-const POSITION_ORDER: Position[] = ['UTG', 'UTG+1', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
-
-function getValidOpponents(heroPosition: Position, scenario: Scenario): Position[] {
-  const heroIndex = POSITION_ORDER.indexOf(heroPosition);
-  if (scenario === 'vs-raise' || scenario === 'vs-raise-call') return POSITION_ORDER.slice(0, heroIndex);
-  if (scenario === 'vs-3bet') return POSITION_ORDER.filter((_, idx) => idx !== heroIndex);
-  return [];
-}
-
-function getValidCallers(heroPosition: Position, raiserPosition: Position): Position[] {
-  const heroIndex = POSITION_ORDER.indexOf(heroPosition);
-  const raiserIndex = POSITION_ORDER.indexOf(raiserPosition);
-  return POSITION_ORDER.slice(raiserIndex + 1, heroIndex);
-}
-
-/**
- * Get valid hero positions for a given scenario.
- * - RFI: any position can open
- * - vs-raise: need at least 1 position before hero (for raiser)
- * - vs-raise-call: need at least 2 positions before hero (for raiser and caller)
- * - vs-3bet: any position can open and face 3-bet
- */
-function getValidHeroPositions(scenario: Scenario): Position[] {
-  if (scenario === 'vs-raise-call') {
-    // Need at least 2 positions before hero (raiser + caller)
-    return POSITION_ORDER.slice(2); // LJ and later
-  }
-  if (scenario === 'vs-raise') {
-    // Need at least 1 position before hero (raiser)
-    return POSITION_ORDER.slice(1); // UTG+1 and later
-  }
-  // RFI and vs-3bet: any position
-  return POSITION_ORDER;
-}
-
 const STACK_SIZES: { value: StackSize; label: string }[] = [
   { value: '80bb', label: '80bb+' },
   { value: '40bb', label: '40bb' },
@@ -147,23 +100,68 @@ const SCENARIO_DISPLAY: Record<Scenario, string> = {
 export function ViewMode() {
   const { position, stackSize, scenario, opponent, caller, setPosition, setStackSize, setScenario, setOpponent, setCaller } = useUrlState('/view');
 
+  // Get available options based on what ranges actually exist
+  const availableScenarios = useMemo(() => getAvailableScenarios(stackSize), [stackSize]);
+  const effectiveScenario = availableScenarios.includes(scenario) ? scenario : availableScenarios[0] || 'rfi';
+  
+  // Auto-correct scenario if not available
+  if (effectiveScenario !== scenario && availableScenarios.length > 0) {
+    setScenario(effectiveScenario);
+  }
+
+  const availablePositions = useMemo(
+    () => getAvailablePositions(stackSize, effectiveScenario),
+    [stackSize, effectiveScenario]
+  );
+  const effectivePosition = availablePositions.includes(position) ? position : availablePositions[0] || 'UTG';
+  
+  // Auto-correct position if not available
+  if (effectivePosition !== position && availablePositions.length > 0) {
+    setPosition(effectivePosition);
+  }
+
+  const showOpponent = effectiveScenario !== 'rfi';
+  const availableOpponents = useMemo(
+    () => showOpponent ? getAvailableOpponents(stackSize, effectivePosition, effectiveScenario) : [],
+    [stackSize, effectivePosition, effectiveScenario, showOpponent]
+  );
+  const effectiveOpponent = showOpponent && availableOpponents.length > 0
+    ? (opponent && availableOpponents.includes(opponent) ? opponent : availableOpponents[0])
+    : null;
+  
+  // Auto-correct opponent if not available
+  if (showOpponent && effectiveOpponent !== opponent) {
+    setOpponent(effectiveOpponent);
+  }
+
+  // Caller logic - only for vs-raise-call
+  const showCaller = effectiveScenario === 'vs-raise-call';
+  const availableCallers = useMemo(
+    () => showCaller && effectiveOpponent ? getAvailableCallers(stackSize, effectivePosition, effectiveOpponent) : [],
+    [stackSize, effectivePosition, effectiveOpponent, showCaller]
+  );
+  const effectiveCaller = showCaller && availableCallers.length > 0
+    ? (caller && availableCallers.includes(caller) ? caller : availableCallers[0])
+    : null;
+  
+  // Auto-correct caller if not available
+  if (showCaller && effectiveCaller !== caller) {
+    setCaller(effectiveCaller);
+  }
+  
+  if (!showCaller && caller !== null) {
+    setCaller(null);
+  }
+
   // Get range data synchronously via direct import
-  const range = useMemo(() => getRange(stackSize, position, scenario, opponent, caller), [stackSize, position, scenario, opponent, caller]);
+  const range = useMemo(
+    () => getRange(stackSize, effectivePosition, effectiveScenario, effectiveOpponent, effectiveCaller),
+    [stackSize, effectivePosition, effectiveScenario, effectiveOpponent, effectiveCaller]
+  );
   const rangeExists = range !== null;
 
   // Display the range data directly
   const displaySelections = range?.data ?? {};
-
-  // Filter valid hero positions based on scenario
-  const validHeroPositions = getValidHeroPositions(scenario);
-  const effectivePosition = validHeroPositions.includes(position) 
-    ? position 
-    : validHeroPositions[0];
-  
-  // Auto-correct position if it's not valid for this scenario
-  if (effectivePosition !== position) {
-    setPosition(effectivePosition);
-  }
 
   // Count actions in the range (weighted by percentages for mixed hands)
   const countActions = (data: RangeData) => {
@@ -185,33 +183,6 @@ export function ViewMode() {
 
   const stats = range ? countActions(range.data) : null;
 
-  const showOpponent = scenario !== 'rfi';
-  const validOpponents = showOpponent ? getValidOpponents(position, scenario) : [];
-  const effectiveOpponent = showOpponent && validOpponents.length > 0
-    ? (opponent && validOpponents.includes(opponent) ? opponent : validOpponents[0])
-    : null;
-  
-  if (showOpponent && effectiveOpponent !== opponent) {
-    setOpponent(effectiveOpponent);
-  }
-
-  // Caller logic - only for vs-raise-call
-  const showCaller = scenario === 'vs-raise-call';
-  const validCallers = showCaller && effectiveOpponent 
-    ? getValidCallers(position, effectiveOpponent) 
-    : [];
-  const effectiveCaller = showCaller && validCallers.length > 0
-    ? (caller && validCallers.includes(caller) ? caller : validCallers[0])
-    : null;
-  
-  if (showCaller && effectiveCaller !== caller) {
-    setCaller(effectiveCaller);
-  }
-  
-  if (!showCaller && caller !== null) {
-    setCaller(null);
-  }
-
   return (
     <>
       <main className="">
@@ -219,16 +190,17 @@ export function ViewMode() {
         <div className="lg:hidden flex flex-col pb-12">
           {/* Mobile Header */}
           <MobileDropdownBar
-            position={position}
+            position={effectivePosition}
             stackSize={stackSize}
-            scenario={scenario}
-            opponent={opponent}
-            caller={caller}
+            scenario={effectiveScenario}
+            opponent={effectiveOpponent}
+            caller={effectiveCaller}
             onPositionChange={setPosition}
             onStackSizeChange={setStackSize}
             onScenarioChange={setScenario}
             onOpponentChange={setOpponent}
             onCallerChange={setCaller}
+            filterByAvailability={true}
           />
           {/* Mobile Grid */}
           <div className="flex-1 p-1 relative">
@@ -247,7 +219,7 @@ export function ViewMode() {
                   This range hasn&apos;t been created yet
                 </p>
                 <a 
-                  href={`/builder?position=${position}&stackSize=${stackSize}&scenario=${scenario}${opponent ? `&opponent=${opponent}` : ''}`}
+                  href={`/builder?position=${effectivePosition}&stackSize=${stackSize}&scenario=${effectiveScenario}${effectiveOpponent ? `&opponent=${effectiveOpponent}` : ''}`}
                   className="px-4 py-2 bg-slate-700 text-white rounded-lg font-medium text-sm"
                 >
                   Create in Builder
@@ -271,45 +243,45 @@ export function ViewMode() {
                 />
                 <span className="text-slate-400 mx-2">—</span>
                 <SegmentDropdown
-                  value={position}
-                  options={POSITIONS.filter(p => validHeroPositions.includes(p.value))}
+                  value={effectivePosition}
+                  options={availablePositions.map(p => ({ value: p, label: p }))}
                   onChange={setPosition}
                 />
-                {showOpponent && validOpponents.length > 0 && (
+                {showOpponent && availableOpponents.length > 0 && (
                   <>
                     <span className="text-slate-400 mx-1">vs</span>
                     <SegmentDropdown
-                      value={effectiveOpponent || validOpponents[0]}
-                      options={validOpponents.map(p => ({ value: p, label: p }))}
+                      value={effectiveOpponent || availableOpponents[0]}
+                      options={availableOpponents.map(p => ({ value: p, label: p }))}
                       onChange={setOpponent}
                     />
-                    {scenario === 'vs-raise-call' && <span className="text-slate-400 mx-1">raise</span>}
+                    {effectiveScenario === 'vs-raise-call' && <span className="text-slate-400 mx-1">raise</span>}
                   </>
                 )}
-                {showCaller && validCallers.length > 0 && (
+                {showCaller && availableCallers.length > 0 && (
                   <>
                     <SegmentDropdown
-                      value={effectiveCaller || validCallers[0]}
-                      options={validCallers.map(p => ({ value: p, label: p }))}
+                      value={effectiveCaller || availableCallers[0]}
+                      options={availableCallers.map(p => ({ value: p, label: p }))}
                       onChange={setCaller}
                     />
                     <span className="mx-1"></span>
                     <SegmentDropdown
-                      value={scenario}
-                      options={SCENARIOS}
+                      value={effectiveScenario}
+                      options={availableScenarios.map(s => ({ value: s, label: SCENARIOS.find(sc => sc.value === s)?.label || s }))}
                       onChange={setScenario}
                       displayValue="call"
                     />
                   </>
                 )}
-                {scenario !== 'vs-raise-call' && (
+                {effectiveScenario !== 'vs-raise-call' && (
                   <>
                     <span className="text-slate-400 mx-1"> </span>
                     <SegmentDropdown
-                      value={scenario}
-                      options={SCENARIOS}
+                      value={effectiveScenario}
+                      options={availableScenarios.map(s => ({ value: s, label: SCENARIOS.find(sc => sc.value === s)?.label || s }))}
                       onChange={setScenario}
-                      displayValue={SCENARIO_DISPLAY[scenario]}
+                      displayValue={SCENARIO_DISPLAY[effectiveScenario]}
                     />
                   </>
                 )}
@@ -382,7 +354,7 @@ export function ViewMode() {
                     This range hasn&apos;t been created yet
                   </p>
                   <a 
-                    href={`/builder?position=${position}&stackSize=${stackSize}&scenario=${scenario}${opponent ? `&opponent=${opponent}` : ''}`}
+                    href={`/builder?position=${effectivePosition}&stackSize=${stackSize}&scenario=${effectiveScenario}${effectiveOpponent ? `&opponent=${effectiveOpponent}` : ''}`}
                     className="px-4 py-2 bg-slate-700 text-white rounded-lg font-medium hover:bg-slate-600 transition-colors"
                   >
                     Create in Builder

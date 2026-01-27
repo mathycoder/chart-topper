@@ -143,3 +143,159 @@ export function getAllRangeKeys(): string[] {
  * Export the registry for advanced use cases.
  */
 export { RANGE_REGISTRY };
+
+// Position order for consistent sorting
+const POSITION_ORDER: Position[] = ['UTG', 'UTG+1', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
+
+// Helper to convert slug back to Position
+function slugToPosition(slug: string): Position | null {
+  const map: Record<string, Position> = {
+    'utg': 'UTG',
+    'utgplus1': 'UTG+1',
+    'lj': 'LJ',
+    'hj': 'HJ',
+    'co': 'CO',
+    'btn': 'BTN',
+    'sb': 'SB',
+    'bb': 'BB',
+  };
+  return map[slug] ?? null;
+}
+
+// Helper to parse a registry key into its components
+function parseKey(key: string): {
+  stackSize: StackSize;
+  position: Position;
+  scenario: Scenario;
+  opponent?: Position;
+  caller?: Position;
+} | null {
+  // vs-raise-call: {stack}-{position}-vs-{raiser}-raise-{caller}-call
+  const vsRaiseCallMatch = key.match(/^(\d+bb)-(\w+)-vs-(\w+)-raise-(\w+)-call$/);
+  if (vsRaiseCallMatch) {
+    const pos = slugToPosition(vsRaiseCallMatch[2]);
+    const opp = slugToPosition(vsRaiseCallMatch[3]);
+    const cal = slugToPosition(vsRaiseCallMatch[4]);
+    if (pos && opp && cal) {
+      return {
+        stackSize: vsRaiseCallMatch[1] as StackSize,
+        position: pos,
+        scenario: 'vs-raise-call',
+        opponent: opp,
+        caller: cal,
+      };
+    }
+  }
+
+  // vs-raise: {stack}-{position}-vs-{opponent}-vs-raise
+  const vsRaiseMatch = key.match(/^(\d+bb)-(\w+)-vs-(\w+)-vs-raise$/);
+  if (vsRaiseMatch) {
+    const pos = slugToPosition(vsRaiseMatch[2]);
+    const opp = slugToPosition(vsRaiseMatch[3]);
+    if (pos && opp) {
+      return {
+        stackSize: vsRaiseMatch[1] as StackSize,
+        position: pos,
+        scenario: 'vs-raise',
+        opponent: opp,
+      };
+    }
+  }
+
+  // RFI: {stack}-{position}-rfi
+  const rfiMatch = key.match(/^(\d+bb)-(\w+)-rfi$/);
+  if (rfiMatch) {
+    const pos = slugToPosition(rfiMatch[2]);
+    if (pos) {
+      return {
+        stackSize: rfiMatch[1] as StackSize,
+        position: pos,
+        scenario: 'rfi',
+      };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Get scenarios that have at least one range for this stack size.
+ */
+export function getAvailableScenarios(stackSize: StackSize): Scenario[] {
+  const scenarios = new Set<Scenario>();
+  for (const key of Object.keys(RANGE_REGISTRY)) {
+    const parsed = parseKey(key);
+    if (parsed && parsed.stackSize === stackSize) {
+      scenarios.add(parsed.scenario);
+    }
+  }
+  // Return in a logical order
+  const order: Scenario[] = ['rfi', 'vs-raise', 'vs-raise-call', 'vs-3bet', 'vs-4bet', 'after-limp'];
+  return order.filter(s => scenarios.has(s));
+}
+
+/**
+ * Get hero positions that have data for this stack/scenario.
+ */
+export function getAvailablePositions(stackSize: StackSize, scenario: Scenario): Position[] {
+  const positions = new Set<Position>();
+  for (const key of Object.keys(RANGE_REGISTRY)) {
+    const parsed = parseKey(key);
+    if (parsed && parsed.stackSize === stackSize && parsed.scenario === scenario) {
+      positions.add(parsed.position);
+    }
+  }
+  // Return in position order
+  return POSITION_ORDER.filter(p => positions.has(p));
+}
+
+/**
+ * Get opponents that have data for this stack/position/scenario.
+ */
+export function getAvailableOpponents(
+  stackSize: StackSize,
+  position: Position,
+  scenario: Scenario
+): Position[] {
+  const opponents = new Set<Position>();
+  for (const key of Object.keys(RANGE_REGISTRY)) {
+    const parsed = parseKey(key);
+    if (
+      parsed &&
+      parsed.stackSize === stackSize &&
+      parsed.position === position &&
+      parsed.scenario === scenario &&
+      parsed.opponent
+    ) {
+      opponents.add(parsed.opponent);
+    }
+  }
+  // Return in position order
+  return POSITION_ORDER.filter(p => opponents.has(p));
+}
+
+/**
+ * Get callers that have data for this stack/position/opponent (vs-raise-call only).
+ */
+export function getAvailableCallers(
+  stackSize: StackSize,
+  position: Position,
+  opponent: Position
+): Position[] {
+  const callers = new Set<Position>();
+  for (const key of Object.keys(RANGE_REGISTRY)) {
+    const parsed = parseKey(key);
+    if (
+      parsed &&
+      parsed.stackSize === stackSize &&
+      parsed.position === position &&
+      parsed.scenario === 'vs-raise-call' &&
+      parsed.opponent === opponent &&
+      parsed.caller
+    ) {
+      callers.add(parsed.caller);
+    }
+  }
+  // Return in position order
+  return POSITION_ORDER.filter(p => callers.has(p));
+}
