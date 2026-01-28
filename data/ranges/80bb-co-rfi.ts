@@ -62,7 +62,7 @@ const data: RangeData = {
   'J8s': 'raise',
   'J7s': 'raise',
   'J6s': 'raise',
-  'J5s': 'fold',
+  'J5s': { raise: 70, fold: 30 },
   'J4s': 'fold',
   'J3s': 'fold',
   'J2s': 'fold',
@@ -183,6 +183,7 @@ export const co80bbRfi: PokerRange = {
     position: 'CO',
     scenario: 'rfi',
     displayName: '80bb+ CO - Raise First In',
+    description: 'As fewer players remain behind you, the cost of being dominated goes down, and the value of initiative goes up',
   },
   data,
 };

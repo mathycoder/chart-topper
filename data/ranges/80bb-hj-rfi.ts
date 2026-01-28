@@ -6,7 +6,7 @@ import type { PokerRange, RangeData } from '@/types';
  */
 
 const data: RangeData = {
-  '22': 'fold',
+  '22': { raise: 60, fold: 40 },
   '33': 'raise',
   '44': 'raise',
   '55': 'raise',
@@ -47,7 +47,7 @@ const data: RangeData = {
   'QTs': 'raise',
   'Q9s': 'raise',
   'Q8s': 'raise',
-  'Q7s': 'raise',
+  'Q7s': { raise: 80, fold: 20 },
   'Q6s': 'fold',
   'Q5s': 'fold',
   'Q4s': 'fold',
@@ -183,6 +183,7 @@ export const hj80bbRfi: PokerRange = {
     position: 'HJ',
     scenario: 'rfi',
     displayName: '80bb+ HJ - Raise First In',
+    description: 'I can open hands that win through position, not just showdown\n',
   },
   data,
 };

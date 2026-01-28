@@ -7,6 +7,7 @@ import range80bbLjRfi from './80bb-lj-rfi';
 import range80bbHjRfi from './80bb-hj-rfi';
 import range80bbCoRfi from './80bb-co-rfi';
 import range80bbBtnRfi from './80bb-btn-rfi';
+import range80bbSbRfi from './80bb-sb-rfi';
 
 import range80bbUtgPlus1VsUtgVsRaise from './80bb-utgplus1-vs-utg-vs-raise';
 import range80bbHjVsUtgVsRaise from './80bb-hj-vs-utg-vs-raise';
@@ -74,6 +75,7 @@ const RANGE_REGISTRY: Record<string, PokerRange> = {
   '80bb-hj-rfi': range80bbHjRfi,
   '80bb-co-rfi': range80bbCoRfi,
   '80bb-btn-rfi': range80bbBtnRfi,
+  '80bb-sb-rfi': range80bbSbRfi,
   
   // vs Raise ranges
   '80bb-utgplus1-vs-utg-vs-raise': range80bbUtgPlus1VsUtgVsRaise,
