@@ -12,6 +12,10 @@ interface ResultsSummaryProps {
  */
 export function ResultsSummary({ gradeSummary }: ResultsSummaryProps) {
   const percentage = Math.round(gradeSummary.overall.accuracy * 100);
+  
+  // Calculate total playable hands (excludes black hands which are not in hero's range)
+  const { attempted, unanswered } = gradeSummary.overall;
+  const totalPlayable = attempted + unanswered;
 
   const getPerformanceColor = () => {
     if (percentage >= 90) return 'text-green-600';
@@ -26,6 +30,17 @@ export function ResultsSummary({ gradeSummary }: ResultsSummaryProps) {
     if (percentage >= 50) return 'Keep practicing';
     return 'Study this range more';
   };
+
+  // Build action breakdown - only show actions that have expected hands
+  const actionBreakdown = [
+    { key: 'raise', label: 'Raise', bgClass: 'bg-red-100', textClass: 'text-red-700' },
+    { key: 'call', label: 'Call', bgClass: 'bg-green-100', textClass: 'text-green-700' },
+    { key: 'fold', label: 'Fold', bgClass: 'bg-blue-100', textClass: 'text-blue-700' },
+    { key: 'shove', label: 'Shove', bgClass: 'bg-rose-200', textClass: 'text-rose-800' },
+  ].filter(action => {
+    const stats = gradeSummary.overall.byAction[action.key as keyof typeof gradeSummary.overall.byAction];
+    return stats && stats.expected > 0;
+  });
 
   return (
     <div className="flex flex-col items-center gap-2 p-6 bg-white rounded-xl shadow-lg border border-slate-200">
@@ -51,19 +66,30 @@ export function ResultsSummary({ gradeSummary }: ResultsSummaryProps) {
         </span>
       </div>
       
+      {/* Show total playable hands if not 169 (indicates black hands were excluded) */}
+      {totalPlayable < 169 && (
+        <span className="text-xs text-slate-500">
+          {totalPlayable} playable hands (out of 169)
+        </span>
+      )}
+      
       <span className="text-slate-600 font-medium mt-1">
         {getPerformanceMessage()}
       </span>
 
-      {/* Action breakdown */}
-      <div className="flex gap-3 mt-3 text-xs">
-        <div className="px-2 py-1 bg-green-100 text-green-700 rounded">
-          Raise: {Math.round(gradeSummary.overall.byAction.raise.accuracy * 100)}%
+      {/* Action breakdown - only show actions with expected hands */}
+      {actionBreakdown.length > 0 && (
+        <div className="flex flex-wrap justify-center gap-2 mt-3 text-xs">
+          {actionBreakdown.map(action => {
+            const stats = gradeSummary.overall.byAction[action.key as keyof typeof gradeSummary.overall.byAction];
+            return (
+              <div key={action.key} className={`px-2 py-1 ${action.bgClass} ${action.textClass} rounded`}>
+                {action.label}: {Math.round(stats.accuracy * 100)}%
+              </div>
+            );
+          })}
         </div>
-        <div className="px-2 py-1 bg-red-100 text-red-700 rounded">
-          Fold: {Math.round(gradeSummary.overall.byAction.fold.accuracy * 100)}%
-        </div>
-      </div>
+      )}
     </div>
   );
 }

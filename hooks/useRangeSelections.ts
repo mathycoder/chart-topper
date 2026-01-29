@@ -26,7 +26,9 @@ interface UseQuizSelectionsReturn {
   setCell: (hand: string, action: QuizAction | null) => void;
   clearSelections: () => void;
   resetToFold: () => void;
+  initializeWithBlackHands: (rangeData: Record<string, unknown>) => void;
   filledCount: number;
+  playableCount: number;
   totalCells: number;
   allFilled: boolean;
 }
@@ -139,8 +141,30 @@ export function useQuizSelections(): UseQuizSelectionsReturn {
     });
   }, []);
 
+  // Initialize quiz with black hands pre-filled (they don't need user input)
+  const initializeWithBlackHands = useCallback((rangeData: Record<string, unknown>) => {
+    setUserSelections(() => {
+      const selections: QuizSelections = {};
+      ALL_HANDS.forEach(hand => {
+        const action = rangeData[hand];
+        if (action === 'black') {
+          // Black hands are pre-filled - not part of the quiz
+          selections[hand] = 'black';
+        } else {
+          // All other hands start as 'fold'
+          selections[hand] = 'fold';
+        }
+      });
+      return selections;
+    });
+  }, []);
+
+  // Count filled cells (excluding black which is pre-filled and not user input)
   const filledCount = Object.values(userSelections).filter(v => v !== null).length;
+  // Count playable cells (excluding black hands)
+  const playableCount = Object.values(userSelections).filter(v => v !== 'black').length;
   const totalCells = ALL_HANDS.length;
+  // All filled when all playable cells are filled (black doesn't count as needing to be filled)
   const allFilled = filledCount === totalCells;
 
   return {
@@ -148,7 +172,9 @@ export function useQuizSelections(): UseQuizSelectionsReturn {
     setCell,
     clearSelections,
     resetToFold,
+    initializeWithBlackHands,
     filledCount,
+    playableCount,
     totalCells,
     allFilled,
   };

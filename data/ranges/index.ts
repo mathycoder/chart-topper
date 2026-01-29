@@ -33,6 +33,22 @@ import range80bbSbVsCoRaiseBtnCall from './80bb-sb-vs-co-raise-btn-call';
 import range80bbBbVsCoRaiseBtnCall from './80bb-bb-vs-co-raise-btn-call';
 import range80bbBbVsBtnRaiseSbCall from './80bb-bb-vs-btn-raise-sb-call';
 
+// vs 3-bet ranges
+import range80bbUtgVsUtgPlus1Vs3bet from './80bb-utg-vs-utgplus1-vs-3bet';
+import range80bbUtgVsHjVs3bet from './80bb-utg-vs-hj-vs-3bet';
+import range80bbUtgVsBtnVs3bet from './80bb-utg-vs-btn-vs-3bet';
+import range80bbUtgVsSbVs3bet from './80bb-utg-vs-sb-vs-3bet';
+import range80bbUtgVsBbVs3bet from './80bb-utg-vs-bb-vs-3bet';
+import range80bbLjVsHjVs3bet from './80bb-lj-vs-hj-vs-3bet';
+import range80bbLjVsBtnVs3bet from './80bb-lj-vs-btn-vs-3bet';
+import range80bbLjVsSbVs3bet from './80bb-lj-vs-sb-vs-3bet';
+import range80bbLjVsBbVs3bet from './80bb-lj-vs-bb-vs-3bet';
+import range80bbCoVsBtnVs3bet from './80bb-co-vs-btn-vs-3bet';
+import range80bbCoVsSbVs3bet from './80bb-co-vs-sb-vs-3bet';
+import range80bbCoVsBbVs3bet from './80bb-co-vs-bb-vs-3bet';
+import range80bbBtnVsSbVs3bet from './80bb-btn-vs-sb-vs-3bet';
+import range80bbBtnVsBbVs3bet from './80bb-btn-vs-bb-vs-3bet';
+
 /**
  * Build a lookup key from range parameters.
  * Format for RFI: {stackSize}-{position}-rfi
@@ -103,6 +119,22 @@ const RANGE_REGISTRY: Record<string, PokerRange> = {
   '80bb-sb-vs-co-raise-btn-call': range80bbSbVsCoRaiseBtnCall,
   '80bb-bb-vs-co-raise-btn-call': range80bbBbVsCoRaiseBtnCall,
   '80bb-bb-vs-btn-raise-sb-call': range80bbBbVsBtnRaiseSbCall,
+  
+  // vs 3-bet ranges
+  '80bb-utg-vs-utgplus1-vs-3bet': range80bbUtgVsUtgPlus1Vs3bet,
+  '80bb-utg-vs-hj-vs-3bet': range80bbUtgVsHjVs3bet,
+  '80bb-utg-vs-btn-vs-3bet': range80bbUtgVsBtnVs3bet,
+  '80bb-utg-vs-sb-vs-3bet': range80bbUtgVsSbVs3bet,
+  '80bb-utg-vs-bb-vs-3bet': range80bbUtgVsBbVs3bet,
+  '80bb-lj-vs-hj-vs-3bet': range80bbLjVsHjVs3bet,
+  '80bb-lj-vs-btn-vs-3bet': range80bbLjVsBtnVs3bet,
+  '80bb-lj-vs-sb-vs-3bet': range80bbLjVsSbVs3bet,
+  '80bb-lj-vs-bb-vs-3bet': range80bbLjVsBbVs3bet,
+  '80bb-co-vs-btn-vs-3bet': range80bbCoVsBtnVs3bet,
+  '80bb-co-vs-sb-vs-3bet': range80bbCoVsSbVs3bet,
+  '80bb-co-vs-bb-vs-3bet': range80bbCoVsBbVs3bet,
+  '80bb-btn-vs-sb-vs-3bet': range80bbBtnVsSbVs3bet,
+  '80bb-btn-vs-bb-vs-3bet': range80bbBtnVsBbVs3bet,
 };
 
 /**
@@ -199,6 +231,21 @@ function parseKey(key: string): {
         stackSize: vsRaiseMatch[1] as StackSize,
         position: pos,
         scenario: 'vs-raise',
+        opponent: opp,
+      };
+    }
+  }
+
+  // vs-3bet: {stack}-{position}-vs-{opponent}-vs-3bet
+  const vs3betMatch = key.match(/^(\d+bb)-(\w+)-vs-(\w+)-vs-3bet$/);
+  if (vs3betMatch) {
+    const pos = slugToPosition(vs3betMatch[2]);
+    const opp = slugToPosition(vs3betMatch[3]);
+    if (pos && opp) {
+      return {
+        stackSize: vs3betMatch[1] as StackSize,
+        position: pos,
+        scenario: 'vs-3bet',
         opponent: opp,
       };
     }

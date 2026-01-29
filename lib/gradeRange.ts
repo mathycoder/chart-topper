@@ -103,10 +103,17 @@ export function gradeRangeSubmission(args: {
     call: { expected: 0, correct: 0, halfCredit: 0, accuracy: 0 },
     fold: { expected: 0, correct: 0, halfCredit: 0, accuracy: 0 },
     shove: { expected: 0, correct: 0, halfCredit: 0, accuracy: 0 },
+    black: { expected: 0, correct: 0, halfCredit: 0, accuracy: 0 }, // Not graded, but tracked
   };
 
   // Grade every hand in expected range data
   for (const [hand, action] of Object.entries(expectedData)) {
+    // Skip 'black' hands - they are not in hero's range and shouldn't be graded
+    if (action === 'black') {
+      byAction.black.expected += 1;
+      continue;
+    }
+
     const expectedPrimary = getPrimaryAction(action);
     byAction[expectedPrimary].expected += 1;
 

@@ -97,7 +97,7 @@ function generateDisplayName(stack: string, position: string, scenario: string, 
 }
 
 // Format a hand action for TS output
-function formatAction(action: string | { raise?: number; call?: number; fold?: number }): string {
+function formatAction(action: string | { raise?: number; call?: number; fold?: number; shove?: number }): string {
   if (typeof action === 'string') {
     return `'${action}'`;
   }
@@ -106,6 +106,7 @@ function formatAction(action: string | { raise?: number; call?: number; fold?: n
   if (action.raise !== undefined) parts.push(`raise: ${action.raise}`);
   if (action.call !== undefined) parts.push(`call: ${action.call}`);
   if (action.fold !== undefined) parts.push(`fold: ${action.fold}`);
+  if (action.shove !== undefined) parts.push(`shove: ${action.shove}`);
   return `{ ${parts.join(', ')} }`;
 }
 
@@ -180,7 +181,8 @@ function generateTsFile(
   if (caller && scenario === 'vs-raise-call') {
     varName += `And${caller.replace('+', 'Plus')}`;
   }
-  varName += scenario.charAt(0).toUpperCase() + scenario.slice(1).replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+  // Convert scenario to camelCase: "vs-3bet" -> "Vs3bet", "vs-raise" -> "VsRaise"
+  varName += scenario.charAt(0).toUpperCase() + scenario.slice(1).replace(/-([a-z0-9])/g, (_, c) => c.toUpperCase());
 
   lines.push(`export const ${varName}: PokerRange = {`);
   lines.push(`  meta: {`);
@@ -249,15 +251,19 @@ async function main() {
   console.log(`  Raise: rgb(${palette.raiseRGB.r}, ${palette.raiseRGB.g}, ${palette.raiseRGB.b})`);
   console.log(`  Call:  rgb(${palette.callRGB.r}, ${palette.callRGB.g}, ${palette.callRGB.b})`);
   console.log(`  Fold:  rgb(${palette.foldRGB.r}, ${palette.foldRGB.g}, ${palette.foldRGB.b})`);
+  console.log(`  Shove: rgb(${palette.shoveRGB.r}, ${palette.shoveRGB.g}, ${palette.shoveRGB.b})`);
+  console.log(`  Black: rgb(${palette.blackRGB.r}, ${palette.blackRGB.g}, ${palette.blackRGB.b})`);
 
   // Count actions
-  let raiseCount = 0, callCount = 0, foldCount = 0, blendCount = 0;
+  let raiseCount = 0, callCount = 0, foldCount = 0, shoveCount = 0, blackCount = 0, blendCount = 0;
   for (const hand of Object.keys(data)) {
     const action = data[hand];
     if (typeof action === 'string') {
       if (action === 'raise') raiseCount++;
       else if (action === 'call') callCount++;
-      else foldCount++;
+      else if (action === 'fold') foldCount++;
+      else if (action === 'shove') shoveCount++;
+      else if (action === 'black') blackCount++;
     } else {
       blendCount++;
     }
@@ -267,8 +273,10 @@ async function main() {
   console.log(`  Raise: ${raiseCount}`);
   console.log(`  Call: ${callCount}`);
   console.log(`  Fold: ${foldCount}`);
+  console.log(`  Shove: ${shoveCount}`);
+  console.log(`  Black (not in range): ${blackCount}`);
   console.log(`  Blended: ${blendCount}`);
-  console.log(`  Total: ${raiseCount + callCount + foldCount + blendCount}`);
+  console.log(`  Total: ${raiseCount + callCount + foldCount + shoveCount + blackCount + blendCount}`);
 
   // Generate output
   const displayName = generateDisplayName(stack, position, scenario, opponent, caller);

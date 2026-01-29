@@ -165,20 +165,24 @@ export function ViewMode() {
 
   // Count actions in the range (weighted by percentages for mixed hands)
   const countActions = (data: RangeData) => {
-    let raise = 0, call = 0, fold = 0;
+    let raise = 0, call = 0, fold = 0, shove = 0, black = 0;
     for (const action of Object.values(data)) {
       if (typeof action === 'string') {
         if (action === 'raise') raise++;
         else if (action === 'call') call++;
-        else fold++;
+        else if (action === 'fold') fold++;
+        else if (action === 'shove') shove++;
+        else if (action === 'black') black++;
       } else {
         // Mixed hand - weight by percentage (0-100 scale, so divide by 100)
         raise += (action.raise ?? 0) / 100;
         call += (action.call ?? 0) / 100;
         fold += (action.fold ?? 0) / 100;
+        shove += (action.shove ?? 0) / 100;
       }
     }
-    return { raise, call, fold };
+    const playable = 169 - black;
+    return { raise, call, fold, shove, black, playable };
   };
 
   const stats = range ? countActions(range.data) : null;
@@ -294,16 +298,28 @@ export function ViewMode() {
                   <div className="flex flex-col gap-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-slate-500">Raise:</span>
-                      <span className="font-medium text-red-600">{(stats.raise / 169 * 100).toFixed(1)}%</span>
+                      <span className="font-medium text-red-600">{(stats.raise / stats.playable * 100).toFixed(1)}%</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-500">Call:</span>
-                      <span className="font-medium text-green-600">{(stats.call / 169 * 100).toFixed(1)}%</span>
+                      <span className="font-medium text-green-600">{(stats.call / stats.playable * 100).toFixed(1)}%</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-500">Fold:</span>
-                      <span className="font-medium text-blue-600">{(stats.fold / 169 * 100).toFixed(1)}%</span>
+                      <span className="font-medium text-blue-600">{(stats.fold / stats.playable * 100).toFixed(1)}%</span>
                     </div>
+                    {stats.shove > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Shove:</span>
+                        <span className="font-medium text-rose-700">{(stats.shove / stats.playable * 100).toFixed(1)}%</span>
+                      </div>
+                    )}
+                    {stats.black > 0 && (
+                      <div className="flex justify-between text-xs text-slate-400 pt-1 border-t border-slate-100">
+                        <span>Playable hands:</span>
+                        <span>{stats.playable} of 169</span>
+                      </div>
+                    )}
                   </div>
                   {range?.meta.description && (
                     <p className="mt-3 pt-3 border-t border-slate-200 text-sm text-slate-600 italic">
@@ -369,10 +385,13 @@ export function ViewMode() {
       {/* Mobile Bottom Bar - Stats only */}
       {rangeExists && stats && (
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-3 py-2 pb-safe z-40 lg:hidden">
-          <div className="flex justify-center gap-6 text-xs">
-            <span className="text-red-600 font-medium">Raise: {(stats.raise / 169 * 100).toFixed(1)}%</span>
-            <span className="text-green-600 font-medium">Call: {(stats.call / 169 * 100).toFixed(1)}%</span>
-            <span className="text-blue-600 font-medium">Fold: {(stats.fold / 169 * 100).toFixed(1)}%</span>
+          <div className="flex justify-center gap-4 text-xs">
+            <span className="text-red-600 font-medium">Raise: {(stats.raise / stats.playable * 100).toFixed(1)}%</span>
+            <span className="text-green-600 font-medium">Call: {(stats.call / stats.playable * 100).toFixed(1)}%</span>
+            <span className="text-blue-600 font-medium">Fold: {(stats.fold / stats.playable * 100).toFixed(1)}%</span>
+            {stats.shove > 0 && (
+              <span className="text-rose-700 font-medium">Shove: {(stats.shove / stats.playable * 100).toFixed(1)}%</span>
+            )}
           </div>
         </div>
       )}

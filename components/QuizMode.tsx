@@ -111,7 +111,7 @@ const SCENARIO_DISPLAY: Record<Scenario, string> = {
  */
 export function QuizMode() {
   const { position, stackSize, scenario, opponent, caller, setPosition, setStackSize, setScenario, setOpponent, setCaller } = useUrlState('/');
-  const { userSelections, setCell, clearSelections, resetToFold, filledCount, totalCells, allFilled } = useQuizSelections();
+  const { userSelections, setCell, clearSelections, resetToFold, initializeWithBlackHands, filledCount, playableCount, totalCells, allFilled } = useQuizSelections();
 
   // Get available options based on what ranges actually exist
   const availableScenarios = useMemo(() => getAvailableScenarios(stackSize), [stackSize]);
@@ -201,10 +201,27 @@ export function QuizMode() {
       setGradeSummary(null);
       setSelectedActions(new Set());
       setMultiSelectMode(false);
-      resetToFold();
+      // Initialize with black hands pre-filled if range exists
+      if (range) {
+        initializeWithBlackHands(range.data);
+      } else {
+        resetToFold();
+      }
       prevParamsRef.current = { position: effectivePosition, stackSize, scenario: effectiveScenario, opponent: effectiveOpponent, caller: effectiveCaller };
     }
-  }, [effectivePosition, stackSize, effectiveScenario, effectiveOpponent, effectiveCaller, resetToFold]);
+  }, [effectivePosition, stackSize, effectiveScenario, effectiveOpponent, effectiveCaller, range, initializeWithBlackHands, resetToFold]);
+  
+  // Also initialize on first load if range has black hands
+  useEffect(() => {
+    if (range && !isSubmitted) {
+      // Check if we need to initialize (only if there are black hands and they're not already set)
+      const hasBlackHands = Object.values(range.data).some(action => action === 'black');
+      const hasBlackSelections = Object.values(userSelections).some(action => action === 'black');
+      if (hasBlackHands && !hasBlackSelections) {
+        initializeWithBlackHands(range.data);
+      }
+    }
+  }, [range, isSubmitted, userSelections, initializeWithBlackHands]);
   
   // Toggle action selection (multi-select for blends)
   const handleToggleAction = useCallback((action: SimpleAction) => {
@@ -365,7 +382,7 @@ export function QuizMode() {
             
             <RangeChart
               userSelections={userSelections}
-              correctRange={isSubmitted && range ? range.data : undefined}
+              correctRange={range?.data}
               isSubmitted={isSubmitted}
               isPainting={painting.isPainting && rangeExists && !isSubmitted}
               selectedAction={rangeExists && !isSubmitted ? effectiveSelectedAction : null}
@@ -539,7 +556,7 @@ export function QuizMode() {
               
               <RangeChart
                 userSelections={userSelections}
-                correctRange={isSubmitted && range ? range.data : undefined}
+                correctRange={range?.data}
                 isSubmitted={isSubmitted}
                 isPainting={painting.isPainting && rangeExists && !isSubmitted}
                 selectedAction={rangeExists && !isSubmitted ? effectiveSelectedAction : null}

@@ -11,6 +11,7 @@ const ACTION_COLORS = {
   call: 'var(--color-action-call)',
   fold: 'var(--color-action-fold)',
   shove: 'var(--color-action-shove)',
+  black: 'var(--color-action-black)',
 };
 
 interface HandCellProps {
@@ -97,12 +98,19 @@ export function HandCell({
 }: HandCellProps) {
   const [isHovered, setIsHovered] = useState(false);
   
+  // Check if this cell is a 'black' cell (not in hero's range)
+  const isBlackCell = correctAction === 'black';
+  
   // Determine which action to display
-  const actionToDisplay = displayAction ?? userAction;
+  // For black cells, always show the black action from correctRange
+  const actionToDisplay = isBlackCell ? 'black' : (displayAction ?? userAction);
   
   // Determine if user's answer is correct (only relevant after submission)
   const getCorrectness = (): boolean | null => {
     if (!isSubmitted || !correctAction) return null;
+    
+    // Black cells are always "correct" - they don't need user input
+    if (isBlackCell) return null;
     
     if (isSimpleAction(correctAction)) {
       // Simple correct answer - needs exact match
@@ -174,6 +182,7 @@ export function HandCell({
       case 'call': return 'bg-action-call';
       case 'fold': return 'bg-action-fold';
       case 'shove': return 'bg-action-shove';
+      case 'black': return 'bg-action-black';
       default: return 'bg-cell-empty';
     }
   };
@@ -186,6 +195,8 @@ export function HandCell({
   // Handle mouse down - start painting or open blend picker
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault(); // Prevent text selection
+    // Don't allow painting on black cells (not in hero's range)
+    if (isBlackCell) return;
     if (!isSubmitted && (selectedAction || blendMode)) {
       onPaintStart(hand);
     }
@@ -193,6 +204,8 @@ export function HandCell({
 
   // Handle mouse enter while dragging or for hover state
   const handleMouseEnter = () => {
+    // Don't allow painting on black cells
+    if (isBlackCell) return;
     if (isPainting && !isSubmitted && selectedAction) {
       onPaint(hand);
     }
@@ -232,8 +245,8 @@ export function HandCell({
         select-none
         ${getBackgroundClass()}
         ${getTextColor()}
-        ${!isSubmitted && (selectedAction || blendMode) ? 'hover:opacity-80' : ''}
-        ${isSubmitted ? 'cursor-default' : ''}
+        ${!isSubmitted && !isBlackCell && (selectedAction || blendMode) ? 'hover:opacity-80' : ''}
+        ${isSubmitted || isBlackCell ? 'cursor-default' : ''}
       `}
       style={getBackgroundStyle()}
       data-hand={hand}

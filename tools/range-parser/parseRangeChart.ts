@@ -1,8 +1,8 @@
 import sharp from 'sharp';
 import type { RangeChartConfig, Box } from './config';
 
-type Action = 'raise' | 'call' | 'fold';
-type RangeValue = Action | { raise?: number; call?: number; fold?: number };
+type Action = 'raise' | 'call' | 'fold' | 'shove' | 'black';
+type RangeValue = Action | { raise?: number; call?: number; fold?: number; shove?: number };
 export type RangeData = Record<string, RangeValue>;
 
 const HAND_GRID: string[][] = [
@@ -149,15 +149,19 @@ export async function parseRangeChart(imagePath: string, config: RangeChartConfi
   
   // --- 2) Use hardcoded palette colors ---
   // These are the consistent colors used in poker range charts:
-  // Red = Raise, Green = Call, Blue = Fold
-  const raiseRGB: RGB = { r: 235, g: 66, b: 68 };   // Red
+  // Bright Red = Raise, Green = Call, Blue = Fold, Dark Red = Shove, Black = Not in range
+  const raiseRGB: RGB = { r: 235, g: 66, b: 68 };   // Bright red
   const callRGB: RGB = { r: 114, g: 192, b: 115 };  // Green
   const foldRGB: RGB = { r: 80, g: 136, b: 191 };   // Blue
+  const shoveRGB: RGB = { r: 139, g: 0, b: 0 };     // Dark red
+  const blackRGB: RGB = { r: 30, g: 30, b: 30 };    // Black/very dark (not in range)
 
   const palette: Record<Action, LAB> = {
     raise: rgbToLab(raiseRGB),
     call: rgbToLab(callRGB),
     fold: rgbToLab(foldRGB),
+    shove: rgbToLab(shoveRGB),
+    black: rgbToLab(blackRGB),
   };
 
   const data: RangeData = {};
@@ -183,7 +187,7 @@ export async function parseRangeChart(imagePath: string, config: RangeChartConfi
       const insetX = Math.floor(cellW * config.cellInsetPct);
       const insetY = Math.floor(cellH * config.cellInsetPct);
 
-      const counts: Record<Action, number> = { raise: 0, call: 0, fold: 0 };
+      const counts: Record<Action, number> = { raise: 0, call: 0, fold: 0, shove: 0, black: 0 };
       let total = 0;
 
       for (let y = insetY; y < cellH - insetY; y++) {
@@ -214,25 +218,35 @@ export async function parseRangeChart(imagePath: string, config: RangeChartConfi
       const [a2, p2] = ranked[1];
 
       // Decision thresholds (tune as needed)
-      if (p1 >= 0.85) {
+      // Black cells are always pure (not in range) - no mixing
+      if (a1 === 'black' && p1 >= 0.70) {
+        data[hand] = 'black';
+      } else if (p1 >= 0.85) {
         data[hand] = a1;
       } else if (p2 < 0.12) {
         data[hand] = a1;
       } else {
-        const mix: Record<Action, number> = { raise: 0, call: 0, fold: 0 };
-        mix[a1] = roundTo(p1 * 100, 10);
-        mix[a2] = roundTo(p2 * 100, 10);
-        // Remove zeros
+        // For blended hands, only mix raise/call/fold/shove (not black)
+        const mix: Partial<Record<Action, number>> = {};
+        if (a1 !== 'black') mix[a1] = roundTo(p1 * 100, 10);
+        if (a2 !== 'black') mix[a2] = roundTo(p2 * 100, 10);
+        
+        // Remove zeros and normalize
         (Object.keys(mix) as Action[]).forEach((k) => {
-          if (mix[k] === 0) delete (mix as any)[k];
+          if (mix[k] === 0) delete mix[k];
         });
-        normalizeTo100(mix as any);
-
-        // Convert to your object style { raise: 60, call: 40 }
-        data[hand] = mix;
+        
+        // If we have a valid mix, normalize it
+        if (Object.keys(mix).length > 0) {
+          normalizeTo100(mix as Record<Action, number>);
+          data[hand] = mix as RangeValue;
+        } else {
+          // Fallback to dominant action
+          data[hand] = a1;
+        }
       }
     }
   }
 
-  return { data, palette: { raiseRGB, callRGB, foldRGB } };
+  return { data, palette: { raiseRGB, callRGB, foldRGB, shoveRGB, blackRGB } };
 }

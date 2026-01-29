@@ -11,7 +11,8 @@ export type Rank = (typeof RANKS)[number];
 // ============================================
 
 // Simple action - 100% one choice
-export type SimpleAction = 'raise' | 'call' | 'fold' | 'shove';
+// 'black' = hand not in hero's range (excluded from grading)
+export type SimpleAction = 'raise' | 'call' | 'fold' | 'shove' | 'black';
 
 // Blended action - percentages for mixed strategies (must sum to 100)
 export type BlendedAction = {

@@ -12,6 +12,8 @@ const config: Config = {
         'action-raise': '#dc2626',
         'action-call': '#16a34a',
         'action-fold': '#2563eb',
+        'action-shove': '#8b0000',
+        'action-black': '#e2e8f0',
         
         // Cell state colors
         'cell-empty': '#f8fafc',
@@ -22,6 +24,8 @@ const config: Config = {
         'action-raise-hover': '#b91c1c',
         'action-call-hover': '#15803d',
         'action-fold-hover': '#1d4ed8',
+        'action-shove-hover': '#6b0000',
+        'action-black-hover': '#cbd5e1',
       },
       spacing: {
         'cell': '2.5rem',
