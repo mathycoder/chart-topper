@@ -181,7 +181,7 @@ export const rangeLJRFI: PokerRange = {
   meta: {
     stackSize: '50bb',
     position: 'LJ',
-    scenario: 'RFI',
+    scenario: 'rfi',
     displayName: '50bb+ LJ - RFI',
   },
   data,

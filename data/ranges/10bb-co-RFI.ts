@@ -181,7 +181,7 @@ export const rangeCORFI: PokerRange = {
   meta: {
     stackSize: '10bb',
     position: 'CO',
-    scenario: 'RFI',
+    scenario: 'rfi',
     displayName: '10bb+ CO - RFI',
   },
   data,

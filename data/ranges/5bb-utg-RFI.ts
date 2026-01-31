@@ -181,7 +181,7 @@ export const rangeUTGRFI: PokerRange = {
   meta: {
     stackSize: '5bb',
     position: 'UTG',
-    scenario: 'RFI',
+    scenario: 'rfi',
     displayName: '5bb+ UTG - RFI',
   },
   data,

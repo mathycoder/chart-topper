@@ -181,7 +181,7 @@ export const rangeBTNRFI: PokerRange = {
   meta: {
     stackSize: '5bb',
     position: 'BTN',
-    scenario: 'RFI',
+    scenario: 'rfi',
     displayName: '5bb+ BTN - RFI',
   },
   data,
