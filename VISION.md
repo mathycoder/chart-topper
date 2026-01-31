@@ -78,7 +78,7 @@ Ranges categorized by three dimensions:
 
 | Dimension | Options |
 |-----------|---------|
-| **Stack Size** | 80bb+, 40bb, 20bb, 10bb |
+| **Stack Size** | 80bb+, 40bb, 25bb, 15bb |
 | **Position** | UTG, UTG+1, LJ, HJ, CO, BTN, SB, BB |
 | **Scenario** | RFI, vs Raise, vs 3-Bet, vs 4-Bet, After Limp |
 
@@ -325,8 +325,8 @@ These high-impact features could be built quickly:
 - [ ] Add vs-raise ranges (calling, 3-betting)
 - [ ] Add vs-3bet ranges (calling, 4-betting)
 - [ ] 40bb ranges
-- [ ] 20bb push/fold ranges
-- [ ] 10bb push/fold ranges
+- [ ] 25bb push/fold ranges
+- [ ] 15bb push/fold ranges
 
 ### Phase 4: Polish & Platform 💎
 

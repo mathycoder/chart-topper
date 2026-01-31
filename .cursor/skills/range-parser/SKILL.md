@@ -21,7 +21,7 @@ When the user asks to parse a range, extract these parameters from their request
 | scenario | Yes | rfi, vs-raise, vs-raise-call, vs-3bet, vs-4bet | - |
 | opponent | Only for vs-* scenarios | UTG, UTG+1, LJ, HJ, CO, BTN, SB, BB | - |
 | caller | Only for vs-raise-call | UTG, UTG+1, LJ, HJ, CO, BTN, SB, BB | - |
-| stack | No | 10bb, 20bb, 40bb, 80bb | 80bb |
+| stack | No | 15bb, 25bb, 40bb, 80bb | 80bb |
 
 ## Command
 

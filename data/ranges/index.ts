@@ -1,6 +1,9 @@
 import type { PokerRange, Position, StackSize, Scenario } from '@/types';
 
-// Import all range files
+////////////////////////////////////////////////////////////
+// 80bb+ ranges
+////////////////////////////////////////////////////////////
+// RFI ranges
 import range80bbUtgRfi from './80bb-utg-rfi';
 import range80bbUtgPlus1Rfi from './80bb-utgplus1-rfi';
 import range80bbLjRfi from './80bb-lj-rfi';
@@ -9,6 +12,7 @@ import range80bbCoRfi from './80bb-co-rfi';
 import range80bbBtnRfi from './80bb-btn-rfi';
 import range80bbSbRfi from './80bb-sb-rfi';
 
+// vs Raise ranges
 import range80bbUtgPlus1VsUtgVsRaise from './80bb-utgplus1-vs-utg-vs-raise';
 import range80bbHjVsUtgVsRaise from './80bb-hj-vs-utg-vs-raise';
 import range80bbHjVsLjVsRaise from './80bb-hj-vs-lj-vs-raise';
@@ -22,6 +26,7 @@ import range80bbBbVsUtgVsRaise from './80bb-bb-vs-utg-vs-raise';
 import range80bbBbVsLjVsRaise from './80bb-bb-vs-lj-vs-raise';
 import range80bbBbVsBtnVsRaise from './80bb-bb-vs-btn-vs-raise';
 
+// vs Raise + Call ranges (3-way pots)
 import range80bbHjVsUtgRaiseLjCall from './80bb-hj-vs-utg-raise-lj-call';
 import range80bbSbVsUtgRaiseLjCall from './80bb-sb-vs-utg-raise-lj-call';
 import range80bbBtnVsUtgRaiseLjCall from './80bb-btn-vs-utg-raise-lj-call';
@@ -48,6 +53,61 @@ import range80bbCoVsSbVs3bet from './80bb-co-vs-sb-vs-3bet';
 import range80bbCoVsBbVs3bet from './80bb-co-vs-bb-vs-3bet';
 import range80bbBtnVsSbVs3bet from './80bb-btn-vs-sb-vs-3bet';
 import range80bbBtnVsBbVs3bet from './80bb-btn-vs-bb-vs-3bet';
+
+////////////////////////////////////////////////////////////
+// 50bb+ ranges
+////////////////////////////////////////////////////////////
+// RFI ranges
+import range50bbUtgRfi from './50bb-utg-rfi';
+import range50bbUtgPlus1Rfi from './50bb-utgplus1-RFI';
+import range50bbLjRfi from './50bb-lj-RFI';
+import range50bbHjRfi from './50bb-hj-RFI';
+import range50bbCoRfi from './50bb-co-RFI';
+import range50bbBtnRfi from './50bb-btn-RFI';
+
+////////////////////////////////////////////////////////////
+// 25bb+ ranges
+////////////////////////////////////////////////////////////
+// RFI ranges
+import range25bbUtgRfi from './25bb-utg-RFI';
+import range25bbUtgPlus1Rfi from './25bb-utgplus1-RFI';
+import range25bbLjRfi from './25bb-lj-RFI';
+import range25bbHjRfi from './25bb-hj-RFI';
+import range25bbCoRfi from './25bb-co-RFI';
+import range25bbBtnRfi from './25bb-btn-RFI';
+
+////////////////////////////////////////////////////////////
+// 15bb+ ranges
+////////////////////////////////////////////////////////////
+// RFI ranges
+import range15bbUtgRfi from './15bb-utg-RFI';
+import range15bbUtgPlus1Rfi from './15bb-utgplus1-RFI';
+import range15bbLjRfi from './15bb-lj-RFI';
+import range15bbHjRfi from './15bb-hj-RFI';
+import range15bbCoRfi from './15bb-co-RFI';
+import range15bbBtnRfi from './15bb-btn-RFI';
+
+////////////////////////////////////////////////////////////
+// 10bb+ ranges
+////////////////////////////////////////////////////////////
+// RFI ranges
+import range10bbUtgRfi from './10bb-utg-RFI';
+import range10bbUtgPlus1Rfi from './10bb-utgplus1-RFI';
+import range10bbLjRfi from './10bb-lj-RFI';
+import range10bbHjRfi from './10bb-hj-RFI';
+import range10bbCoRfi from './10bb-co-RFI';
+import range10bbBtnRfi from './10bb-btn-RFI';
+
+////////////////////////////////////////////////////////////
+// 5bb+ ranges
+////////////////////////////////////////////////////////////
+// RFI ranges
+import range5bbUtgRfi from './5bb-utg-RFI';
+import range5bbUtgPlus1Rfi from './5bb-utgplus1-RFI';
+import range5bbLjRfi from './5bb-lj-RFI';
+import range5bbHjRfi from './5bb-hj-RFI';
+import range5bbCoRfi from './5bb-co-RFI';
+import range5bbBtnRfi from './5bb-btn-RFI';
 
 /**
  * Build a lookup key from range parameters.
@@ -135,6 +195,46 @@ const RANGE_REGISTRY: Record<string, PokerRange> = {
   '80bb-co-vs-bb-vs-3bet': range80bbCoVsBbVs3bet,
   '80bb-btn-vs-sb-vs-3bet': range80bbBtnVsSbVs3bet,
   '80bb-btn-vs-bb-vs-3bet': range80bbBtnVsBbVs3bet,
+
+  // 50bb+ ranges
+  '50bb-utg-rfi': range50bbUtgRfi,
+  '50bb-utgplus1-rfi': range50bbUtgPlus1Rfi,
+  '50bb-lj-rfi': range50bbLjRfi,
+  '50bb-hj-rfi': range50bbHjRfi,
+  '50bb-co-rfi': range50bbCoRfi,
+  '50bb-btn-rfi': range50bbBtnRfi,
+
+  // 25bb+ ranges
+  '25bb-utg-rfi': range25bbUtgRfi,
+  '25bb-utgplus1-rfi': range25bbUtgPlus1Rfi,
+  '25bb-lj-rfi': range25bbLjRfi,
+  '25bb-hj-rfi': range25bbHjRfi,
+  '25bb-co-rfi': range25bbCoRfi,
+  '25bb-btn-rfi': range25bbBtnRfi,
+
+  // 15bb+ ranges
+  '15bb-utg-rfi': range15bbUtgRfi,
+  '15bb-utgplus1-rfi': range15bbUtgPlus1Rfi,
+  '15bb-lj-rfi': range15bbLjRfi,
+  '15bb-hj-rfi': range15bbHjRfi,
+  '15bb-co-rfi': range15bbCoRfi,
+  '15bb-btn-rfi': range15bbBtnRfi,
+
+  // 10bb+ ranges
+  '10bb-utg-rfi': range10bbUtgRfi,
+  '10bb-utgplus1-rfi': range10bbUtgPlus1Rfi,
+  '10bb-lj-rfi': range10bbLjRfi,
+  '10bb-hj-rfi': range10bbHjRfi,
+  '10bb-co-rfi': range10bbCoRfi,
+  '10bb-btn-rfi': range10bbBtnRfi,
+
+  // 5bb+ ranges
+  '5bb-utg-rfi': range5bbUtgRfi,
+  '5bb-utgplus1-rfi': range5bbUtgPlus1Rfi,
+  '5bb-lj-rfi': range5bbLjRfi,
+  '5bb-hj-rfi': range5bbHjRfi,
+  '5bb-co-rfi': range5bbCoRfi,
+  '5bb-btn-rfi': range5bbBtnRfi,
 };
 
 /**

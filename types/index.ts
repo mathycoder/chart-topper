@@ -96,7 +96,7 @@ export type HandCombo = string; // e.g. "AKs", "AJo", "77"
 export type RangeData = Record<HandCombo, HandAction>;
 
 // Stack size categories
-export type StackSize = '10bb' | '20bb' | '40bb' | '80bb';
+export type StackSize = '5bb' | '10bb' | '15bb' | '25bb' | '50bb' | '80bb';
 
 // Table positions (8-max)
 export type Position = 'UTG' | 'UTG+1' | 'LJ' | 'HJ' | 'CO' | 'BTN' | 'SB' | 'BB';
