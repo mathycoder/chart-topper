@@ -65,6 +65,24 @@ import range50bbHjRfi from './50bb-hj-RFI';
 import range50bbCoRfi from './50bb-co-RFI';
 import range50bbBtnRfi from './50bb-btn-RFI';
 
+// vs Raise ranges
+// import range50bbUtgVsUtgPlus1VsRaise from './50bb-utg-vs-utgplus1-vs-raise';
+import rangeBBVsBTNVsRaise from './50bb-bb-vs-btn-vs-raise';
+import rangeBBVsCOVsRaise from './50bb-bb-vs-co-vs-raise';
+import rangeBBVsLJVsRaise from './50bb-bb-vs-lj-vs-raise';
+import rangeBBVsUTGVsRaise from './50bb-bb-vs-utg-vs-raise';
+import rangeBTNVsCOVsRaise from './50bb-btn-vs-co-vs-raise';
+import rangeBTNVsLJVsRaise from './50bb-btn-vs-lj-vs-raise'; 
+import rangeBTNVsUTGVsRaise from './50bb-btn-vs-utg-vs-raise'; 
+import rangeHJVsLJVsRaise from './50bb-hj-vs-lj-vs-raise'; 
+import rangeHJVsUTGVsRaise from './50bb-hj-vs-utg-vs-raise';  
+import rangeSBVsBTNVsRaise from './50bb-sb-vs-btn-vs-raise'; 
+import rangeSBVsCOVsRaise from './50bb-sb-vs-co-vs-raise'; 
+import rangeSbVsLJVsRaise from './50bb-sb-vs-lj-vs-raise';
+import rangeSbVsUTGVsRaise from './50bb-sb-vs-utg-vs-raise';
+import rangeUTGPlus1VsUTGVsRaise from './50bb-utgplus1-vs-utg-vs-raise';
+
+
 ////////////////////////////////////////////////////////////
 // 25bb+ ranges
 ////////////////////////////////////////////////////////////
@@ -144,6 +162,9 @@ function buildKey(
  * Registry of all available ranges, keyed by their lookup string.
  */
 const RANGE_REGISTRY: Record<string, PokerRange> = {
+  ////////////////////////////////////////////////////////////
+// 80bb+ ranges
+////////////////////////////////////////////////////////////
   // RFI ranges
   '80bb-utg-rfi': range80bbUtgRfi,
   '80bb-utgplus1-rfi': range80bbUtgPlus1Rfi,
@@ -196,13 +217,31 @@ const RANGE_REGISTRY: Record<string, PokerRange> = {
   '80bb-btn-vs-sb-vs-3bet': range80bbBtnVsSbVs3bet,
   '80bb-btn-vs-bb-vs-3bet': range80bbBtnVsBbVs3bet,
 
+  ////////////////////////////////////////////////////////////
   // 50bb+ ranges
+  ////////////////////////////////////////////////////////////
+  // RFI
   '50bb-utg-rfi': range50bbUtgRfi,
   '50bb-utgplus1-rfi': range50bbUtgPlus1Rfi,
   '50bb-lj-rfi': range50bbLjRfi,
   '50bb-hj-rfi': range50bbHjRfi,
   '50bb-co-rfi': range50bbCoRfi,
   '50bb-btn-rfi': range50bbBtnRfi,
+  // vs Raise
+  '50bb-bb-vs-btn-vs-raise': rangeBBVsBTNVsRaise,
+  '50bb-bb-vs-co-vs-raise': rangeBBVsCOVsRaise,
+  '50bb-bb-vs-lj-vs-raise': rangeBBVsLJVsRaise,
+  '50bb-bb-vs-utg-vs-raise': rangeBBVsUTGVsRaise,
+  '50bb-btn-vs-co-vs-raise': rangeBTNVsCOVsRaise,
+  '50bb-btn-vs-lj-vs-raise': rangeBTNVsLJVsRaise,
+  '50bb-btn-vs-utg-vs-raise': rangeBTNVsUTGVsRaise,
+  '50bb-hj-vs-lj-vs-raise': rangeHJVsLJVsRaise,
+  '50bb-hj-vs-utg-vs-raise': rangeHJVsUTGVsRaise,
+  '50bb-sb-vs-btn-vs-raise': rangeSBVsBTNVsRaise,
+  '50bb-sb-vs-co-vs-raise': rangeSBVsCOVsRaise,
+  '50bb-sb-vs-lj-vs-raise': rangeSbVsLJVsRaise,
+  '50bb-sb-vs-utg-vs-raise': rangeSbVsUTGVsRaise,
+  '50bb-utgplus1-vs-utg-vs-raise': rangeUTGPlus1VsUTGVsRaise,
 
   // 25bb+ ranges
   '25bb-utg-rfi': range25bbUtgRfi,
