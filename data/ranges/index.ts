@@ -67,20 +67,32 @@ import range50bbBtnRfi from './50bb-btn-RFI';
 
 // vs Raise ranges
 // import range50bbUtgVsUtgPlus1VsRaise from './50bb-utg-vs-utgplus1-vs-raise';
-import rangeBBVsBTNVsRaise from './50bb-bb-vs-btn-vs-raise';
-import rangeBBVsCOVsRaise from './50bb-bb-vs-co-vs-raise';
-import rangeBBVsLJVsRaise from './50bb-bb-vs-lj-vs-raise';
-import rangeBBVsUTGVsRaise from './50bb-bb-vs-utg-vs-raise';
-import rangeBTNVsCOVsRaise from './50bb-btn-vs-co-vs-raise';
-import rangeBTNVsLJVsRaise from './50bb-btn-vs-lj-vs-raise'; 
-import rangeBTNVsUTGVsRaise from './50bb-btn-vs-utg-vs-raise'; 
-import rangeHJVsLJVsRaise from './50bb-hj-vs-lj-vs-raise'; 
-import rangeHJVsUTGVsRaise from './50bb-hj-vs-utg-vs-raise';  
-import rangeSBVsBTNVsRaise from './50bb-sb-vs-btn-vs-raise'; 
-import rangeSBVsCOVsRaise from './50bb-sb-vs-co-vs-raise'; 
-import rangeSbVsLJVsRaise from './50bb-sb-vs-lj-vs-raise';
-import rangeSbVsUTGVsRaise from './50bb-sb-vs-utg-vs-raise';
-import rangeUTGPlus1VsUTGVsRaise from './50bb-utgplus1-vs-utg-vs-raise';
+import range50BBVsBTNVsRaise from './50bb-bb-vs-btn-vs-raise';
+import range50BBVsCOVsRaise from './50bb-bb-vs-co-vs-raise';
+import range50BBVsLJVsRaise from './50bb-bb-vs-lj-vs-raise';
+import range50BBVsUTGVsRaise from './50bb-bb-vs-utg-vs-raise';
+import range50BTNVsCOVsRaise from './50bb-btn-vs-co-vs-raise';
+import range50BTNVsLJVsRaise from './50bb-btn-vs-lj-vs-raise'; 
+import range50BTNVsUTGVsRaise from './50bb-btn-vs-utg-vs-raise'; 
+import range50HJVsLJVsRaise from './50bb-hj-vs-lj-vs-raise'; 
+import range50HJVsUTGVsRaise from './50bb-hj-vs-utg-vs-raise';  
+import range50SBVsBTNVsRaise from './50bb-sb-vs-btn-vs-raise'; 
+import range50SBVsCOVsRaise from './50bb-sb-vs-co-vs-raise'; 
+import range50SbVsLJVsRaise from './50bb-sb-vs-lj-vs-raise';
+import range50SbVsUTGVsRaise from './50bb-sb-vs-utg-vs-raise';
+import range50UTGPlus1VsUTGVsRaise from './50bb-utgplus1-vs-utg-vs-raise';
+ 
+// vs Raise + Call ranges (3-way pots) 
+import range50BBVsUtgRaiseLjCall from './50bb-bb-vs-utg-raise-lj-call'
+import range50BTNVsUtgRaiseLjCall from './50bb-btn-vs-utg-raise-lj-call'
+import range50HJVsUtgRaiseLjCall from './50bb-hj-vs-utg-raise-lj-call'
+import range50SBVsUtgRaiseLjCall from './50bb-sb-vs-utg-raise-lj-call'
+import range50BBVsBtnRaiseSbCall from './50bb-bb-vs-btn-raise-sb-call'
+import range50BBVsCORaiseBtnCall from './50bb-bb-vs-co-raise-btn-call' 
+import range50BBVsLJRaiseCoCall from './50bb-bb-vs-lj-raise-co-call' 
+import range50BTNVsLJRaiseCoCall from './50bb-btn-vs-lj-raise-co-call'  
+import range50SBVsCoRaiseBtnCall from './50bb-sb-vs-co-raise-btn-call' 
+import range50SBVsLJRaiseCOCall from './50bb-sb-vs-lj-raise-co-call' 
 
 
 ////////////////////////////////////////////////////////////
@@ -228,20 +240,31 @@ const RANGE_REGISTRY: Record<string, PokerRange> = {
   '50bb-co-rfi': range50bbCoRfi,
   '50bb-btn-rfi': range50bbBtnRfi,
   // vs Raise
-  '50bb-bb-vs-btn-vs-raise': rangeBBVsBTNVsRaise,
-  '50bb-bb-vs-co-vs-raise': rangeBBVsCOVsRaise,
-  '50bb-bb-vs-lj-vs-raise': rangeBBVsLJVsRaise,
-  '50bb-bb-vs-utg-vs-raise': rangeBBVsUTGVsRaise,
-  '50bb-btn-vs-co-vs-raise': rangeBTNVsCOVsRaise,
-  '50bb-btn-vs-lj-vs-raise': rangeBTNVsLJVsRaise,
-  '50bb-btn-vs-utg-vs-raise': rangeBTNVsUTGVsRaise,
-  '50bb-hj-vs-lj-vs-raise': rangeHJVsLJVsRaise,
-  '50bb-hj-vs-utg-vs-raise': rangeHJVsUTGVsRaise,
-  '50bb-sb-vs-btn-vs-raise': rangeSBVsBTNVsRaise,
-  '50bb-sb-vs-co-vs-raise': rangeSBVsCOVsRaise,
-  '50bb-sb-vs-lj-vs-raise': rangeSbVsLJVsRaise,
-  '50bb-sb-vs-utg-vs-raise': rangeSbVsUTGVsRaise,
-  '50bb-utgplus1-vs-utg-vs-raise': rangeUTGPlus1VsUTGVsRaise,
+  '50bb-bb-vs-btn-vs-raise': range50BBVsBTNVsRaise,
+  '50bb-bb-vs-co-vs-raise': range50BBVsCOVsRaise,
+  '50bb-bb-vs-lj-vs-raise': range50BBVsLJVsRaise,
+  '50bb-bb-vs-utg-vs-raise': range50BBVsUTGVsRaise,
+  '50bb-btn-vs-co-vs-raise': range50BTNVsCOVsRaise,
+  '50bb-btn-vs-lj-vs-raise': range50BTNVsLJVsRaise,
+  '50bb-btn-vs-utg-vs-raise': range50BTNVsUTGVsRaise,
+  '50bb-hj-vs-lj-vs-raise': range50HJVsLJVsRaise,
+  '50bb-hj-vs-utg-vs-raise': range50HJVsUTGVsRaise,
+  '50bb-sb-vs-btn-vs-raise': range50SBVsBTNVsRaise,
+  '50bb-sb-vs-co-vs-raise': range50SBVsCOVsRaise,
+  '50bb-sb-vs-lj-vs-raise': range50SbVsLJVsRaise,
+  '50bb-sb-vs-utg-vs-raise': range50SbVsUTGVsRaise,
+  '50bb-utgplus1-vs-utg-vs-raise': range50UTGPlus1VsUTGVsRaise,
+  // vs Raise and Call
+  '50bb-bb-vs-utg-raise-lj-call': range50BBVsUtgRaiseLjCall,
+  '50bb-btn-vs-utg-raise-lj-call': range50BTNVsUtgRaiseLjCall,
+  '50bb-hj-vs-utg-raise-lj-call': range50HJVsUtgRaiseLjCall,
+  '50bb-sb-vs-utg-raise-lj-call': range50SBVsUtgRaiseLjCall,
+  '50bb-bb-vs-btn-raise-sb-call': range50BBVsBtnRaiseSbCall, 
+  '50bb-bb-vs-co-raise-btn-call': range50BBVsCORaiseBtnCall, 
+  '50bb-bb-vs-lj-raise-co-call': range50BBVsLJRaiseCoCall, 
+  '50bb-btn-vs-lj-raise-co-call': range50BTNVsLJRaiseCoCall, 
+  '50bb-sb-vs-co-raise-btn-call': range50SBVsCoRaiseBtnCall, 
+  '50bb-sb-vs-lj-raise-co-call': range50SBVsLJRaiseCOCall, 
 
   // 25bb+ ranges
   '25bb-utg-rfi': range25bbUtgRfi,
