@@ -4,9 +4,11 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { Scenario, SimpleAction, QuizAction, Position, StackSize } from '@/types';
 import { useUrlState, useQuizSelections, usePainting } from '@/hooks';
 import { getRange, getAvailableScenarios, getAvailablePositions, getAvailableOpponents, getAvailableCallers } from '@/data/ranges';
+import { getCategoryHandsAtOrAboveFloor, getCategoryHandsBelowFloor, detectCategoryFloorWithExceptions, type HandCategory } from '@/data/hands';
 import { Card } from './shared';
 import { RangeChart } from './RangeChart';
 import { ActionPalette } from './ActionPalette';
+import { CategoryPicker } from './CategoryPicker';
 import { ResultsSummary } from './ResultsSummary';
 import { MobileActionBar, deriveBlendType } from './MobileActionBar';
 import { MobileDropdownBar } from './MobileDropdownBar';
@@ -180,8 +182,28 @@ export function QuizMode() {
   const [showCorrectAnswers, setShowCorrectAnswers] = useState(false);
   
   // Action selection state
-  const [selectedActions, setSelectedActions] = useState<Set<SimpleAction>>(new Set());
+  const [selectedActions, setSelectedActions] = useState<Set<SimpleAction>>(new Set(['raise']));
   const [multiSelectMode, setMultiSelectMode] = useState(false);
+
+  // Category floor state (for wheel pickers)
+  const [categoryFloors, setCategoryFloors] = useState<Record<HandCategory, string | null>>({
+    pocketPairs: null,
+    axSuited: null,
+    axOffsuit: null,
+    kxSuited: null,
+    suitedConnectors: null,
+    suitedOneGappers: null,
+  });
+  
+  // Category exceptions state (hands with action below the continuous floor)
+  const [categoryExceptions, setCategoryExceptions] = useState<Record<HandCategory, string[]>>({
+    pocketPairs: [],
+    axSuited: [],
+    axOffsuit: [],
+    kxSuited: [],
+    suitedConnectors: [],
+    suitedOneGappers: [],
+  });
 
   // Painting state
   const painting = usePainting();
@@ -256,6 +278,50 @@ export function QuizMode() {
     }
     return deriveBlendType(selectedActions);
   }, [selectedActions]);
+
+  // Apply category floor - fill all hands at or above floor with current action
+  // Also clears hands below the floor to allow changing the floor
+  const applyCategoryFloor = useCallback((category: HandCategory, floor: string) => {
+    if (!effectiveAction || isSubmitted) return;
+    
+    // If blank/empty floor selected, clear all hands in category
+    if (!floor) {
+      const firstHand = category === 'pocketPairs' ? '22' : 'A2s';
+      const allHands = getCategoryHandsAtOrAboveFloor(category, firstHand);
+      allHands.forEach(hand => setCell(hand, 'fold'));
+      setCategoryFloors(prev => ({ ...prev, [category]: null }));
+      return;
+    }
+    
+    // Fill hands at or above floor with the action
+    const handsToFill = getCategoryHandsAtOrAboveFloor(category, floor);
+    handsToFill.forEach(hand => setCell(hand, effectiveAction));
+    
+    // Clear hands below floor (set to fold) so the floor can be moved up
+    const handsToClear = getCategoryHandsBelowFloor(category, floor);
+    handsToClear.forEach(hand => setCell(hand, 'fold'));
+    
+    setCategoryFloors(prev => ({ ...prev, [category]: floor }));
+  }, [effectiveAction, isSubmitted, setCell]);
+
+  // Detect category floors from grid selections (bidirectional sync)
+  useEffect(() => {
+    if (effectiveAction && !isSubmitted) {
+      const categories: HandCategory[] = ['pocketPairs', 'axSuited', 'axOffsuit', 'kxSuited', 'suitedConnectors', 'suitedOneGappers'];
+      
+      const newFloors: Record<HandCategory, string | null> = {} as Record<HandCategory, string | null>;
+      const newExceptions: Record<HandCategory, string[]> = {} as Record<HandCategory, string[]>;
+      
+      for (const category of categories) {
+        const result = detectCategoryFloorWithExceptions(category, userSelections, effectiveAction);
+        newFloors[category] = result.floor;
+        newExceptions[category] = result.exceptions;
+      }
+      
+      setCategoryFloors(newFloors);
+      setCategoryExceptions(newExceptions);
+    }
+  }, [userSelections, effectiveAction, isSubmitted]);
 
   // Paint cell callback
   const paintCell = useCallback((hand: string) => {
@@ -408,6 +474,17 @@ export function QuizMode() {
               </div>
             )}
           </div>
+          
+          {/* Mobile Category Pickers - below grid, above fixed bottom bar */}
+          {rangeExists && effectiveAction && !isSubmitted && (
+            <div className="w-[75%] py-2 mx-auto">
+              <CategoryPicker
+                categoryFloors={categoryFloors}
+                categoryExceptions={categoryExceptions}
+                onFloorChange={applyCategoryFloor}
+              />
+            </div>
+          )}
         </div>
 
         {/* Desktop Layout */}
@@ -484,6 +561,18 @@ export function QuizMode() {
                     multiSelectMode={multiSelectMode}
                     onMultiToggle={handleMultiToggle}
                     disabled={isSubmitted || !rangeExists}
+                  />
+                </Card>
+              )}
+
+              {/* Category Pickers - only show when action is selected */}
+              {rangeExists && effectiveAction && (
+                <Card>
+                  <CategoryPicker
+                    categoryFloors={categoryFloors}
+                    categoryExceptions={categoryExceptions}
+                    onFloorChange={applyCategoryFloor}
+                    disabled={isSubmitted}
                   />
                 </Card>
               )}

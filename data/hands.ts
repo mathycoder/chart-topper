@@ -1,4 +1,4 @@
-import { RANKS, type Rank } from '@/types';
+import { RANKS, type Rank, type QuizAction } from '@/types';
 
 // ============================================
 // Hand Name Generation
@@ -123,4 +123,180 @@ export function getHandPosition(hand: string): [number, number] {
     // Offsuit: second rank is row, first is column
     return [idx2, idx1];
   }
+}
+
+// ============================================
+// Category Floor Functions (for wheel picker)
+// ============================================
+
+// Category type for wheel picker
+export type HandCategory = 'pocketPairs' | 'axSuited' | 'axOffsuit' | 'kxSuited' | 'suitedConnectors' | 'suitedOneGappers';
+
+// Pocket pairs ordered low-to-high for "X+" floor semantics
+export const POCKET_PAIRS_LOW_TO_HIGH = ['22', '33', '44', '55', '66', '77', '88', '99', 'TT', 'JJ', 'QQ', 'KK', 'AA'];
+
+// Ax suited ordered low-to-high (A2s to AKs)
+export const AX_SUITED_LOW_TO_HIGH = ['A2s', 'A3s', 'A4s', 'A5s', 'A6s', 'A7s', 'A8s', 'A9s', 'ATs', 'AJs', 'AQs', 'AKs'];
+
+// Ax offsuit ordered low-to-high (A2o to AKo)
+export const AX_OFFSUIT_LOW_TO_HIGH = ['A2o', 'A3o', 'A4o', 'A5o', 'A6o', 'A7o', 'A8o', 'A9o', 'ATo', 'AJo', 'AQo', 'AKo'];
+
+// Kx suited ordered low-to-high (K2s to KQs)
+export const KX_SUITED_LOW_TO_HIGH = ['K2s', 'K3s', 'K4s', 'K5s', 'K6s', 'K7s', 'K8s', 'K9s', 'KTs', 'KJs', 'KQs'];
+
+// Suited connectors ordered low-to-high (32s to KQs)
+export const SUITED_CONNECTORS_LOW_TO_HIGH = ['32s', '43s', '54s', '65s', '76s', '87s', '98s', 'T9s', 'JTs', 'QJs', 'KQs'];
+
+// Suited one-gappers ordered low-to-high (42s to KJs)
+export const SUITED_ONE_GAPPERS_LOW_TO_HIGH = ['42s', '53s', '64s', '75s', '86s', '97s', 'T8s', 'J9s', 'QTs', 'KJs'];
+
+// Category configuration
+export const CATEGORY_CONFIG: Record<HandCategory, {
+  name: string;
+  shortName: string;
+  hands: string[];
+  formatLabel: (hand: string) => string;
+}> = {
+  pocketPairs: {
+    name: 'Pocket Pairs',
+    shortName: 'Pairs',
+    hands: POCKET_PAIRS_LOW_TO_HIGH,
+    formatLabel: (hand) => `${hand}+`,
+  },
+  axSuited: {
+    name: 'Ax Suited',
+    shortName: 'Suited Aces',
+    hands: AX_SUITED_LOW_TO_HIGH,
+    formatLabel: (hand) => `${hand.replace('s', '')}s+`,
+  },
+  axOffsuit: {
+    name: 'Ax Offsuit',
+    shortName: 'Offsuit Aces',
+    hands: AX_OFFSUIT_LOW_TO_HIGH,
+    formatLabel: (hand) => `${hand.replace('o', '')}o+`,
+  },
+  kxSuited: {
+    name: 'Kx Suited',
+    shortName: 'Suited Kings',
+    hands: KX_SUITED_LOW_TO_HIGH,
+    formatLabel: (hand) => `${hand.replace('s', '')}s+`,
+  },
+  suitedConnectors: {
+    name: 'Suited Connectors',
+    shortName: 'Suited Connectors',
+    hands: SUITED_CONNECTORS_LOW_TO_HIGH,
+    formatLabel: (hand) => `${hand}+`,
+  },
+  suitedOneGappers: {
+    name: 'Suited 1-Gappers',
+    shortName: 'Suited 1-Gappers',
+    hands: SUITED_ONE_GAPPERS_LOW_TO_HIGH,
+    formatLabel: (hand) => `${hand}+`,
+  },
+};
+
+/**
+ * Get all hands in a category at or above a floor (inclusive).
+ * E.g., for pocketPairs with "55" returns ["55", "66", ..., "AA"]
+ * E.g., for axSuited with "A5s" returns ["A5s", "A6s", ..., "AKs"]
+ */
+export function getCategoryHandsAtOrAboveFloor(category: HandCategory, floor: string): string[] {
+  const hands = CATEGORY_CONFIG[category].hands;
+  const floorIndex = hands.indexOf(floor);
+  if (floorIndex === -1) return [];
+  return hands.slice(floorIndex);
+}
+
+/**
+ * Get all hands in a category below a floor (exclusive).
+ */
+export function getCategoryHandsBelowFloor(category: HandCategory, floor: string): string[] {
+  const hands = CATEGORY_CONFIG[category].hands;
+  const floorIndex = hands.indexOf(floor);
+  if (floorIndex === -1) return [];
+  return hands.slice(0, floorIndex);
+}
+
+/**
+ * Detect the continuous floor from the top of a category.
+ * Returns the floor (lowest hand in the continuous run from top) and any exceptions below.
+ * 
+ * E.g., if AKs, AQs, AJs, ATs, A9s, A8s are raise, and A7s, A6s, A5s are also raise but A4s-A2s are fold:
+ * - floor: "A8s" (continuous from top)
+ * - exceptions: ["A7s", "A6s", "A5s"] (selected but below the continuous range)
+ */
+export function detectCategoryFloorWithExceptions(
+  category: HandCategory,
+  selections: Record<string, QuizAction | null>,
+  action: QuizAction
+): { floor: string | null; exceptions: string[] } {
+  const hands = CATEGORY_CONFIG[category].hands;
+  
+  // Find the continuous range from the top (strongest hand)
+  // hands array is low-to-high, so we iterate from the end
+  let continuousFloorIndex: number = -1;
+  
+  // Start from the strongest hand (end of array) and find where the continuous run breaks
+  for (let i = hands.length - 1; i >= 0; i--) {
+    const hand = hands[i];
+    if (selections[hand] === action) {
+      continuousFloorIndex = i;
+    } else {
+      // Gap found - stop here
+      break;
+    }
+  }
+  
+  // No hands have this action from the top
+  if (continuousFloorIndex === -1) {
+    // Check if there are any exceptions (hands with action but not continuous from top)
+    const exceptions: string[] = [];
+    for (let i = 0; i < hands.length; i++) {
+      if (selections[hands[i]] === action) {
+        exceptions.push(hands[i]);
+      }
+    }
+    return { floor: null, exceptions };
+  }
+  
+  // Find exceptions (hands with the action below the continuous floor)
+  const exceptions: string[] = [];
+  for (let i = 0; i < continuousFloorIndex; i++) {
+    if (selections[hands[i]] === action) {
+      exceptions.push(hands[i]);
+    }
+  }
+  
+  return { floor: hands[continuousFloorIndex], exceptions };
+}
+
+/**
+ * Detect if current selections represent a clean "X+" pattern for a category.
+ * Returns the floor if pattern matches, or null if no clean floor pattern exists.
+ * @deprecated Use detectCategoryFloorWithExceptions for better UX
+ */
+export function detectCategoryFloor(
+  category: HandCategory,
+  selections: Record<string, QuizAction | null>,
+  action: QuizAction
+): string | null {
+  const { floor, exceptions } = detectCategoryFloorWithExceptions(category, selections, action);
+  // Only return floor if there are no exceptions (clean pattern)
+  return exceptions.length === 0 ? floor : null;
+}
+
+// Legacy functions for backwards compatibility
+export function getPocketPairsAtOrAboveFloor(floor: string): string[] {
+  return getCategoryHandsAtOrAboveFloor('pocketPairs', floor);
+}
+
+export function getPocketPairsBelowFloor(floor: string): string[] {
+  return getCategoryHandsBelowFloor('pocketPairs', floor);
+}
+
+export function detectPocketPairFloor(
+  selections: Record<string, QuizAction | null>,
+  action: QuizAction
+): string | null {
+  return detectCategoryFloor('pocketPairs', selections, action);
 }

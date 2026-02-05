@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import "@/styles/globals.css";
+import "@ncdai/react-wheel-picker/style.css";
 import { Navigation } from "@/components/Navigation";
 import { EdgeSwipeBlocker } from "@/components/EdgeSwipeBlocker";
 
