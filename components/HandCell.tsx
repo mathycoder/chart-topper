@@ -35,6 +35,16 @@ interface HandCellProps {
   displayAction?: HandAction;
   /** Whether blend mode is active (responds to clicks without selectedAction) */
   blendMode?: boolean;
+  /** When set, called on pointer down instead of onPaintStart (tap-vs-drag detection) */
+  onPointerDown?: (hand: string) => void;
+  /** When set, called on pointer up (for tap detection) */
+  onPointerUp?: (hand: string) => void;
+  /** When set, called on mouse enter (for drag detection when using tap) */
+  onMouseEnterCell?: (hand: string) => void;
+  /** Whether this cell is in the category preview range (glow border) */
+  isInCategoryPreview?: boolean;
+  /** Whether this cell is the category preview floor (thicker border) */
+  isCategoryPreviewFloor?: boolean;
 }
 
 /**
@@ -95,6 +105,11 @@ export function HandCell({
   onPaintStart,
   displayAction,
   blendMode = false,
+  onPointerDown,
+  onPointerUp,
+  onMouseEnterCell,
+  isInCategoryPreview = false,
+  isCategoryPreviewFloor = false,
 }: HandCellProps) {
   const [isHovered, setIsHovered] = useState(false);
   
@@ -192,21 +207,29 @@ export function HandCell({
     return actionToDisplay ? 'text-white' : 'text-slate-700';
   };
 
-  // Handle mouse down - start painting or open blend picker
+  // Handle mouse down - start painting or report pointer down for tap detection
   const handleMouseDown = (e: React.MouseEvent) => {
-    e.preventDefault(); // Prevent text selection
-    // Don't allow painting on black cells (not in hero's range)
+    e.preventDefault();
     if (isBlackCell) return;
     if (!isSubmitted && (selectedAction || blendMode)) {
-      onPaintStart(hand);
+      if (onPointerDown) {
+        onPointerDown(hand);
+      } else {
+        onPaintStart(hand);
+      }
     }
+  };
+
+  const handleMouseUp = () => {
+    if (onPointerUp) onPointerUp(hand);
   };
 
   // Handle mouse enter while dragging or for hover state
   const handleMouseEnter = () => {
-    // Don't allow painting on black cells
     if (isBlackCell) return;
-    if (isPainting && !isSubmitted && selectedAction) {
+    if (onMouseEnterCell) {
+      onMouseEnterCell(hand);
+    } else if (isPainting && !isSubmitted && selectedAction) {
       onPaint(hand);
     }
     if (isSubmitted) {
@@ -247,13 +270,22 @@ export function HandCell({
         ${getTextColor()}
         ${!isSubmitted && !isBlackCell && (selectedAction || blendMode) ? 'hover:opacity-80' : ''}
         ${isSubmitted || isBlackCell ? 'cursor-default' : ''}
+        ${isCategoryPreviewFloor ? 'ring-4 ring-amber-500 ring-inset shadow-[0_0_12px_rgba(245,158,11,0.6)]' : isInCategoryPreview ? 'ring-[3px] ring-amber-500/90 ring-inset shadow-[0_0_8px_rgba(245,158,11,0.4)]' : ''}
       `}
       style={getBackgroundStyle()}
       data-hand={hand}
       onMouseDown={handleMouseDown}
+      onMouseUp={handleMouseUp}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
+      {/* Category preview floor: gentle pulsing overlay */}
+      {isCategoryPreviewFloor && (
+        <div
+          className="absolute inset-0 rounded-sm bg-amber-400/30 pointer-events-none animate-pulse"
+          aria-hidden
+        />
+      )}
       {/* Hand name */}
       <span className="relative z-10 drop-shadow-sm">{hand}</span>
 

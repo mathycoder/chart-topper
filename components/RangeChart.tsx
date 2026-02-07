@@ -25,6 +25,12 @@ interface RangeChartProps {
   showCorrectAnswers?: boolean;
   /** Whether blend mode is active (cells respond to clicks without selectedAction) */
   blendMode?: boolean;
+  /** When set, single tap = category preview, double tap = apply (tap-vs-drag detection enabled) */
+  onCellTap?: (hand: string) => void;
+  /** Set of hands currently in category preview (glow border) */
+  categoryPreviewHands?: Set<string> | null;
+  /** Hand that is the "floor" of the category preview (thicker border) */
+  categoryPreviewFloor?: string | null;
 }
 
 /**
@@ -47,27 +53,37 @@ export function RangeChart({
   onPaintStart,
   showCorrectAnswers = false,
   blendMode = false,
+  onCellTap,
+  categoryPreviewHands = null,
+  categoryPreviewFloor = null,
 }: RangeChartProps) {
   const gridRef = useRef<HTMLDivElement>(null);
   // Track the last touched hand to avoid re-painting the same cell
   const lastTouchedHandRef = useRef<string | null>(null);
   // Track if we're actively in a touch paint session
   const isTouchPaintingRef = useRef(false);
-  
+  // Tap-vs-drag: when onCellTap is provided, defer paint start until pointer moves to another cell
+  const pointerDownHandRef = useRef<string | null>(null);
+  const pointerMovedRef = useRef(false);
+  const touchStartHandRef = useRef<string | null>(null);
+  const touchMovedRef = useRef(false);
+
   // Store callbacks in refs so event listeners always have latest values
   const onPaintRef = useRef(onPaint);
   const onPaintStartRef = useRef(onPaintStart);
+  const onCellTapRef = useRef(onCellTap);
   const isSubmittedRef = useRef(isSubmitted);
   const selectedActionRef = useRef(selectedAction);
   const blendModeRef = useRef(blendMode);
-  
+
   useEffect(() => {
     onPaintRef.current = onPaint;
     onPaintStartRef.current = onPaintStart;
+    onCellTapRef.current = onCellTap;
     isSubmittedRef.current = isSubmitted;
     selectedActionRef.current = selectedAction;
     blendModeRef.current = blendMode;
-  }, [onPaint, onPaintStart, isSubmitted, selectedAction, blendMode]);
+  }, [onPaint, onPaintStart, onCellTap, isSubmitted, selectedAction, blendMode]);
 
   /**
    * Get the hand name from an element at a given point.
@@ -76,20 +92,40 @@ export function RangeChart({
   const getHandFromPoint = useCallback((x: number, y: number): string | null => {
     const element = document.elementFromPoint(x, y);
     if (!element) return null;
-    
-    // Check the element itself
     const handCell = element.closest('[data-hand]');
-    if (handCell) {
-      return handCell.getAttribute('data-hand');
-    }
+    if (handCell) return handCell.getAttribute('data-hand');
     return null;
+  }, []);
+
+  const useTapDetection = Boolean(onCellTap);
+
+  const handlePointerDown = useCallback((hand: string) => {
+    pointerDownHandRef.current = hand;
+    pointerMovedRef.current = false;
+  }, []);
+
+  const handlePointerUp = useCallback((hand: string) => {
+    if (pointerDownHandRef.current === hand && !pointerMovedRef.current) {
+      onCellTapRef.current?.(hand);
+    }
+    pointerDownHandRef.current = null;
+    pointerMovedRef.current = false;
+  }, []);
+
+  const handleMouseEnterCell = useCallback((hand: string) => {
+    if (pointerDownHandRef.current !== null && hand !== pointerDownHandRef.current) {
+      onPaintStartRef.current(pointerDownHandRef.current);
+      onPaintRef.current(hand);
+      pointerDownHandRef.current = null;
+      pointerMovedRef.current = true;
+    } else if (pointerMovedRef.current && !isSubmittedRef.current && selectedActionRef.current) {
+      onPaintRef.current(hand);
+    }
   }, []);
 
   /**
    * Set up non-passive touch event listeners.
-   * React's synthetic events are passive by default, which prevents preventDefault() 
-   * from blocking iOS Safari's edge swipe gesture. Using native addEventListener with
-   * { passive: false } ensures we can actually prevent the gesture.
+   * When onCellTap is provided, touchstart does not paint immediately; we detect tap vs drag.
    */
   useEffect(() => {
     const grid = gridRef.current;
@@ -98,28 +134,43 @@ export function RangeChart({
     const handleTouchStart = (e: TouchEvent) => {
       const canPaint = !isSubmittedRef.current && (selectedActionRef.current || blendModeRef.current);
       if (!canPaint) return;
-      
+
       const touch = e.touches[0];
       const hand = getHandFromPoint(touch.clientX, touch.clientY);
-      
-      if (hand) {
-        e.preventDefault(); // Prevent scrolling while painting
-        isTouchPaintingRef.current = true;
-        lastTouchedHandRef.current = hand;
-        onPaintStartRef.current(hand);
+      if (!hand) return;
+
+      e.preventDefault();
+
+      if (useTapDetection && onCellTapRef.current) {
+        touchStartHandRef.current = hand;
+        touchMovedRef.current = false;
+        return;
       }
+
+      isTouchPaintingRef.current = true;
+      lastTouchedHandRef.current = hand;
+      onPaintStartRef.current(hand);
     };
 
     const handleTouchMove = (e: TouchEvent) => {
+      if (useTapDetection && touchStartHandRef.current !== null) {
+        e.preventDefault();
+        const touch = e.touches[0];
+        const hand = getHandFromPoint(touch.clientX, touch.clientY);
+        if (hand && hand !== touchStartHandRef.current) {
+          onPaintStartRef.current(touchStartHandRef.current);
+          onPaintRef.current(hand);
+          touchStartHandRef.current = null;
+          touchMovedRef.current = true;
+        }
+        return;
+      }
+
       if (!isTouchPaintingRef.current) return;
-      
-      e.preventDefault(); // Prevent scrolling while painting
-      
+      e.preventDefault();
       if (isSubmittedRef.current || !selectedActionRef.current) return;
-      
       const touch = e.touches[0];
       const hand = getHandFromPoint(touch.clientX, touch.clientY);
-      
       if (hand && hand !== lastTouchedHandRef.current) {
         lastTouchedHandRef.current = hand;
         onPaintRef.current(hand);
@@ -127,11 +178,15 @@ export function RangeChart({
     };
 
     const handleTouchEnd = () => {
+      if (useTapDetection && touchStartHandRef.current !== null && !touchMovedRef.current) {
+        onCellTapRef.current?.(touchStartHandRef.current);
+      }
+      touchStartHandRef.current = null;
+      touchMovedRef.current = false;
       isTouchPaintingRef.current = false;
       lastTouchedHandRef.current = null;
     };
 
-    // Add listeners with { passive: false } to allow preventDefault()
     grid.addEventListener('touchstart', handleTouchStart, { passive: false });
     grid.addEventListener('touchmove', handleTouchMove, { passive: false });
     grid.addEventListener('touchend', handleTouchEnd);
@@ -143,7 +198,7 @@ export function RangeChart({
       grid.removeEventListener('touchend', handleTouchEnd);
       grid.removeEventListener('touchcancel', handleTouchEnd);
     };
-  }, [getHandFromPoint]);
+  }, [getHandFromPoint, useTapDetection]);
 
   return (
     <div 
@@ -158,7 +213,9 @@ export function RangeChart({
         RANKS.map((_, colIndex) => {
           const hand = getHandName(rowIndex, colIndex);
           const userAction = userSelections[hand] ?? null;
-          
+          const isInCategoryPreview = categoryPreviewHands?.has(hand) ?? false;
+          const isCategoryPreviewFloor = categoryPreviewFloor === hand;
+
           return (
             <HandCell
               key={hand}
@@ -172,6 +229,11 @@ export function RangeChart({
               onPaintStart={onPaintStart}
               displayAction={showCorrectAnswers ? correctRange?.[hand] : undefined}
               blendMode={blendMode}
+              onPointerDown={useTapDetection ? handlePointerDown : undefined}
+              onPointerUp={useTapDetection ? handlePointerUp : undefined}
+              onMouseEnterCell={useTapDetection ? handleMouseEnterCell : undefined}
+              isInCategoryPreview={isInCategoryPreview}
+              isCategoryPreviewFloor={isCategoryPreviewFloor}
             />
           );
         })

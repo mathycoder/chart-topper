@@ -4,11 +4,10 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { Scenario, SimpleAction, QuizAction, Position, StackSize } from '@/types';
 import { useUrlState, useQuizSelections, usePainting } from '@/hooks';
 import { getRange, getAvailableScenarios, getAvailablePositions, getAvailableOpponents, getAvailableCallers } from '@/data/ranges';
-import { getCategoryHandsAtOrAboveFloor, getCategoryHandsBelowFloor, detectCategoryFloorWithExceptions, type HandCategory } from '@/data/hands';
+import { getCategoryHandsAtOrAboveFloor, getCategoryForHand } from '@/data/hands';
 import { Card } from './shared';
 import { RangeChart } from './RangeChart';
 import { ActionPalette } from './ActionPalette';
-import { CategoryPicker } from './CategoryPicker';
 import { ResultsSummary } from './ResultsSummary';
 import { MobileActionBar, deriveBlendType } from './MobileActionBar';
 import { MobileDropdownBar } from './MobileDropdownBar';
@@ -185,25 +184,12 @@ export function QuizMode() {
   const [selectedActions, setSelectedActions] = useState<Set<SimpleAction>>(new Set(['raise']));
   const [multiSelectMode, setMultiSelectMode] = useState(false);
 
-  // Category floor state (for wheel pickers)
-  const [categoryFloors, setCategoryFloors] = useState<Record<HandCategory, string | null>>({
-    pocketPairs: null,
-    axSuited: null,
-    axOffsuit: null,
-    kxSuited: null,
-    suitedConnectors: null,
-    suitedOneGappers: null,
-  });
-  
-  // Category exceptions state (hands with action below the continuous floor)
-  const [categoryExceptions, setCategoryExceptions] = useState<Record<HandCategory, string[]>>({
-    pocketPairs: [],
-    axSuited: [],
-    axOffsuit: [],
-    kxSuited: [],
-    suitedConnectors: [],
-    suitedOneGappers: [],
-  });
+  // Category preview state (in-chart: single tap = preview, double tap = apply)
+  const [categoryPreview, setCategoryPreview] = useState<{ hands: string[]; floor: string } | null>(null);
+  const categoryPreviewRef = useRef<{ hands: string[]; floor: string } | null>(null);
+  const lastTapHandRef = useRef<string | null>(null);
+  const lastTapTimeRef = useRef<number>(0);
+  categoryPreviewRef.current = categoryPreview;
 
   // Painting state
   const painting = usePainting();
@@ -279,49 +265,69 @@ export function QuizMode() {
     return deriveBlendType(selectedActions);
   }, [selectedActions]);
 
-  // Apply category floor - fill all hands at or above floor with current action
-  // Also clears hands below the floor to allow changing the floor
-  const applyCategoryFloor = useCallback((category: HandCategory, floor: string) => {
+  // Category tap: single tap = show preview (hands at or above in category); second tap on same cell = apply action to preview
+  const onCellTap = useCallback((hand: string) => {
     if (!effectiveAction || isSubmitted) return;
-    
-    // If blank/empty floor selected, clear all hands in category
-    if (!floor) {
-      const firstHand = category === 'pocketPairs' ? '22' : 'A2s';
-      const allHands = getCategoryHandsAtOrAboveFloor(category, firstHand);
-      allHands.forEach(hand => setCell(hand, 'fold'));
-      setCategoryFloors(prev => ({ ...prev, [category]: null }));
+
+    const now = Date.now();
+    const previewToApply = categoryPreviewRef.current;
+    // Second tap on same cell: either within 300ms, or we already have a preview with this hand as floor
+    const isSecondTapSameCell =
+      lastTapHandRef.current === hand &&
+      (now - lastTapTimeRef.current < 300 || previewToApply?.floor === hand);
+
+    if (isSecondTapSameCell && previewToApply) {
+      // Apply current action to all previewed hands
+      previewToApply.hands.forEach(h => setCell(h, effectiveAction));
+      setCategoryPreview(null);
+      lastTapHandRef.current = null;
+      lastTapTimeRef.current = 0;
       return;
     }
-    
-    // Fill hands at or above floor with the action
-    const handsToFill = getCategoryHandsAtOrAboveFloor(category, floor);
-    handsToFill.forEach(hand => setCell(hand, effectiveAction));
-    
-    // Clear hands below floor (set to fold) so the floor can be moved up
-    const handsToClear = getCategoryHandsBelowFloor(category, floor);
-    handsToClear.forEach(hand => setCell(hand, 'fold'));
-    
-    setCategoryFloors(prev => ({ ...prev, [category]: floor }));
+
+    const category = getCategoryForHand(hand);
+    if (category === null) {
+      // Not in any category: paint this cell immediately (same as before tap detection)
+      setCell(hand, effectiveAction);
+      setCategoryPreview(null);
+      lastTapHandRef.current = hand;
+      lastTapTimeRef.current = now;
+      return;
+    }
+
+    // In a category: if hand is at the top (only one in range), just paint and skip preview/double-tap
+    const hands = getCategoryHandsAtOrAboveFloor(category, hand);
+    setCell(hand, effectiveAction);
+    if (hands.length <= 1) {
+      setCategoryPreview(null);
+      lastTapHandRef.current = hand;
+      lastTapTimeRef.current = now;
+      return;
+    }
+    setCategoryPreview({ hands, floor: hand });
+    lastTapHandRef.current = hand;
+    lastTapTimeRef.current = now;
   }, [effectiveAction, isSubmitted, setCell]);
 
-  // Detect category floors from grid selections (bidirectional sync)
+  // Clear category preview when range params or selected action changes
   useEffect(() => {
-    if (effectiveAction && !isSubmitted) {
-      const categories: HandCategory[] = ['pocketPairs', 'axSuited', 'axOffsuit', 'kxSuited', 'suitedConnectors', 'suitedOneGappers'];
-      
-      const newFloors: Record<HandCategory, string | null> = {} as Record<HandCategory, string | null>;
-      const newExceptions: Record<HandCategory, string[]> = {} as Record<HandCategory, string[]>;
-      
-      for (const category of categories) {
-        const result = detectCategoryFloorWithExceptions(category, userSelections, effectiveAction);
-        newFloors[category] = result.floor;
-        newExceptions[category] = result.exceptions;
+    setCategoryPreview(null);
+    lastTapHandRef.current = null;
+    lastTapTimeRef.current = 0;
+  }, [effectivePosition, stackSize, effectiveScenario, effectiveOpponent, effectiveCaller, effectiveAction]);
+
+  // Clear category preview on Escape
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setCategoryPreview(null);
+        lastTapHandRef.current = null;
+        lastTapTimeRef.current = 0;
       }
-      
-      setCategoryFloors(newFloors);
-      setCategoryExceptions(newExceptions);
-    }
-  }, [userSelections, effectiveAction, isSubmitted]);
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Paint cell callback
   const paintCell = useCallback((hand: string) => {
@@ -369,6 +375,13 @@ export function QuizMode() {
     setSelectedActions(new Set());
     setMultiSelectMode(false);
     painting.setSelectedAction(null);
+  };
+
+  const handleClear = () => {
+    resetToFold();
+    setCategoryPreview(null);
+    lastTapHandRef.current = null;
+    lastTapTimeRef.current = 0;
   };
 
   // Determine effective selected action for painting (SimpleAction only, for drag painting)
@@ -458,6 +471,9 @@ export function QuizMode() {
               onPaintStart={rangeExists && !isSubmitted ? handlePaintStart : () => {}}
               showCorrectAnswers={showCorrectAnswers}
               blendMode={rangeExists && !isSubmitted && hasBlendSelected}
+              onCellTap={rangeExists && effectiveAction && !isSubmitted ? onCellTap : undefined}
+              categoryPreviewHands={categoryPreview ? new Set(categoryPreview.hands) : null}
+              categoryPreviewFloor={categoryPreview?.floor ?? null}
             />
             
             {!rangeExists && (
@@ -474,17 +490,6 @@ export function QuizMode() {
               </div>
             )}
           </div>
-          
-          {/* Mobile Category Pickers - below grid, above fixed bottom bar */}
-          {rangeExists && effectiveAction && !isSubmitted && (
-            <div className="w-[75%] py-2 mx-auto">
-              <CategoryPicker
-                categoryFloors={categoryFloors}
-                categoryExceptions={categoryExceptions}
-                onFloorChange={applyCategoryFloor}
-              />
-            </div>
-          )}
         </div>
 
         {/* Desktop Layout */}
@@ -565,35 +570,31 @@ export function QuizMode() {
                 </Card>
               )}
 
-              {/* Category Pickers - only show when action is selected */}
-              {rangeExists && effectiveAction && (
-                <Card>
-                  <CategoryPicker
-                    categoryFloors={categoryFloors}
-                    categoryExceptions={categoryExceptions}
-                    onFloorChange={applyCategoryFloor}
-                    disabled={isSubmitted}
-                  />
-                </Card>
-              )}
-
               {rangeExists && (
                 <div className="flex flex-col gap-2">
                   {!isSubmitted ? (
-                    <button
-                      onClick={handleSubmit}
-                      disabled={!allFilled}
-                      className={`
-                        w-full px-6 py-3 rounded-lg font-semibold text-white
-                        transition-all duration-150
-                        ${allFilled
-                          ? 'bg-slate-900 hover:bg-slate-800 cursor-pointer'
-                          : 'bg-slate-300 cursor-not-allowed'
-                        }
-                      `}
-                    >
-                      {allFilled ? 'Submit' : 'Fill all cells'}
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleClear}
+                        className="flex-1 px-6 py-3 rounded-lg font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-all duration-150"
+                      >
+                        Clear
+                      </button>
+                      <button
+                        onClick={handleSubmit}
+                        disabled={!allFilled}
+                        className={`
+                          flex-1 px-6 py-3 rounded-lg font-semibold text-white
+                          transition-all duration-150
+                          ${allFilled
+                            ? 'bg-slate-900 hover:bg-slate-800 cursor-pointer'
+                            : 'bg-slate-300 cursor-not-allowed'
+                          }
+                        `}
+                      >
+                        {allFilled ? 'Submit' : 'Fill all cells'}
+                      </button>
+                    </div>
                   ) : (
                     <button
                       onClick={handleReset}
@@ -655,6 +656,9 @@ export function QuizMode() {
                 onPaintStart={rangeExists && !isSubmitted ? handlePaintStart : () => {}}
                 showCorrectAnswers={showCorrectAnswers}
                 blendMode={rangeExists && !isSubmitted && hasBlendSelected}
+                onCellTap={rangeExists && effectiveAction && !isSubmitted ? onCellTap : undefined}
+                categoryPreviewHands={categoryPreview ? new Set(categoryPreview.hands) : null}
+                categoryPreviewFloor={categoryPreview?.floor ?? null}
               />
               
               {!rangeExists && (
@@ -688,6 +692,7 @@ export function QuizMode() {
           submitState={isSubmitted ? 'submitted' : allFilled ? 'ready' : 'disabled'}
           onSubmit={handleSubmit}
           onReset={handleReset}
+          onClear={handleClear}
           showShove={true}
         />
       )}

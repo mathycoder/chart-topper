@@ -90,6 +90,8 @@ interface MobileActionBarQuizProps {
   onSubmit: () => void;
   /** Callback when reset/try again is clicked */
   onReset: () => void;
+  /** Callback when clear is clicked (reset grid to fold) */
+  onClear?: () => void;
   /** Whether to show shove action (only for some scenarios) */
   showShove?: boolean;
 }
@@ -156,7 +158,7 @@ export function MobileActionBar(props: MobileActionBarProps) {
   if (props.mode === 'quiz') {
     const { 
       selectedActions, onToggleAction, onSelectAction, multiSelectMode, onMultiToggle,
-      disabled = false, submitState, onSubmit, onReset
+      disabled = false, submitState, onSubmit, onReset, onClear
     } = props;
     
     const handleActionClick = (action: SimpleAction) => {
@@ -227,8 +229,8 @@ export function MobileActionBar(props: MobileActionBarProps) {
           </button>
         </div>
         
-        {/* Row 2: Full-width Submit / Reset button */}
-        <div className="pb-2">
+        {/* Row 2: Clear + Submit / Try Again */}
+        <div className="pb-2 flex gap-2">
           {submitState === 'submitted' ? (
             <button
               onClick={onReset}
@@ -237,19 +239,29 @@ export function MobileActionBar(props: MobileActionBarProps) {
               Try Again
             </button>
           ) : (
-            <button
-              onClick={onSubmit}
-              disabled={submitState === 'disabled'}
-              className={`
-                w-full py-3 rounded-lg font-semibold text-sm text-white
-                ${submitState === 'ready'
-                  ? 'bg-slate-900 active:bg-slate-800'
-                  : 'bg-slate-300 cursor-not-allowed'
-                }
-              `}
-            >
-              {submitState === 'ready' ? 'Submit' : 'Fill all cells'}
-            </button>
+            <>
+              {onClear && (
+                <button
+                  onClick={onClear}
+                  className="flex-1 py-3 rounded-lg font-semibold text-sm text-slate-700 bg-slate-100 active:bg-slate-200"
+                >
+                  Clear
+                </button>
+              )}
+              <button
+                onClick={onSubmit}
+                disabled={submitState === 'disabled'}
+                className={`
+                  ${onClear ? 'flex-1' : 'w-full'} py-3 rounded-lg font-semibold text-sm text-white
+                  ${submitState === 'ready'
+                    ? 'bg-slate-900 active:bg-slate-800'
+                    : 'bg-slate-300 cursor-not-allowed'
+                  }
+                `}
+              >
+                {submitState === 'ready' ? 'Submit' : 'Fill all cells'}
+              </button>
+            </>
           )}
         </div>
       </div>

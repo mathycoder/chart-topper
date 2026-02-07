@@ -129,8 +129,8 @@ export function getHandPosition(hand: string): [number, number] {
 // Category Floor Functions (for wheel picker)
 // ============================================
 
-// Category type for wheel picker
-export type HandCategory = 'pocketPairs' | 'axSuited' | 'axOffsuit' | 'kxSuited' | 'suitedConnectors' | 'suitedOneGappers';
+// Category type for in-chart category selection
+export type HandCategory = 'pocketPairs' | 'axSuited' | 'axOffsuit' | 'suitedKings' | 'suitedConnectors' | 'suitedOneGappers';
 
 // Pocket pairs ordered low-to-high for "X+" floor semantics
 export const POCKET_PAIRS_LOW_TO_HIGH = ['22', '33', '44', '55', '66', '77', '88', '99', 'TT', 'JJ', 'QQ', 'KK', 'AA'];
@@ -141,14 +141,14 @@ export const AX_SUITED_LOW_TO_HIGH = ['A2s', 'A3s', 'A4s', 'A5s', 'A6s', 'A7s', 
 // Ax offsuit ordered low-to-high (A2o to AKo)
 export const AX_OFFSUIT_LOW_TO_HIGH = ['A2o', 'A3o', 'A4o', 'A5o', 'A6o', 'A7o', 'A8o', 'A9o', 'ATo', 'AJo', 'AQo', 'AKo'];
 
-// Kx suited ordered low-to-high (K2s to KQs)
-export const KX_SUITED_LOW_TO_HIGH = ['K2s', 'K3s', 'K4s', 'K5s', 'K6s', 'K7s', 'K8s', 'K9s', 'KTs', 'KJs', 'KQs'];
+// Suited kings ordered low-to-high (K2s to KQs)
+export const SUITED_KINGS_LOW_TO_HIGH = ['K2s', 'K3s', 'K4s', 'K5s', 'K6s', 'K7s', 'K8s', 'K9s', 'KTs', 'KJs', 'KQs'];
 
-// Suited connectors ordered low-to-high (32s to KQs)
-export const SUITED_CONNECTORS_LOW_TO_HIGH = ['32s', '43s', '54s', '65s', '76s', '87s', '98s', 'T9s', 'JTs', 'QJs', 'KQs'];
+// Suited connectors ordered low-to-high (54s to JTs only)
+export const SUITED_CONNECTORS_LOW_TO_HIGH = ['54s', '65s', '76s', '87s', '98s', 'T9s', 'JTs'];
 
-// Suited one-gappers ordered low-to-high (42s to KJs)
-export const SUITED_ONE_GAPPERS_LOW_TO_HIGH = ['42s', '53s', '64s', '75s', '86s', '97s', 'T8s', 'J9s', 'QTs', 'KJs'];
+// Suited one-gappers ordered low-to-high (64s to T8s only)
+export const SUITED_ONE_GAPPERS_LOW_TO_HIGH = ['64s', '75s', '86s', '97s', 'T8s'];
 
 // Category configuration
 export const CATEGORY_CONFIG: Record<HandCategory, {
@@ -175,10 +175,10 @@ export const CATEGORY_CONFIG: Record<HandCategory, {
     hands: AX_OFFSUIT_LOW_TO_HIGH,
     formatLabel: (hand) => `${hand.replace('o', '')}o+`,
   },
-  kxSuited: {
-    name: 'Kx Suited',
+  suitedKings: {
+    name: 'Suited Kings',
     shortName: 'Suited Kings',
-    hands: KX_SUITED_LOW_TO_HIGH,
+    hands: SUITED_KINGS_LOW_TO_HIGH,
     formatLabel: (hand) => `${hand.replace('s', '')}s+`,
   },
   suitedConnectors: {
@@ -194,6 +194,28 @@ export const CATEGORY_CONFIG: Record<HandCategory, {
     formatLabel: (hand) => `${hand}+`,
   },
 };
+
+// Priority order when a hand belongs to multiple categories (1 = highest)
+const CATEGORY_PRIORITY: HandCategory[] = [
+  'pocketPairs',
+  'axSuited',
+  'axOffsuit',
+  'suitedKings',
+  'suitedConnectors',
+  'suitedOneGappers',
+];
+
+/**
+ * Resolve which category a hand belongs to (for in-chart category selection).
+ */
+export function getCategoryForHand(hand: string): HandCategory | null {
+  for (const category of CATEGORY_PRIORITY) {
+    if (CATEGORY_CONFIG[category].hands.includes(hand)) {
+      return category;
+    }
+  }
+  return null;
+}
 
 /**
  * Get all hands in a category at or above a floor (inclusive).

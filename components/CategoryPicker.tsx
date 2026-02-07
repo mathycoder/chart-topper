@@ -13,7 +13,7 @@ const CATEGORY_KEYS: HandCategory[] = [
   'pocketPairs',
   'axSuited',
   'axOffsuit',
-  'kxSuited',
+  'suitedKings',
   'suitedConnectors',
   'suitedOneGappers',
 ];
