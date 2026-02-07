@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import type { SimpleAction, HandAction, BlendedAction, QuizAction } from '@/types';
-import { isSimpleAction, getBlendType, getPrimaryAction } from '@/types';
+import { isSimpleAction, isBlendType, getBlendType, getPrimaryAction } from '@/types';
 import { CorrectActionPopover } from './CorrectActionPopover';
 
 // Action colors for CSS
@@ -153,8 +153,8 @@ export function HandCell({
     
     // Handle simple actions (string)
     if (typeof actionToDisplay === 'string') {
-      // Check if it's a blend type
-      if (['raise-call', 'raise-fold', 'call-fold', 'raise-call-fold'].includes(actionToDisplay)) {
+      // Check if it's a blend type (includes raise-call, raise-shove, etc.)
+      if (isBlendType(actionToDisplay)) {
         // This is a blend type from quiz selection - show as multi-color indicator
         return getBlendTypeStyle(actionToDisplay);
       }
@@ -174,12 +174,16 @@ export function HandCell({
     if (blendType.includes('raise')) colors.push(ACTION_COLORS.raise);
     if (blendType.includes('call')) colors.push(ACTION_COLORS.call);
     if (blendType.includes('fold')) colors.push(ACTION_COLORS.fold);
-    
+    if (blendType.includes('shove')) colors.push(ACTION_COLORS.shove);
+
     if (colors.length === 2) {
       return { background: `linear-gradient(to right, ${colors[0]} 50%, ${colors[1]} 50%)` };
     }
     if (colors.length === 3) {
       return { background: `linear-gradient(to right, ${colors[0]} 33.3%, ${colors[1]} 33.3%, ${colors[1]} 66.6%, ${colors[2]} 66.6%)` };
+    }
+    if (colors.length === 4) {
+      return { background: `linear-gradient(to right, ${colors[0]} 25%, ${colors[1]} 25%, ${colors[1]} 50%, ${colors[2]} 50%, ${colors[2]} 75%, ${colors[3]} 75%)` };
     }
     return {};
   };
@@ -190,7 +194,7 @@ export function HandCell({
     // If it's a BlendedAction object, no class needed - inline style handles the gradient
     if (typeof actionToDisplay !== 'string') return '';
     // If it's a blend type string (quiz mode), no class needed - inline style handles it
-    if (['raise-call', 'raise-fold', 'call-fold', 'raise-call-fold'].includes(actionToDisplay)) return '';
+    if (isBlendType(actionToDisplay)) return '';
     
     switch (actionToDisplay) {
       case 'raise': return 'bg-action-raise';

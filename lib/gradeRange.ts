@@ -34,11 +34,13 @@ function getPrimaryAction(a: HandAction): SimpleAction {
   const raise = a.raise ?? 0;
   const call = a.call ?? 0;
   const fold = a.fold ?? 0;
+  const shove = a.shove ?? 0;
 
-  // tie-break: raise > call > fold
-  if (raise >= call && raise >= fold) return 'raise';
-  if (call >= fold) return 'call';
-  return 'fold';
+  // tie-break: raise > call > fold > shove
+  if (raise >= call && raise >= fold && raise >= shove) return 'raise';
+  if (call >= fold && call >= shove) return 'call';
+  if (fold >= shove) return 'fold';
+  return 'shove';
 }
 
 function getBlendType(a: HandAction): BlendType | null {

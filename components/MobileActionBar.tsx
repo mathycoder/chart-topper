@@ -130,18 +130,25 @@ const ACTIONS: { action: SimpleAction; label: string; shortLabel: string; color:
 ];
 
 /**
- * Derive blend type from selected actions
+ * Derive blend type from selected actions (order matches getBlendType in types)
  */
 export function deriveBlendType(selected: Set<SimpleAction>): BlendType | null {
   if (selected.size < 2) return null;
-  
+
   const has = (a: SimpleAction) => selected.has(a);
-  
+
+  if (has('raise') && has('call') && has('fold') && has('shove')) return 'raise-call-fold-shove';
+  if (has('raise') && has('call') && has('shove')) return 'raise-call-shove';
+  if (has('raise') && has('fold') && has('shove')) return 'raise-fold-shove';
+  if (has('call') && has('fold') && has('shove')) return 'call-fold-shove';
   if (has('raise') && has('call') && has('fold')) return 'raise-call-fold';
   if (has('raise') && has('call')) return 'raise-call';
   if (has('raise') && has('fold')) return 'raise-fold';
   if (has('call') && has('fold')) return 'call-fold';
-  
+  if (has('raise') && has('shove')) return 'raise-shove';
+  if (has('call') && has('shove')) return 'call-shove';
+  if (has('fold') && has('shove')) return 'fold-shove';
+
   return null;
 }
 

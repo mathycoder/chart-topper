@@ -39,11 +39,13 @@ export function getPrimaryAction(action: HandAction): SimpleAction {
   const raise = action.raise ?? 0;
   const call = action.call ?? 0;
   const fold = action.fold ?? 0;
+  const shove = action.shove ?? 0;
 
-  // Tie-break order can be opinionated; this is fine for now.
-  if (raise >= call && raise >= fold) return 'raise';
-  if (call >= fold) return 'call';
-  return 'fold';
+  // Tie-break order: raise > call > fold > shove
+  if (raise >= call && raise >= fold && raise >= shove) return 'raise';
+  if (call >= fold && call >= shove) return 'call';
+  if (fold >= shove) return 'fold';
+  return 'shove';
 }
 
 // ============================================
@@ -51,14 +53,39 @@ export function getPrimaryAction(action: HandAction): SimpleAction {
 // ============================================
 
 // Blend type identifies which actions are present in a mixed strategy
-export type BlendType = 'raise-call' | 'raise-fold' | 'call-fold' | 'raise-call-fold';
+export type BlendType =
+  | 'raise-call'
+  | 'raise-fold'
+  | 'call-fold'
+  | 'raise-call-fold'
+  | 'raise-shove'
+  | 'call-shove'
+  | 'fold-shove'
+  | 'raise-call-shove'
+  | 'raise-fold-shove'
+  | 'call-fold-shove'
+  | 'raise-call-fold-shove';
+
+const ALL_BLEND_TYPES: BlendType[] = [
+  'raise-call-fold-shove',
+  'raise-call-shove',
+  'raise-fold-shove',
+  'call-fold-shove',
+  'raise-call-fold',
+  'raise-call',
+  'raise-fold',
+  'call-fold',
+  'raise-shove',
+  'call-shove',
+  'fold-shove',
+];
 
 // Quiz answers can be simple actions OR blend types
 export type QuizAction = SimpleAction | BlendType;
 
 // Type guard for blend types
 export function isBlendType(action: QuizAction): action is BlendType {
-  return ['raise-call', 'raise-fold', 'call-fold', 'raise-call-fold'].includes(action);
+  return ALL_BLEND_TYPES.includes(action as BlendType);
 }
 
 // Helper: extract blend type from a blended action
@@ -68,11 +95,19 @@ export function getBlendType(action: HandAction): BlendType | null {
   const hasRaise = (action.raise ?? 0) > 0;
   const hasCall = (action.call ?? 0) > 0;
   const hasFold = (action.fold ?? 0) > 0;
+  const hasShove = (action.shove ?? 0) > 0;
 
+  if (hasRaise && hasCall && hasFold && hasShove) return 'raise-call-fold-shove';
+  if (hasRaise && hasCall && hasShove) return 'raise-call-shove';
+  if (hasRaise && hasFold && hasShove) return 'raise-fold-shove';
+  if (hasCall && hasFold && hasShove) return 'call-fold-shove';
   if (hasRaise && hasCall && hasFold) return 'raise-call-fold';
   if (hasRaise && hasCall) return 'raise-call';
   if (hasRaise && hasFold) return 'raise-fold';
   if (hasCall && hasFold) return 'call-fold';
+  if (hasRaise && hasShove) return 'raise-shove';
+  if (hasCall && hasShove) return 'call-shove';
+  if (hasFold && hasShove) return 'fold-shove';
   return null;
 }
 
