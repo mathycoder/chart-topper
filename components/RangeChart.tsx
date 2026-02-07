@@ -102,6 +102,8 @@ export function RangeChart({
   const handlePointerDown = useCallback((hand: string) => {
     pointerDownHandRef.current = hand;
     pointerMovedRef.current = false;
+    // Paint the cell immediately on pointer down; tap (pointer up on same cell) will then show category preview
+    onPaintStartRef.current(hand);
   }, []);
 
   const handlePointerUp = useCallback((hand: string) => {
@@ -114,7 +116,6 @@ export function RangeChart({
 
   const handleMouseEnterCell = useCallback((hand: string) => {
     if (pointerDownHandRef.current !== null && hand !== pointerDownHandRef.current) {
-      onPaintStartRef.current(pointerDownHandRef.current);
       onPaintRef.current(hand);
       pointerDownHandRef.current = null;
       pointerMovedRef.current = true;
@@ -144,6 +145,7 @@ export function RangeChart({
       if (useTapDetection && onCellTapRef.current) {
         touchStartHandRef.current = hand;
         touchMovedRef.current = false;
+        onPaintStartRef.current(hand);
         return;
       }
 
@@ -158,10 +160,11 @@ export function RangeChart({
         const touch = e.touches[0];
         const hand = getHandFromPoint(touch.clientX, touch.clientY);
         if (hand && hand !== touchStartHandRef.current) {
-          onPaintStartRef.current(touchStartHandRef.current);
           onPaintRef.current(hand);
           touchStartHandRef.current = null;
           touchMovedRef.current = true;
+          isTouchPaintingRef.current = true;
+          lastTouchedHandRef.current = hand;
         }
         return;
       }

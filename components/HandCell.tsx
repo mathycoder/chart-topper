@@ -270,7 +270,7 @@ export function HandCell({
         ${getTextColor()}
         ${!isSubmitted && !isBlackCell && (selectedAction || blendMode) ? 'hover:opacity-80' : ''}
         ${isSubmitted || isBlackCell ? 'cursor-default' : ''}
-        ${isCategoryPreviewFloor ? 'ring-4 ring-amber-500 ring-inset shadow-[0_0_12px_rgba(245,158,11,0.6)]' : isInCategoryPreview ? 'ring-[3px] ring-amber-500/90 ring-inset shadow-[0_0_8px_rgba(245,158,11,0.4)]' : ''}
+        ${isCategoryPreviewFloor ? 'ring-[3px] lg:ring-4 ring-amber-500 ring-inset shadow-[0_0_6px_rgba(245,158,11,0.5)] lg:shadow-[0_0_12px_rgba(245,158,11,0.6)]' : isInCategoryPreview ? 'ring-[2px] lg:ring-[3px] ring-amber-500/90 ring-inset shadow-[0_0_4px_rgba(245,158,11,0.35)] lg:shadow-[0_0_8px_rgba(245,158,11,0.4)]' : ''}
       `}
       style={getBackgroundStyle()}
       data-hand={hand}
