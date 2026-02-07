@@ -25,8 +25,10 @@ interface RangeChartProps {
   showCorrectAnswers?: boolean;
   /** Whether blend mode is active (cells respond to clicks without selectedAction) */
   blendMode?: boolean;
-  /** When set, single tap = category preview, double tap = apply (tap-vs-drag detection enabled) */
-  onCellTap?: (hand: string) => void;
+  /** Long-press: pointer down/up/cancel for 700ms hold to show category preview, release to apply */
+  onPointerDown?: (hand: string) => void;
+  onPointerUp?: (hand: string) => void;
+  onPointerCancel?: () => void;
   /** Set of hands currently in category preview (glow border) */
   categoryPreviewHands?: Set<string> | null;
   /** Hand that is the "floor" of the category preview (thicker border) */
@@ -53,25 +55,25 @@ export function RangeChart({
   onPaintStart,
   showCorrectAnswers = false,
   blendMode = false,
-  onCellTap,
+  onPointerDown,
+  onPointerUp,
+  onPointerCancel,
   categoryPreviewHands = null,
   categoryPreviewFloor = null,
 }: RangeChartProps) {
   const gridRef = useRef<HTMLDivElement>(null);
-  // Track the last touched hand to avoid re-painting the same cell
   const lastTouchedHandRef = useRef<string | null>(null);
-  // Track if we're actively in a touch paint session
   const isTouchPaintingRef = useRef(false);
-  // Tap-vs-drag: when onCellTap is provided, defer paint start until pointer moves to another cell
   const pointerDownHandRef = useRef<string | null>(null);
   const pointerMovedRef = useRef(false);
   const touchStartHandRef = useRef<string | null>(null);
   const touchMovedRef = useRef(false);
 
-  // Store callbacks in refs so event listeners always have latest values
   const onPaintRef = useRef(onPaint);
   const onPaintStartRef = useRef(onPaintStart);
-  const onCellTapRef = useRef(onCellTap);
+  const onPointerDownRef = useRef(onPointerDown);
+  const onPointerUpRef = useRef(onPointerUp);
+  const onPointerCancelRef = useRef(onPointerCancel);
   const isSubmittedRef = useRef(isSubmitted);
   const selectedActionRef = useRef(selectedAction);
   const blendModeRef = useRef(blendMode);
@@ -79,11 +81,13 @@ export function RangeChart({
   useEffect(() => {
     onPaintRef.current = onPaint;
     onPaintStartRef.current = onPaintStart;
-    onCellTapRef.current = onCellTap;
+    onPointerDownRef.current = onPointerDown;
+    onPointerUpRef.current = onPointerUp;
+    onPointerCancelRef.current = onPointerCancel;
     isSubmittedRef.current = isSubmitted;
     selectedActionRef.current = selectedAction;
     blendModeRef.current = blendMode;
-  }, [onPaint, onPaintStart, onCellTap, isSubmitted, selectedAction, blendMode]);
+  }, [onPaint, onPaintStart, onPointerDown, onPointerUp, onPointerCancel, isSubmitted, selectedAction, blendMode]);
 
   /**
    * Get the hand name from an element at a given point.
@@ -97,25 +101,24 @@ export function RangeChart({
     return null;
   }, []);
 
-  const useTapDetection = Boolean(onCellTap);
+  const useLongPress = Boolean(onPointerDown && onPointerUp);
 
   const handlePointerDown = useCallback((hand: string) => {
     pointerDownHandRef.current = hand;
     pointerMovedRef.current = false;
-    // Paint the cell immediately on pointer down; tap (pointer up on same cell) will then show category preview
     onPaintStartRef.current(hand);
+    onPointerDownRef.current?.(hand);
   }, []);
 
   const handlePointerUp = useCallback((hand: string) => {
-    if (pointerDownHandRef.current === hand && !pointerMovedRef.current) {
-      onCellTapRef.current?.(hand);
-    }
+    onPointerUpRef.current?.(hand);
     pointerDownHandRef.current = null;
     pointerMovedRef.current = false;
   }, []);
 
   const handleMouseEnterCell = useCallback((hand: string) => {
     if (pointerDownHandRef.current !== null && hand !== pointerDownHandRef.current) {
+      onPointerCancelRef.current?.();
       onPaintRef.current(hand);
       pointerDownHandRef.current = null;
       pointerMovedRef.current = true;
@@ -124,10 +127,6 @@ export function RangeChart({
     }
   }, []);
 
-  /**
-   * Set up non-passive touch event listeners.
-   * When onCellTap is provided, touchstart does not paint immediately; we detect tap vs drag.
-   */
   useEffect(() => {
     const grid = gridRef.current;
     if (!grid) return;
@@ -142,10 +141,11 @@ export function RangeChart({
 
       e.preventDefault();
 
-      if (useTapDetection && onCellTapRef.current) {
+      if (useLongPress) {
         touchStartHandRef.current = hand;
         touchMovedRef.current = false;
         onPaintStartRef.current(hand);
+        onPointerDownRef.current?.(hand);
         return;
       }
 
@@ -155,11 +155,12 @@ export function RangeChart({
     };
 
     const handleTouchMove = (e: TouchEvent) => {
-      if (useTapDetection && touchStartHandRef.current !== null) {
+      if (useLongPress && touchStartHandRef.current !== null) {
         e.preventDefault();
         const touch = e.touches[0];
         const hand = getHandFromPoint(touch.clientX, touch.clientY);
         if (hand && hand !== touchStartHandRef.current) {
+          onPointerCancelRef.current?.();
           onPaintRef.current(hand);
           touchStartHandRef.current = null;
           touchMovedRef.current = true;
@@ -181,8 +182,8 @@ export function RangeChart({
     };
 
     const handleTouchEnd = () => {
-      if (useTapDetection && touchStartHandRef.current !== null && !touchMovedRef.current) {
-        onCellTapRef.current?.(touchStartHandRef.current);
+      if (useLongPress && touchStartHandRef.current !== null) {
+        onPointerUpRef.current?.(touchStartHandRef.current);
       }
       touchStartHandRef.current = null;
       touchMovedRef.current = false;
@@ -201,7 +202,7 @@ export function RangeChart({
       grid.removeEventListener('touchend', handleTouchEnd);
       grid.removeEventListener('touchcancel', handleTouchEnd);
     };
-  }, [getHandFromPoint, useTapDetection]);
+  }, [getHandFromPoint, useLongPress]);
 
   return (
     <div 
@@ -232,9 +233,9 @@ export function RangeChart({
               onPaintStart={onPaintStart}
               displayAction={showCorrectAnswers ? correctRange?.[hand] : undefined}
               blendMode={blendMode}
-              onPointerDown={useTapDetection ? handlePointerDown : undefined}
-              onPointerUp={useTapDetection ? handlePointerUp : undefined}
-              onMouseEnterCell={useTapDetection ? handleMouseEnterCell : undefined}
+              onPointerDown={useLongPress ? handlePointerDown : undefined}
+              onPointerUp={useLongPress ? handlePointerUp : undefined}
+              onMouseEnterCell={useLongPress ? handleMouseEnterCell : undefined}
               isInCategoryPreview={isInCategoryPreview}
               isCategoryPreviewFloor={isCategoryPreviewFloor}
             />

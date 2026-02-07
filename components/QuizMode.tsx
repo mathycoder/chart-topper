@@ -184,11 +184,12 @@ export function QuizMode() {
   const [selectedActions, setSelectedActions] = useState<Set<SimpleAction>>(new Set(['raise']));
   const [multiSelectMode, setMultiSelectMode] = useState(false);
 
-  // Category preview state (in-chart: single tap = preview, double tap = apply)
+  // Category preview: hold 700ms to show highlights, release to apply
   const [categoryPreview, setCategoryPreview] = useState<{ hands: string[]; floor: string } | null>(null);
   const categoryPreviewRef = useRef<{ hands: string[]; floor: string } | null>(null);
-  const lastTapHandRef = useRef<string | null>(null);
-  const lastTapTimeRef = useRef<number>(0);
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressHandRef = useRef<string | null>(null);
+  const longPressFiredRef = useRef(false);
   categoryPreviewRef.current = categoryPreview;
 
   // Painting state
@@ -265,55 +266,53 @@ export function QuizMode() {
     return deriveBlendType(selectedActions);
   }, [selectedActions]);
 
-  // Category tap: single tap = show preview (hands at or above in category); second tap on same cell = apply action to preview
-  const onCellTap = useCallback((hand: string) => {
+  const LONG_PRESS_MS = 700;
+
+  const onPointerDown = useCallback((hand: string) => {
     if (!effectiveAction || isSubmitted) return;
+    if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+    longPressHandRef.current = hand;
+    longPressFiredRef.current = false;
+    longPressTimerRef.current = setTimeout(() => {
+      longPressTimerRef.current = null;
+      const category = getCategoryForHand(hand);
+      if (category === null) return;
+      const hands = getCategoryHandsAtOrAboveFloor(category, hand);
+      if (hands.length <= 1) return;
+      longPressFiredRef.current = true;
+      setCategoryPreview({ hands, floor: hand });
+    }, LONG_PRESS_MS);
+  }, [effectiveAction, isSubmitted]);
 
-    const now = Date.now();
-    const previewToApply = categoryPreviewRef.current;
-    // Second tap on same cell: either within 300ms, or we already have a preview with this hand as floor
-    const isSecondTapSameCell =
-      lastTapHandRef.current === hand &&
-      (now - lastTapTimeRef.current < 300 || previewToApply?.floor === hand);
-
-    if (isSecondTapSameCell && previewToApply) {
-      // Apply current action to all previewed hands
-      previewToApply.hands.forEach(h => setCell(h, effectiveAction));
-      setCategoryPreview(null);
-      lastTapHandRef.current = null;
-      lastTapTimeRef.current = 0;
-      return;
+  const onPointerUp = useCallback((hand: string) => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
     }
-
-    const category = getCategoryForHand(hand);
-    if (category === null) {
-      // Not in any category: paint this cell immediately (same as before tap detection)
-      setCell(hand, effectiveAction);
+    if (longPressFiredRef.current && longPressHandRef.current === hand && categoryPreviewRef.current) {
+      categoryPreviewRef.current.hands.forEach(h => setCell(h, effectiveAction));
       setCategoryPreview(null);
-      lastTapHandRef.current = hand;
-      lastTapTimeRef.current = now;
-      return;
     }
-
-    // In a category: if hand is at the top (only one in range), just paint and skip preview/double-tap
-    const hands = getCategoryHandsAtOrAboveFloor(category, hand);
-    setCell(hand, effectiveAction);
-    if (hands.length <= 1) {
-      setCategoryPreview(null);
-      lastTapHandRef.current = hand;
-      lastTapTimeRef.current = now;
-      return;
-    }
-    setCategoryPreview({ hands, floor: hand });
-    lastTapHandRef.current = hand;
-    lastTapTimeRef.current = now;
+    longPressFiredRef.current = false;
+    longPressHandRef.current = null;
   }, [effectiveAction, isSubmitted, setCell]);
+
+  const onPointerCancel = useCallback(() => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+    longPressFiredRef.current = false;
+    longPressHandRef.current = null;
+  }, []);
 
   // Clear category preview when range params or selected action changes
   useEffect(() => {
     setCategoryPreview(null);
-    lastTapHandRef.current = null;
-    lastTapTimeRef.current = 0;
+    if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+    longPressTimerRef.current = null;
+    longPressHandRef.current = null;
+    longPressFiredRef.current = false;
   }, [effectivePosition, stackSize, effectiveScenario, effectiveOpponent, effectiveCaller, effectiveAction]);
 
   // Clear category preview on Escape
@@ -321,8 +320,10 @@ export function QuizMode() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setCategoryPreview(null);
-        lastTapHandRef.current = null;
-        lastTapTimeRef.current = 0;
+        if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+        longPressTimerRef.current = null;
+        longPressHandRef.current = null;
+        longPressFiredRef.current = false;
       }
     };
     document.addEventListener('keydown', handleKeyDown);
@@ -380,8 +381,10 @@ export function QuizMode() {
   const handleClear = () => {
     resetToFold();
     setCategoryPreview(null);
-    lastTapHandRef.current = null;
-    lastTapTimeRef.current = 0;
+    if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+    longPressTimerRef.current = null;
+    longPressHandRef.current = null;
+    longPressFiredRef.current = false;
   };
 
   // Determine effective selected action for painting (SimpleAction only, for drag painting)
@@ -471,7 +474,9 @@ export function QuizMode() {
               onPaintStart={rangeExists && !isSubmitted ? handlePaintStart : () => {}}
               showCorrectAnswers={showCorrectAnswers}
               blendMode={rangeExists && !isSubmitted && hasBlendSelected}
-              onCellTap={rangeExists && effectiveAction && !isSubmitted ? onCellTap : undefined}
+              onPointerDown={rangeExists && effectiveAction && !isSubmitted ? onPointerDown : undefined}
+              onPointerUp={rangeExists && effectiveAction && !isSubmitted ? onPointerUp : undefined}
+              onPointerCancel={rangeExists && effectiveAction && !isSubmitted ? onPointerCancel : undefined}
               categoryPreviewHands={categoryPreview ? new Set(categoryPreview.hands) : null}
               categoryPreviewFloor={categoryPreview?.floor ?? null}
             />
@@ -656,7 +661,9 @@ export function QuizMode() {
                 onPaintStart={rangeExists && !isSubmitted ? handlePaintStart : () => {}}
                 showCorrectAnswers={showCorrectAnswers}
                 blendMode={rangeExists && !isSubmitted && hasBlendSelected}
-                onCellTap={rangeExists && effectiveAction && !isSubmitted ? onCellTap : undefined}
+                onPointerDown={rangeExists && effectiveAction && !isSubmitted ? onPointerDown : undefined}
+                onPointerUp={rangeExists && effectiveAction && !isSubmitted ? onPointerUp : undefined}
+                onPointerCancel={rangeExists && effectiveAction && !isSubmitted ? onPointerCancel : undefined}
                 categoryPreviewHands={categoryPreview ? new Set(categoryPreview.hands) : null}
                 categoryPreviewFloor={categoryPreview?.floor ?? null}
               />
