@@ -266,7 +266,7 @@ export function QuizMode() {
     return deriveBlendType(selectedActions);
   }, [selectedActions]);
 
-  const LONG_PRESS_MS = 700;
+  const LONG_PRESS_MS = 500;
 
   const onPointerDown = useCallback((hand: string) => {
     if (!effectiveAction || isSubmitted) return;
@@ -304,6 +304,7 @@ export function QuizMode() {
     }
     longPressFiredRef.current = false;
     longPressHandRef.current = null;
+    setCategoryPreview(null);
   }, []);
 
   // Clear category preview when range params or selected action changes
