@@ -159,13 +159,15 @@ export function RangeChart({
         e.preventDefault();
         const touch = e.touches[0];
         const hand = getHandFromPoint(touch.clientX, touch.clientY);
-        if (hand && hand !== touchStartHandRef.current) {
+        if (hand !== touchStartHandRef.current) {
           onPointerCancelRef.current?.();
-          onPaintRef.current(hand);
           touchStartHandRef.current = null;
           touchMovedRef.current = true;
-          isTouchPaintingRef.current = true;
-          lastTouchedHandRef.current = hand;
+          if (hand) {
+            onPaintRef.current(hand);
+            isTouchPaintingRef.current = true;
+            lastTouchedHandRef.current = hand;
+          }
         }
         return;
       }
