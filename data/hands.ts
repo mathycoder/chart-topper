@@ -144,11 +144,11 @@ export const AX_OFFSUIT_LOW_TO_HIGH = ['A2o', 'A3o', 'A4o', 'A5o', 'A6o', 'A7o',
 // Suited kings ordered low-to-high (K2s to KQs)
 export const SUITED_KINGS_LOW_TO_HIGH = ['K2s', 'K3s', 'K4s', 'K5s', 'K6s', 'K7s', 'K8s', 'K9s', 'KTs', 'KJs', 'KQs'];
 
-// Suited connectors ordered low-to-high (54s to JTs only)
-export const SUITED_CONNECTORS_LOW_TO_HIGH = ['54s', '65s', '76s', '87s', '98s', 'T9s', 'JTs'];
+// Suited connectors ordered low-to-high (32s to JTs)
+export const SUITED_CONNECTORS_LOW_TO_HIGH = ['32s', '43s', '54s', '65s', '76s', '87s', '98s', 'T9s', 'JTs'];
 
-// Suited one-gappers ordered low-to-high (64s to T8s only)
-export const SUITED_ONE_GAPPERS_LOW_TO_HIGH = ['64s', '75s', '86s', '97s', 'T8s'];
+// Suited one-gappers ordered low-to-high (42s to T8s)
+export const SUITED_ONE_GAPPERS_LOW_TO_HIGH = ['42s', '53s', '64s', '75s', '86s', '97s', 'T8s'];
 
 // Category configuration
 export const CATEGORY_CONFIG: Record<HandCategory, {
