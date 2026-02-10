@@ -440,35 +440,31 @@ export function QuizMode() {
             filterByAvailability={true}
           />
           {showAssumeOpenToggle && (
-            <div className="px-2 py-1.5">
+            <div className="self-start px-3 py-1.5">
               <label
-                className="flex items-center gap-2 cursor-pointer"
+                htmlFor="quiz-assume-open-mobile"
+                className="flex items-center gap-2 cursor-pointer select-none touch-manipulation"
                 title={opponentRfiRange
                   ? `Use ${effectiveOpponent}'s standard opening range as context.`
                   : `No opening range available for ${effectiveOpponent} at this stack.`}
+                onClick={(e) => {
+                  if ((e.target as HTMLElement).closest('input')) return;
+                  e.preventDefault();
+                  if (opponentRfiRange && !isSubmitted) setAssumeOpen(!assumeOpen);
+                }}
               >
                 <input
+                  id="quiz-assume-open-mobile"
                   type="checkbox"
                   checked={assumeOpen}
                   onChange={(e) => setAssumeOpen(e.target.checked)}
                   disabled={!opponentRfiRange || isSubmitted}
-                  className="rounded border-slate-300 text-slate-900 focus:ring-slate-500"
+                  className="rounded border-slate-300 text-slate-900 focus:ring-slate-500 cursor-pointer shrink-0"
                 />
                 <span className="text-sm font-medium text-slate-700">
                   Assume {effectiveOpponent} Open
                 </span>
               </label>
-            </div>
-          )}
-          {rangeExists && !isSubmitted && effectiveScenario === 'vs-raise' && emptyCount > 0 && (
-            <div className="px-2 pb-1">
-              <button
-                onClick={fillRemainingAsFold}
-                title="Set all remaining empty cells to fold so you can submit"
-                className="w-full px-3 py-2 text-sm font-medium text-slate-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition-colors"
-              >
-                Fill rest as fold ({emptyCount} left)
-              </button>
             </div>
           )}
           {/* Mobile Grid */}
@@ -615,17 +611,19 @@ export function QuizMode() {
 
               {showAssumeOpenToggle && (
                 <label
-                  className="flex items-center gap-2 cursor-pointer"
+                  htmlFor="quiz-assume-open-desktop"
+                  className="self-start flex items-center gap-2 cursor-pointer"
                   title={opponentRfiRange
                     ? `Use ${effectiveOpponent}'s standard opening range as context.`
                     : `No opening range available for ${effectiveOpponent} at this stack.`}
                 >
                   <input
+                    id="quiz-assume-open-desktop"
                     type="checkbox"
                     checked={assumeOpen}
                     onChange={(e) => setAssumeOpen(e.target.checked)}
                     disabled={!opponentRfiRange || isSubmitted}
-                    className="rounded border-slate-300 text-slate-900 focus:ring-slate-500"
+                    className="rounded border-slate-300 text-slate-900 focus:ring-slate-500 cursor-pointer"
                   />
                   <span className="text-sm font-medium text-slate-700">
                     Assume {effectiveOpponent} Open

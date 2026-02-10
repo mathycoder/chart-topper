@@ -92,6 +92,12 @@ interface MobileActionBarQuizProps {
   onReset: () => void;
   /** Callback when clear is clicked (reset grid to fold) */
   onClear?: () => void;
+  /** Whether to show "Fill rest as fold" (vs Raise when there are empty cells) */
+  showFillRestAsFold?: boolean;
+  /** Number of empty cells (for Fill rest as fold label) */
+  emptyCount?: number;
+  /** Callback when Fill rest as fold is clicked */
+  onFillRestAsFold?: () => void;
   /** Whether to show shove action (only for some scenarios) */
   showShove?: boolean;
 }
@@ -165,7 +171,8 @@ export function MobileActionBar(props: MobileActionBarProps) {
   if (props.mode === 'quiz') {
     const { 
       selectedActions, onToggleAction, onSelectAction, multiSelectMode, onMultiToggle,
-      disabled = false, submitState, onSubmit, onReset, onClear
+      disabled = false, submitState, onSubmit, onReset, onClear,
+      showFillRestAsFold = false, emptyCount = 0, onFillRestAsFold
     } = props;
     
     const handleActionClick = (action: SimpleAction) => {
@@ -237,7 +244,7 @@ export function MobileActionBar(props: MobileActionBarProps) {
         </div>
         
         {/* Row 2: Clear + Submit / Try Again */}
-        <div className="pb-2 flex gap-2">
+        <div className="flex gap-2">
           {submitState === 'submitted' ? (
             <button
               onClick={onReset}
@@ -266,11 +273,24 @@ export function MobileActionBar(props: MobileActionBarProps) {
                   }
                 `}
               >
-                {submitState === 'ready' ? 'Submit' : 'Fill all cells'}
+                Submit
               </button>
             </>
           )}
         </div>
+
+        {/* Row 3: Fill rest as fold (vs Raise only, when there are empty cells) */}
+        {showFillRestAsFold && emptyCount > 0 && onFillRestAsFold && (
+          <div className="pt-2 pb-2">
+            <button
+              onClick={onFillRestAsFold}
+              title="Set all remaining empty cells to fold"
+              className="w-full py-2 rounded-lg font-medium text-sm text-slate-600 bg-slate-50 active:bg-slate-100 border border-slate-200"
+            >
+              Fill rest as fold ({emptyCount} left)
+            </button>
+          </div>
+        )}
       </div>
     );
   }
