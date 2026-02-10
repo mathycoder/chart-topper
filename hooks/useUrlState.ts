@@ -10,6 +10,8 @@ interface UseUrlStateReturn {
   scenario: Scenario;
   opponent: Position | null;
   caller: Position | null;
+  assumeOpen: boolean;
+  setAssumeOpen: (v: boolean) => void;
   setPosition: (p: Position) => void;
   setStackSize: (s: StackSize) => void;
   setScenario: (s: Scenario) => void;
@@ -40,6 +42,9 @@ export function useUrlState(basePath: string): UseUrlStateReturn {
   const [caller, setCaller] = useState<Position | null>(
     (searchParams.get('caller') as Position) || null
   );
+  const [assumeOpen, setAssumeOpen] = useState<boolean>(
+    basePath === '/' ? searchParams.get('assumeOpen') === '1' : false
+  );
 
   // Sync state to URL
   useEffect(() => {
@@ -55,8 +60,12 @@ export function useUrlState(basePath: string): UseUrlStateReturn {
     if (scenario === 'vs-raise-call' && caller) {
       params.set('caller', caller);
     }
+    // Quiz (home) only: persist Assume Open toggle
+    if (basePath === '/') {
+      if (assumeOpen) params.set('assumeOpen', '1');
+    }
     router.replace(`${basePath}?${params.toString()}`, { scroll: false });
-  }, [position, stackSize, scenario, opponent, caller, router, basePath]);
+  }, [position, stackSize, scenario, opponent, caller, assumeOpen, router, basePath]);
 
   // Clear opponent when switching to RFI scenario
   useEffect(() => {
@@ -78,6 +87,8 @@ export function useUrlState(basePath: string): UseUrlStateReturn {
     scenario,
     opponent,
     caller,
+    assumeOpen,
+    setAssumeOpen,
     setPosition,
     setStackSize,
     setScenario,

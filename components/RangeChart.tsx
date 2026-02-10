@@ -33,6 +33,8 @@ interface RangeChartProps {
   categoryPreviewHands?: Set<string> | null;
   /** Hand that is the "floor" of the category preview (thicker border) */
   categoryPreviewFloor?: string | null;
+  /** Opponent RFI range data for context overlay on empty cells (e.g. Assume UTG Open) */
+  overlayRangeData?: RangeData | null;
 }
 
 /**
@@ -60,6 +62,7 @@ export function RangeChart({
   onPointerCancel,
   categoryPreviewHands = null,
   categoryPreviewFloor = null,
+  overlayRangeData = null,
 }: RangeChartProps) {
   const gridRef = useRef<HTMLDivElement>(null);
   const lastTouchedHandRef = useRef<string | null>(null);
@@ -219,15 +222,20 @@ export function RangeChart({
         RANKS.map((_, colIndex) => {
           const hand = getHandName(rowIndex, colIndex);
           const userAction = userSelections[hand] ?? null;
+          const correctAction = correctRange?.[hand];
           const isInCategoryPreview = categoryPreviewHands?.has(hand) ?? false;
           const isCategoryPreviewFloor = categoryPreviewFloor === hand;
+          const isBlackCell = correctAction === 'black';
+          const opponentAction = overlayRangeData && userAction === null && !isBlackCell ? overlayRangeData[hand] : undefined;
+          const overlayAction: HandAction | undefined =
+            opponentAction && opponentAction !== 'black' ? opponentAction : undefined;
 
           return (
             <HandCell
               key={hand}
               hand={hand}
               userAction={userAction}
-              correctAction={correctRange?.[hand]}
+              correctAction={correctAction}
               isSubmitted={isSubmitted}
               isPainting={isPainting}
               selectedAction={selectedAction}
@@ -240,6 +248,7 @@ export function RangeChart({
               onMouseEnterCell={useLongPress ? handleMouseEnterCell : undefined}
               isInCategoryPreview={isInCategoryPreview}
               isCategoryPreviewFloor={isCategoryPreviewFloor}
+              overlayAction={overlayAction}
             />
           );
         })

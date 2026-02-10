@@ -113,8 +113,9 @@ const SCENARIO_DISPLAY: Record<Scenario, string> = {
  * Mobile: Grid-first with fixed bottom action bar
  */
 export function QuizMode() {
-  const { position, stackSize, scenario, opponent, caller, setPosition, setStackSize, setScenario, setOpponent, setCaller } = useUrlState('/');
-  const { userSelections, setCell, clearSelections, resetToFold, initializeWithBlackHands, filledCount, playableCount, totalCells, allFilled } = useQuizSelections();
+  const { position, stackSize, scenario, opponent, caller, assumeOpen, setAssumeOpen, setPosition, setStackSize, setScenario, setOpponent, setCaller } = useUrlState('/');
+  const { userSelections, setCell, clearSelections, resetToFold, initializeWithBlackHands, initializeForVsRaise, fillRemainingAsFold, filledCount, totalCells } = useQuizSelections();
+  const emptyCount = totalCells - filledCount;
 
   // Get available options based on what ranges actually exist
   const availableScenarios = useMemo(() => getAvailableScenarios(stackSize), [stackSize]);
@@ -179,7 +180,7 @@ export function QuizMode() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [gradeSummary, setGradeSummary] = useState<ChartGradeSummary | null>(null);
   const [showCorrectAnswers, setShowCorrectAnswers] = useState(false);
-  
+
   // Action selection state
   const [selectedActions, setSelectedActions] = useState<Set<SimpleAction>>(new Set(['raise']));
   const [multiSelectMode, setMultiSelectMode] = useState(false);
@@ -195,44 +196,60 @@ export function QuizMode() {
   // Painting state
   const painting = usePainting();
 
-  // Track previous range params to detect changes
-  const prevParamsRef = useRef({ position: effectivePosition, stackSize, scenario: effectiveScenario, opponent: effectiveOpponent, caller: effectiveCaller });
-  
-  // Reset quiz state when range parameters change
+  // Track previous range params to detect changes (null = first mount, so we run init once)
+  const prevParamsRef = useRef<{ position: Position; stackSize: StackSize; scenario: Scenario; opponent: Position | null; caller: Position | null } | null>(null);
+
+  // Opponent RFI range for "Assume Open" overlay (vs Raise only)
+  const opponentRfiRange = useMemo(() => {
+    if (effectiveScenario !== 'vs-raise' || !effectiveOpponent) return null;
+    return getRange(stackSize, effectiveOpponent, 'rfi');
+  }, [stackSize, effectiveOpponent, effectiveScenario]);
+
+  const showAssumeOpenToggle = effectiveScenario === 'vs-raise' && rangeExists;
+  const assumeOpenEnabled = assumeOpen && opponentRfiRange !== null;
+
+  // Reset quiz state when range parameters change (or on first mount, so vs-raise starts empty)
   useEffect(() => {
     const prev = prevParamsRef.current;
-    const paramsChanged = prev.position !== effectivePosition || 
-                          prev.stackSize !== stackSize || 
-                          prev.scenario !== effectiveScenario || 
-                          prev.opponent !== effectiveOpponent ||
-                          prev.caller !== effectiveCaller;
-    
+    const paramsChanged = prev === null ||
+      prev.position !== effectivePosition ||
+      prev.stackSize !== stackSize ||
+      prev.scenario !== effectiveScenario ||
+      prev.opponent !== effectiveOpponent ||
+      prev.caller !== effectiveCaller;
+
     if (paramsChanged) {
       setIsSubmitted(false);
       setGradeSummary(null);
       setSelectedActions(new Set());
       setMultiSelectMode(false);
-      // Initialize with black hands pre-filled if range exists
       if (range) {
-        initializeWithBlackHands(range.data);
+        if (effectiveScenario === 'vs-raise') {
+          initializeForVsRaise(range.data);
+        } else {
+          initializeWithBlackHands(range.data);
+        }
       } else {
         resetToFold();
       }
       prevParamsRef.current = { position: effectivePosition, stackSize, scenario: effectiveScenario, opponent: effectiveOpponent, caller: effectiveCaller };
     }
-  }, [effectivePosition, stackSize, effectiveScenario, effectiveOpponent, effectiveCaller, range, initializeWithBlackHands, resetToFold]);
-  
+  }, [effectivePosition, stackSize, effectiveScenario, effectiveOpponent, effectiveCaller, range, initializeWithBlackHands, initializeForVsRaise, resetToFold]);
+
   // Also initialize on first load if range has black hands
   useEffect(() => {
     if (range && !isSubmitted) {
-      // Check if we need to initialize (only if there are black hands and they're not already set)
       const hasBlackHands = Object.values(range.data).some(action => action === 'black');
       const hasBlackSelections = Object.values(userSelections).some(action => action === 'black');
       if (hasBlackHands && !hasBlackSelections) {
-        initializeWithBlackHands(range.data);
+        if (effectiveScenario === 'vs-raise') {
+          initializeForVsRaise(range.data);
+        } else {
+          initializeWithBlackHands(range.data);
+        }
       }
     }
-  }, [range, isSubmitted, userSelections, initializeWithBlackHands]);
+  }, [range, isSubmitted, userSelections, effectiveScenario, initializeWithBlackHands, initializeForVsRaise]);
   
   // Toggle action selection (multi-select for blends)
   const handleToggleAction = useCallback((action: SimpleAction) => {
@@ -346,41 +363,42 @@ export function QuizMode() {
     }
   }, [painting, effectiveAction, isSubmitted, setCell]);
 
-  // Convert userSelections to GradeAction format for grading
-  const userResultsForGrading = useMemo(() => {
-    const results: Record<string, GradeAction> = {};
-    for (const [hand, action] of Object.entries(userSelections)) {
-      if (action) {
-        results[hand] = action as GradeAction;
-      }
-    }
-    return results;
-  }, [userSelections]);
-
   const handleSubmit = () => {
-    if (allFilled && range) {
-      setIsSubmitted(true);
-      // Run the grading function
-      const summary = gradeRangeSubmission({
-        expectedRange: range,
-        userResults: userResultsForGrading,
-      });
-      setGradeSummary(summary);
+    if (!range) return;
+    // Treat any unaddressed cells as fold, then grade
+    const completedResults: Record<string, GradeAction> = {};
+    for (const [hand, action] of Object.entries(userSelections)) {
+      completedResults[hand] = (action ?? 'fold') as GradeAction;
     }
+    fillRemainingAsFold();
+    setIsSubmitted(true);
+    const summary = gradeRangeSubmission({
+      expectedRange: range,
+      userResults: completedResults,
+    });
+    setGradeSummary(summary);
   };
 
   const handleReset = () => {
     setIsSubmitted(false);
     setGradeSummary(null);
     setShowCorrectAnswers(false);
-    resetToFold();
+    if (effectiveScenario === 'vs-raise' && range) {
+      initializeForVsRaise(range.data);
+    } else {
+      resetToFold();
+    }
     setSelectedActions(new Set());
     setMultiSelectMode(false);
     painting.setSelectedAction(null);
   };
 
   const handleClear = () => {
-    resetToFold();
+    if (effectiveScenario === 'vs-raise' && range) {
+      initializeForVsRaise(range.data);
+    } else {
+      resetToFold();
+    }
     setCategoryPreview(null);
     if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
     longPressTimerRef.current = null;
@@ -421,6 +439,38 @@ export function QuizMode() {
             disabled={isSubmitted}
             filterByAvailability={true}
           />
+          {showAssumeOpenToggle && (
+            <div className="px-2 py-1.5">
+              <label
+                className="flex items-center gap-2 cursor-pointer"
+                title={opponentRfiRange
+                  ? `Use ${effectiveOpponent}'s standard opening range as context.`
+                  : `No opening range available for ${effectiveOpponent} at this stack.`}
+              >
+                <input
+                  type="checkbox"
+                  checked={assumeOpen}
+                  onChange={(e) => setAssumeOpen(e.target.checked)}
+                  disabled={!opponentRfiRange || isSubmitted}
+                  className="rounded border-slate-300 text-slate-900 focus:ring-slate-500"
+                />
+                <span className="text-sm font-medium text-slate-700">
+                  Assume {effectiveOpponent} Open
+                </span>
+              </label>
+            </div>
+          )}
+          {rangeExists && !isSubmitted && effectiveScenario === 'vs-raise' && emptyCount > 0 && (
+            <div className="px-2 pb-1">
+              <button
+                onClick={fillRemainingAsFold}
+                title="Set all remaining empty cells to fold so you can submit"
+                className="w-full px-3 py-2 text-sm font-medium text-slate-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition-colors"
+              >
+                Fill rest as fold ({emptyCount} left)
+              </button>
+            </div>
+          )}
           {/* Mobile Grid */}
           <div className="flex-1 p-1 relative">
             {/* Toggle between user answers and correct answers */}
@@ -480,6 +530,7 @@ export function QuizMode() {
               onPointerCancel={rangeExists && effectiveAction && !isSubmitted ? onPointerCancel : undefined}
               categoryPreviewHands={categoryPreview ? new Set(categoryPreview.hands) : null}
               categoryPreviewFloor={categoryPreview?.floor ?? null}
+              overlayRangeData={assumeOpenEnabled ? opponentRfiRange?.data : null}
             />
             
             {!rangeExists && (
@@ -562,6 +613,26 @@ export function QuizMode() {
                 )}
               </div>
 
+              {showAssumeOpenToggle && (
+                <label
+                  className="flex items-center gap-2 cursor-pointer"
+                  title={opponentRfiRange
+                    ? `Use ${effectiveOpponent}'s standard opening range as context.`
+                    : `No opening range available for ${effectiveOpponent} at this stack.`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={assumeOpen}
+                    onChange={(e) => setAssumeOpen(e.target.checked)}
+                    disabled={!opponentRfiRange || isSubmitted}
+                    className="rounded border-slate-300 text-slate-900 focus:ring-slate-500"
+                  />
+                  <span className="text-sm font-medium text-slate-700">
+                    Assume {effectiveOpponent} Open
+                  </span>
+                </label>
+              )}
+
               {rangeExists && (
                 <Card>
                   <ActionPalette
@@ -579,28 +650,31 @@ export function QuizMode() {
               {rangeExists && (
                 <div className="flex flex-col gap-2">
                   {!isSubmitted ? (
-                    <div className="flex gap-2">
-                      <button
-                        onClick={handleClear}
-                        className="flex-1 px-6 py-3 rounded-lg font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-all duration-150"
-                      >
-                        Clear
-                      </button>
-                      <button
-                        onClick={handleSubmit}
-                        disabled={!allFilled}
-                        className={`
-                          flex-1 px-6 py-3 rounded-lg font-semibold text-white
-                          transition-all duration-150
-                          ${allFilled
-                            ? 'bg-slate-900 hover:bg-slate-800 cursor-pointer'
-                            : 'bg-slate-300 cursor-not-allowed'
-                          }
-                        `}
-                      >
-                        {allFilled ? 'Submit' : 'Fill all cells'}
-                      </button>
-                    </div>
+                    <>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={handleClear}
+                          className="flex-1 px-6 py-3 rounded-lg font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-all duration-150"
+                        >
+                          Clear
+                        </button>
+                        <button
+                          onClick={handleSubmit}
+                          className="flex-1 px-6 py-3 rounded-lg font-semibold text-white bg-slate-900 hover:bg-slate-800 cursor-pointer transition-all duration-150"
+                        >
+                          Submit
+                        </button>
+                      </div>
+                      {effectiveScenario === 'vs-raise' && emptyCount > 0 && (
+                        <button
+                          onClick={fillRemainingAsFold}
+                          title="Set all remaining empty cells to fold so you can submit"
+                          className="w-full px-4 py-2 text-sm font-medium text-slate-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition-colors"
+                        >
+                          Fill rest as fold ({emptyCount} left)
+                        </button>
+                      )}
+                    </>
                   ) : (
                     <button
                       onClick={handleReset}
@@ -667,6 +741,7 @@ export function QuizMode() {
                 onPointerCancel={rangeExists && effectiveAction && !isSubmitted ? onPointerCancel : undefined}
                 categoryPreviewHands={categoryPreview ? new Set(categoryPreview.hands) : null}
                 categoryPreviewFloor={categoryPreview?.floor ?? null}
+                overlayRangeData={assumeOpenEnabled ? opponentRfiRange?.data : null}
               />
               
               {!rangeExists && (
@@ -697,7 +772,7 @@ export function QuizMode() {
           multiSelectMode={multiSelectMode}
           onMultiToggle={handleMultiToggle}
           disabled={isSubmitted}
-          submitState={isSubmitted ? 'submitted' : allFilled ? 'ready' : 'disabled'}
+          submitState={isSubmitted ? 'submitted' : 'ready'}
           onSubmit={handleSubmit}
           onReset={handleReset}
           onClear={handleClear}

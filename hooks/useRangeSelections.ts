@@ -27,6 +27,8 @@ interface UseQuizSelectionsReturn {
   clearSelections: () => void;
   resetToFold: () => void;
   initializeWithBlackHands: (rangeData: Record<string, unknown>) => void;
+  initializeForVsRaise: (rangeData: Record<string, unknown>) => void;
+  fillRemainingAsFold: () => void;
   filledCount: number;
   playableCount: number;
   totalCells: number;
@@ -159,6 +161,33 @@ export function useQuizSelections(): UseQuizSelectionsReturn {
     });
   }, []);
 
+  // Vs Raise: start with empty tiles (only black pre-filled)
+  const initializeForVsRaise = useCallback((rangeData: Record<string, unknown>) => {
+    setUserSelections(() => {
+      const selections: QuizSelections = {};
+      ALL_HANDS.forEach(hand => {
+        const action = rangeData[hand];
+        if (action === 'black') {
+          selections[hand] = 'black';
+        } else {
+          selections[hand] = null;
+        }
+      });
+      return selections;
+    });
+  }, []);
+
+  // Set all currently empty (null) cells to fold; leaves black and already-filled cells unchanged
+  const fillRemainingAsFold = useCallback(() => {
+    setUserSelections(prev => {
+      const next: QuizSelections = {};
+      ALL_HANDS.forEach(hand => {
+        next[hand] = prev[hand] === null ? 'fold' : prev[hand];
+      });
+      return next;
+    });
+  }, []);
+
   // Count filled cells (excluding black which is pre-filled and not user input)
   const filledCount = Object.values(userSelections).filter(v => v !== null).length;
   // Count playable cells (excluding black hands)
@@ -173,6 +202,8 @@ export function useQuizSelections(): UseQuizSelectionsReturn {
     clearSelections,
     resetToFold,
     initializeWithBlackHands,
+    initializeForVsRaise,
+    fillRemainingAsFold,
     filledCount,
     playableCount,
     totalCells,

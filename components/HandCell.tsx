@@ -45,6 +45,8 @@ interface HandCellProps {
   isInCategoryPreview?: boolean;
   /** Whether this cell is the category preview floor (thicker border) */
   isCategoryPreviewFloor?: boolean;
+  /** Context overlay on empty cells (e.g. opponent RFI range when "Assume Open" is on; simple or blended) */
+  overlayAction?: HandAction | null;
 }
 
 /**
@@ -110,6 +112,7 @@ export function HandCell({
   onMouseEnterCell,
   isInCategoryPreview = false,
   isCategoryPreviewFloor = false,
+  overlayAction = null,
 }: HandCellProps) {
   const [isHovered, setIsHovered] = useState(false);
   
@@ -283,6 +286,25 @@ export function HandCell({
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
+      {/* Context overlay: opponent opening range on empty cells (e.g. Assume UTG Open) */}
+      {userAction === null && !isBlackCell && overlayAction && (
+        isSimpleAction(overlayAction) ? (
+          <div
+            className="absolute inset-0 rounded-sm pointer-events-none"
+            style={{
+              backgroundColor: ACTION_COLORS[overlayAction as keyof typeof ACTION_COLORS] ?? ACTION_COLORS.fold,
+              opacity: overlayAction === 'raise' ? 0.25 : overlayAction === 'fold' ? 0.15 : 0.2,
+            }}
+            aria-hidden
+          />
+        ) : (
+          <div
+            className="absolute inset-0 rounded-sm pointer-events-none"
+            style={{ background: buildBlendedGradient(overlayAction), opacity: 0.25 }}
+            aria-hidden
+          />
+        )
+      )}
       {/* Category preview floor: gentle pulsing overlay */}
       {isCategoryPreviewFloor && (
         <div
