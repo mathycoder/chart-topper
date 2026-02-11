@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import type { SimpleAction, HandAction, BlendedAction, QuizAction } from '@/types';
 import { isSimpleAction, isBlendType, getBlendType, getPrimaryAction } from '@/types';
 import { CorrectActionPopover } from './CorrectActionPopover';
@@ -115,6 +115,7 @@ export function HandCell({
   overlayAction = null,
 }: HandCellProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const cellRef = useRef<HTMLDivElement>(null);
   
   // Check if this cell is a 'black' cell (not in hero's range)
   const isBlackCell = correctAction === 'black';
@@ -227,9 +228,22 @@ export function HandCell({
     }
   };
 
-  const handleMouseUp = () => {
+  const handlePointerUp = () => {
     if (onPointerUp) onPointerUp(hand);
+    if (isSubmitted && isCorrect === false) setIsHovered(true);
   };
+
+  // Close popover when tapping outside (mobile: tap elsewhere)
+  useEffect(() => {
+    if (!isHovered || !cellRef.current) return;
+    const closeIfOutside = (e: PointerEvent) => {
+      if (cellRef.current && !cellRef.current.contains(e.target as Node)) {
+        setIsHovered(false);
+      }
+    };
+    document.addEventListener('pointerdown', closeIfOutside);
+    return () => document.removeEventListener('pointerdown', closeIfOutside);
+  }, [isHovered]);
 
   // Handle mouse enter while dragging or for hover state
   const handleMouseEnter = () => {
@@ -265,6 +279,7 @@ export function HandCell({
 
   return (
     <div
+      ref={cellRef}
       className={`
         hand-cell
         relative flex items-center justify-center
@@ -277,12 +292,12 @@ export function HandCell({
         ${getTextColor()}
         ${!isSubmitted && !isBlackCell && (selectedAction || blendMode) ? 'hover:opacity-80' : ''}
         ${isSubmitted || isBlackCell ? 'cursor-default' : ''}
-        ${isCategoryPreviewFloor ? 'ring-[3px] lg:ring-4 ring-amber-500 ring-inset shadow-[0_0_6px_rgba(245,158,11,0.5)] lg:shadow-[0_0_12px_rgba(245,158,11,0.6)]' : isInCategoryPreview ? 'ring-[2px] lg:ring-[3px] ring-amber-500/90 ring-inset shadow-[0_0_4px_rgba(245,158,11,0.35)] lg:shadow-[0_0_8px_rgba(245,158,11,0.4)]' : ''}
+        ${isCategoryPreviewFloor ? 'ring-[3px] lg:ring-4 ring-amber-500 ring-inset shadow-[0_0_6px_rgba(245,158,11,0.5)] lg:shadow-[0_0_12px_rgba(245,158,11,0.6)]' : isInCategoryPreview ? 'ring-2 lg:ring-[3px] ring-amber-500/90 ring-inset shadow-[0_0_4px_rgba(245,158,11,0.35)] lg:shadow-[0_0_8px_rgba(245,158,11,0.4)]' : ''}
       `}
       style={getBackgroundStyle()}
       data-hand={hand}
       onMouseDown={handleMouseDown}
-      onMouseUp={handleMouseUp}
+      onPointerUp={handlePointerUp}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
@@ -315,33 +330,24 @@ export function HandCell({
       {/* Hand name */}
       <span className="relative z-10 drop-shadow-sm">{hand}</span>
 
-      {/* Correct/Incorrect indicator overlay */}
-      {isSubmitted && isCorrect !== null && (
-        <div
-          className={`
-            absolute inset-0 flex items-center justify-center
-            rounded-sm
-            ${isCorrect 
-              ? 'bg-cell-correct/20' 
-              : isHalfCredit
-                ? 'bg-amber-500/30'
-                : 'bg-cell-incorrect/30 animate-pulse'
-            }
-          `}
+      {/* Wrong-answer indicator: white X only. Correct cells get no marker. */}
+      {isSubmitted && isCorrect === false && (
+        <span
+          className="absolute top-0.5 right-0.5 text-[10px] text-white drop-shadow-lg pointer-events-none"
+          aria-label="Incorrect"
         >
-          <span className="absolute top-0.5 right-0.5 text-[10px]">
-            {isCorrect ? '✓' : isHalfCredit ? '½' : '✗'}
-          </span>
-        </div>
+          ✗
+        </span>
       )}
 
-      {/* Popover showing correct answer on hover */}
+      {/* Popover showing correct answer on hover (portaled so it appears above grid) */}
       {showPopover && (
         <CorrectActionPopover
           correctAction={correctAction}
           userAnswer={String(userAction)}
           isHalfCredit={isHalfCredit}
           position="top"
+          triggerRef={cellRef}
         />
       )}
     </div>
