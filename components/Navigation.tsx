@@ -6,7 +6,9 @@ import { usePathname, useSearchParams } from 'next/navigation';
 const NAV_ITEMS = [
   { href: '/', label: 'Quiz', description: 'Test your range knowledge' },
   { href: '/view', label: 'View', description: 'Browse ranges' },
-  { href: '/builder', label: 'Builder', description: 'Create & save ranges' },
+  ...(process.env.NODE_ENV !== 'production'
+    ? [{ href: '/builder', label: 'Builder', description: 'Create & save ranges' }]
+    : []),
 ];
 
 /**
