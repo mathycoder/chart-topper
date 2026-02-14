@@ -125,7 +125,7 @@ export function RangeChart({
       onPaintRef.current(hand);
       pointerDownHandRef.current = null;
       pointerMovedRef.current = true;
-    } else if (pointerMovedRef.current && !isSubmittedRef.current && selectedActionRef.current) {
+    } else if (pointerMovedRef.current && !isSubmittedRef.current && (selectedActionRef.current || blendModeRef.current)) {
       onPaintRef.current(hand);
     }
   }, []);
@@ -177,7 +177,7 @@ export function RangeChart({
 
       if (!isTouchPaintingRef.current) return;
       e.preventDefault();
-      if (isSubmittedRef.current || !selectedActionRef.current) return;
+      if (isSubmittedRef.current || (!selectedActionRef.current && !blendModeRef.current)) return;
       const touch = e.touches[0];
       const hand = getHandFromPoint(touch.clientX, touch.clientY);
       if (hand && hand !== lastTouchedHandRef.current) {
