@@ -150,6 +150,15 @@ export type RangeMeta = {
   description?: string; // Strategy explanation for this range
 };
 
+// Canonical spot descriptor for one chart (used by Quiz Delta Mode)
+export type SpotDescriptor = {
+  stackSize: StackSize;
+  position: Position;
+  scenario: Scenario;
+  opponent: Position | null;
+  caller: Position | null;
+};
+
 // ============================================
 // Teaching / Explanation Metadata (our framework)
 // ============================================

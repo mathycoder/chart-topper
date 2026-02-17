@@ -1,4 +1,4 @@
-import type { PokerRange, Position, StackSize, Scenario } from '@/types';
+import type { PokerRange, Position, StackSize, Scenario, SpotDescriptor } from '@/types';
 
 ////////////////////////////////////////////////////////////
 // 80bb+ ranges
@@ -312,6 +312,13 @@ export function getRange(
 ): PokerRange | null {
   const key = buildKey(stackSize, position, scenario, opponent, caller);
   return RANGE_REGISTRY[key] ?? null;
+}
+
+/**
+ * Get a range by spot descriptor (e.g. for Delta Mode grading/init).
+ */
+export function getRangeForSpot(spot: SpotDescriptor): PokerRange | null {
+  return getRange(spot.stackSize, spot.position, spot.scenario, spot.opponent, spot.caller);
 }
 
 /**

@@ -1,99 +1,12 @@
 'use client';
 
-import { useMemo, useState, useRef, useEffect } from 'react';
-import type { RangeData, Scenario, Position, StackSize } from '@/types';
+import { useMemo, useCallback } from 'react';
+import type { RangeData, SpotDescriptor } from '@/types';
 import { useUrlState } from '@/hooks';
 import { getRange, getAvailableScenarios, getAvailablePositions, getAvailableOpponents, getAvailableCallers } from '@/data/ranges';
 import { Card } from './shared';
 import { RangeChart } from './RangeChart';
-import { MobileDropdownBar } from './MobileDropdownBar';
-
-// Segment dropdown component for header-style selector
-function SegmentDropdown<T extends string>({
-  value,
-  options,
-  onChange,
-  displayValue,
-}: {
-  value: T;
-  options: { value: T; label: string }[];
-  onChange: (value: T) => void;
-  displayValue?: string;
-}) {
-  const [isOpen, setIsOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  // Close on click outside
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }
-  }, [isOpen]);
-
-  const currentLabel = displayValue ?? options.find(o => o.value === value)?.label ?? value;
-
-  return (
-    <div ref={ref} className="relative inline-block">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="font-semibold text-slate-900 underline decoration-slate-300 decoration-dashed underline-offset-4 hover:decoration-slate-500 cursor-pointer transition-colors"
-      >
-        {currentLabel}
-      </button>
-      {isOpen && (
-        <div className="absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg py-1 z-50 min-w-[100px]">
-          {options.map(({ value: optValue, label }) => (
-            <button
-              key={optValue}
-              onClick={() => {
-                onChange(optValue);
-                setIsOpen(false);
-              }}
-              className={`
-                block w-full text-left px-3 py-1.5 text-sm
-                ${optValue === value ? 'bg-slate-100 font-medium' : 'hover:bg-slate-50'}
-              `}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-const STACK_SIZES: { value: StackSize; label: string }[] = [
-  { value: '80bb', label: '80bb+' },
-  { value: '50bb', label: '50bb' },
-  { value: '25bb', label: '25bb' },
-  { value: '15bb', label: '15bb' },
-  { value: '10bb', label: '10bb' },
-  { value: '5bb', label: '5bb' },
-];
-
-const SCENARIOS: { value: Scenario; label: string }[] = [
-  { value: 'rfi', label: 'RFI' },
-  { value: 'vs-raise', label: 'vs Raise' },
-  { value: 'vs-raise-call', label: 'vs Raise + Call' },
-  { value: 'vs-3bet', label: 'vs 3-Bet' },
-];
-
-// Display names for scenarios in the header
-const SCENARIO_DISPLAY: Record<Scenario, string> = {
-  'rfi': 'Raise First In',
-  'vs-raise': 'Raise',
-  'vs-raise-call': 'Raise + Call',
-  'vs-3bet': '3-Bet',
-  'vs-4bet': '4-Bet',
-  'after-limp': 'Limp',
-};
+import { SpotSelector } from './SpotSelector';
 
 /**
  * View Mode - Browse poker ranges in read-only mode.
@@ -162,6 +75,22 @@ export function ViewMode() {
   );
   const rangeExists = range !== null;
 
+  const currentSpot = useMemo((): SpotDescriptor => ({
+    stackSize,
+    position: effectivePosition,
+    scenario: effectiveScenario,
+    opponent: effectiveOpponent,
+    caller: effectiveCaller,
+  }), [stackSize, effectivePosition, effectiveScenario, effectiveOpponent, effectiveCaller]);
+
+  const syncSpotToUrl = useCallback((s: SpotDescriptor) => {
+    setStackSize(s.stackSize);
+    setPosition(s.position);
+    setScenario(s.scenario);
+    setOpponent(s.opponent);
+    setCaller(s.caller);
+  }, [setStackSize, setPosition, setScenario, setOpponent, setCaller]);
+
   // Display the range data directly
   const displaySelections = range?.data ?? {};
 
@@ -195,19 +124,14 @@ export function ViewMode() {
         {/* Mobile Layout */}
         <div className="lg:hidden flex flex-col pb-12">
           {/* Mobile Header */}
-          <MobileDropdownBar
-            position={effectivePosition}
-            stackSize={stackSize}
-            scenario={effectiveScenario}
-            opponent={effectiveOpponent}
-            caller={effectiveCaller}
-            onPositionChange={setPosition}
-            onStackSizeChange={setStackSize}
-            onScenarioChange={setScenario}
-            onOpponentChange={setOpponent}
-            onCallerChange={setCaller}
-            filterByAvailability={true}
-          />
+          <div className="bg-white border-b border-slate-200 px-3 py-2.5 flex items-center justify-center flex-wrap">
+            <SpotSelector
+              spot={currentSpot}
+              onChange={syncSpotToUrl}
+              filterByAvailability={true}
+              stackVertical={false}
+            />
+          </div>
           {/* Mobile Grid */}
           <div className="flex-1 p-1 relative">
             {rangeExists ? (
@@ -240,57 +164,14 @@ export function ViewMode() {
           <div className="flex flex-row gap-8 max-w-6xl mx-auto">
             {/* Left column - Controls */}
             <div className="flex flex-col gap-4 w-80 shrink-0">
-              {/* Header-style Range Selector */}
+              {/* Spot header (same component as Quiz) */}
               <div className="text-lg leading-relaxed">
-                <SegmentDropdown
-                  value={stackSize}
-                  options={STACK_SIZES}
-                  onChange={setStackSize}
+                <SpotSelector
+                  spot={currentSpot}
+                  onChange={syncSpotToUrl}
+                  filterByAvailability={true}
+                  headerStyle={true}
                 />
-                <span className="text-slate-400 mx-2">—</span>
-                <SegmentDropdown
-                  value={effectivePosition}
-                  options={availablePositions.map(p => ({ value: p, label: p }))}
-                  onChange={setPosition}
-                />
-                {showOpponent && availableOpponents.length > 0 && (
-                  <>
-                    <span className="text-slate-400 mx-1">vs</span>
-                    <SegmentDropdown
-                      value={effectiveOpponent || availableOpponents[0]}
-                      options={availableOpponents.map(p => ({ value: p, label: p }))}
-                      onChange={setOpponent}
-                    />
-                    {effectiveScenario === 'vs-raise-call' && <span className="text-slate-400 mx-1">raise</span>}
-                  </>
-                )}
-                {showCaller && availableCallers.length > 0 && (
-                  <>
-                    <SegmentDropdown
-                      value={effectiveCaller || availableCallers[0]}
-                      options={availableCallers.map(p => ({ value: p, label: p }))}
-                      onChange={setCaller}
-                    />
-                    <span className="mx-1"></span>
-                    <SegmentDropdown
-                      value={effectiveScenario}
-                      options={availableScenarios.map(s => ({ value: s, label: SCENARIOS.find(sc => sc.value === s)?.label || s }))}
-                      onChange={setScenario}
-                      displayValue="call"
-                    />
-                  </>
-                )}
-                {effectiveScenario !== 'vs-raise-call' && (
-                  <>
-                    <span className="text-slate-400 mx-1"> </span>
-                    <SegmentDropdown
-                      value={effectiveScenario}
-                      options={availableScenarios.map(s => ({ value: s, label: SCENARIOS.find(sc => sc.value === s)?.label || s }))}
-                      onChange={setScenario}
-                      displayValue={SCENARIO_DISPLAY[effectiveScenario]}
-                    />
-                  </>
-                )}
               </div>
 
               {/* Range Stats */}

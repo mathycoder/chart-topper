@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import type { SimpleAction, HandAction, BlendedAction, QuizAction } from '@/types';
+import { isSimpleAction, getBlendType, getPrimaryAction } from '@/types';
 import { ALL_HANDS } from '@/data/hands';
 
 // Builder mode selections can include blended actions
@@ -28,6 +29,7 @@ interface UseQuizSelectionsReturn {
   resetToFold: () => void;
   initializeWithBlackHands: (rangeData: Record<string, unknown>) => void;
   initializeForVsRaise: (rangeData: Record<string, unknown>) => void;
+  initializeFromSolverChart: (rangeData: Record<string, HandAction>) => void;
   fillRemainingAsFold: () => void;
   filledCount: number;
   playableCount: number;
@@ -177,6 +179,25 @@ export function useQuizSelections(): UseQuizSelectionsReturn {
     });
   }, []);
 
+  // Delta Mode: fill chart with solver truth (black, simple, or blend type)
+  const initializeFromSolverChart = useCallback((rangeData: Record<string, HandAction>) => {
+    setUserSelections(() => {
+      const selections: QuizSelections = {};
+      ALL_HANDS.forEach(hand => {
+        const action = rangeData[hand];
+        if (action === 'black') {
+          selections[hand] = 'black';
+        } else if (isSimpleAction(action)) {
+          selections[hand] = action;
+        } else {
+          const blendType = getBlendType(action);
+          selections[hand] = blendType ?? getPrimaryAction(action);
+        }
+      });
+      return selections;
+    });
+  }, []);
+
   // Set all currently empty (null) cells to fold; leaves black and already-filled cells unchanged
   const fillRemainingAsFold = useCallback(() => {
     setUserSelections(prev => {
@@ -203,6 +224,7 @@ export function useQuizSelections(): UseQuizSelectionsReturn {
     resetToFold,
     initializeWithBlackHands,
     initializeForVsRaise,
+    initializeFromSolverChart,
     fillRemainingAsFold,
     filledCount,
     playableCount,

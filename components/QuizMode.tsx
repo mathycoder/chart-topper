@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import type { Scenario, SimpleAction, QuizAction, Position, StackSize } from '@/types';
+import { FaArrowDown } from 'react-icons/fa';
+import type { Scenario, SimpleAction, QuizAction, Position, StackSize, SpotDescriptor } from '@/types';
 import { useUrlState, useQuizSelections, usePainting } from '@/hooks';
-import { getRange, getAvailableScenarios, getAvailablePositions, getAvailableOpponents, getAvailableCallers } from '@/data/ranges';
+import { getRange, getRangeForSpot, getAvailableScenarios, getAvailablePositions, getAvailableOpponents, getAvailableCallers } from '@/data/ranges';
 import { getCategoryHandsAtOrAboveFloor, getCategoryForHand } from '@/data/hands';
 import { Card } from './shared';
 import { RangeChart } from './RangeChart';
@@ -11,101 +12,8 @@ import { ActionPalette } from './ActionPalette';
 import { ResultsSummary } from './ResultsSummary';
 import { MobileActionBar, deriveBlendType } from './MobileActionBar';
 import { MobileDropdownBar } from './MobileDropdownBar';
+import { SpotSelector } from './SpotSelector';
 import { gradeRangeSubmission, type ChartGradeSummary, type GradeAction } from '@/lib/gradeRange';
-
-// Segment dropdown component for header-style selector
-function SegmentDropdown<T extends string>({
-  value,
-  options,
-  onChange,
-  displayValue,
-  disabled,
-}: {
-  value: T;
-  options: { value: T; label: string }[];
-  onChange: (value: T) => void;
-  displayValue?: string;
-  disabled?: boolean;
-}) {
-  const [isOpen, setIsOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  // Close on click outside
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }
-  }, [isOpen]);
-
-  const currentLabel = displayValue ?? options.find(o => o.value === value)?.label ?? value;
-
-  return (
-    <div ref={ref} className="relative inline-block">
-      <button
-        onClick={() => !disabled && setIsOpen(!isOpen)}
-        disabled={disabled}
-        className={`
-          font-semibold text-slate-900 underline decoration-slate-300 decoration-dashed underline-offset-4 
-          transition-colors
-          ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:decoration-slate-500 cursor-pointer'}
-        `}
-      >
-        {currentLabel}
-      </button>
-      {isOpen && !disabled && (
-        <div className="absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg py-1 z-50 min-w-[100px]">
-          {options.map(({ value: optValue, label }) => (
-            <button
-              key={optValue}
-              onClick={() => {
-                onChange(optValue);
-                setIsOpen(false);
-              }}
-              className={`
-                block w-full text-left px-3 py-1.5 text-sm
-                ${optValue === value ? 'bg-slate-100 font-medium' : 'hover:bg-slate-50'}
-              `}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-const STACK_SIZES: { value: StackSize; label: string }[] = [
-  { value: '80bb', label: '80bb+' },
-  { value: '50bb', label: '50bb' },
-  { value: '25bb', label: '25bb' },
-  { value: '15bb', label: '15bb' },
-  { value: '10bb', label: '10bb' },
-  { value: '5bb', label: '5bb' },
-];
-
-const SCENARIOS: { value: Scenario; label: string }[] = [
-  { value: 'rfi', label: 'RFI' },
-  { value: 'vs-raise', label: 'vs Raise' },
-  { value: 'vs-raise-call', label: 'vs Raise + Call' },
-  { value: 'vs-3bet', label: 'vs 3-Bet' },
-];
-
-// Display names for scenarios in the header
-const SCENARIO_DISPLAY: Record<Scenario, string> = {
-  'rfi': 'Raise First In',
-  'vs-raise': 'Raise',
-  'vs-raise-call': 'Raise + Call',
-  'vs-3bet': '3-Bet',
-  'vs-4bet': '4-Bet',
-  'after-limp': 'Limp',
-};
 
 /**
  * Quiz Mode - Test your poker range knowledge.
@@ -114,7 +22,7 @@ const SCENARIO_DISPLAY: Record<Scenario, string> = {
  */
 export function QuizMode() {
   const { position, stackSize, scenario, opponent, caller, assumeOpen, setAssumeOpen, setPosition, setStackSize, setScenario, setOpponent, setCaller } = useUrlState('/');
-  const { userSelections, setCell, clearSelections, resetToFold, initializeWithBlackHands, initializeForVsRaise, fillRemainingAsFold, filledCount, totalCells } = useQuizSelections();
+  const { userSelections, setCell, clearSelections, resetToFold, initializeWithBlackHands, initializeForVsRaise, initializeFromSolverChart, fillRemainingAsFold, filledCount, totalCells } = useQuizSelections();
   const emptyCount = totalCells - filledCount;
 
   // Get available options based on what ranges actually exist
@@ -177,6 +85,34 @@ export function QuizMode() {
   );
   const rangeExists = range !== null;
 
+  // Current spot from URL state (canonical descriptor)
+  const currentSpot = useMemo((): SpotDescriptor => ({
+    stackSize,
+    position: effectivePosition,
+    scenario: effectiveScenario,
+    opponent: effectiveOpponent,
+    caller: effectiveCaller,
+  }), [stackSize, effectivePosition, effectiveScenario, effectiveOpponent, effectiveCaller]);
+
+  // Delta Mode: main header = Start; duplicate header below = Target. Toggled by delta logo next to header.
+  const [deltaModeEnabled, setDeltaModeEnabled] = useState(false);
+  const [targetSpot, setTargetSpot] = useState<SpotDescriptor>(currentSpot);
+
+  // Sync a spot descriptor into URL state (used by the main header SpotSelector)
+  const syncSpotToUrl = useCallback((s: SpotDescriptor) => {
+    setStackSize(s.stackSize);
+    setPosition(s.position);
+    setScenario(s.scenario);
+    setOpponent(s.opponent);
+    setCaller(s.caller);
+  }, [setStackSize, setPosition, setScenario, setOpponent, setCaller]);
+
+  // Single source of truth for grading: Target when Delta ON, else current spot
+  const gradingSpot = deltaModeEnabled ? targetSpot : currentSpot;
+  const gradingRange = useMemo(() => getRangeForSpot(gradingSpot), [gradingSpot]);
+  const rangeForDisplay = deltaModeEnabled ? gradingRange : range;
+  const rangeExistsForDisplay = rangeForDisplay !== null;
+
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [gradeSummary, setGradeSummary] = useState<ChartGradeSummary | null>(null);
   const [showCorrectAnswers, setShowCorrectAnswers] = useState(false);
@@ -208,7 +144,7 @@ export function QuizMode() {
   const showAssumeOpenToggle = effectiveScenario === 'vs-raise' && rangeExists;
   const assumeOpenEnabled = assumeOpen && opponentRfiRange !== null;
 
-  // Reset quiz state when range parameters change (or on first mount, so vs-raise starts empty)
+  // Reset quiz state when range parameters change (or on first mount). When Delta Mode is ON, chart is driven by main header (currentSpot) only.
   useEffect(() => {
     const prev = prevParamsRef.current;
     const paramsChanged = prev === null ||
@@ -223,22 +159,22 @@ export function QuizMode() {
       setGradeSummary(null);
       setSelectedActions(new Set());
       setMultiSelectMode(false);
-      if (range) {
+      if (!deltaModeEnabled && range) {
         if (effectiveScenario === 'vs-raise') {
           initializeForVsRaise(range.data);
         } else {
           initializeWithBlackHands(range.data);
         }
-      } else {
+      } else if (!deltaModeEnabled) {
         resetToFold();
       }
       prevParamsRef.current = { position: effectivePosition, stackSize, scenario: effectiveScenario, opponent: effectiveOpponent, caller: effectiveCaller };
     }
-  }, [effectivePosition, stackSize, effectiveScenario, effectiveOpponent, effectiveCaller, range, initializeWithBlackHands, initializeForVsRaise, resetToFold]);
+  }, [effectivePosition, stackSize, effectiveScenario, effectiveOpponent, effectiveCaller, range, deltaModeEnabled, initializeWithBlackHands, initializeForVsRaise, resetToFold]);
 
-  // Also initialize on first load if range has black hands
+  // Also initialize on first load if range has black hands (skip when Delta Mode drives the chart)
   useEffect(() => {
-    if (range && !isSubmitted) {
+    if (!deltaModeEnabled && range && !isSubmitted) {
       const hasBlackHands = Object.values(range.data).some(action => action === 'black');
       const hasBlackSelections = Object.values(userSelections).some(action => action === 'black');
       if (hasBlackHands && !hasBlackSelections) {
@@ -249,7 +185,31 @@ export function QuizMode() {
         }
       }
     }
-  }, [range, isSubmitted, userSelections, effectiveScenario, initializeWithBlackHands, initializeForVsRaise]);
+  }, [deltaModeEnabled, range, isSubmitted, userSelections, effectiveScenario, initializeWithBlackHands, initializeForVsRaise]);
+
+  // Delta Mode: when enabled, fill chart from Start (main header = currentSpot); when currentSpot changes, reinit
+  useEffect(() => {
+    if (!deltaModeEnabled) return;
+    const startRange = getRangeForSpot(currentSpot);
+    if (startRange) {
+      initializeFromSolverChart(startRange.data);
+    }
+  }, [deltaModeEnabled, currentSpot, initializeFromSolverChart]);
+
+  const prevDeltaModeRef = useRef(false);
+
+  // Delta Mode: when disabled, reinit chart from current URL spot (only on transition OFF)
+  useEffect(() => {
+    const wasDelta = prevDeltaModeRef.current;
+    prevDeltaModeRef.current = deltaModeEnabled;
+    if (wasDelta && !deltaModeEnabled && range) {
+      if (effectiveScenario === 'vs-raise') {
+        initializeForVsRaise(range.data);
+      } else {
+        initializeWithBlackHands(range.data);
+      }
+    }
+  }, [deltaModeEnabled, range, effectiveScenario, initializeWithBlackHands, initializeForVsRaise]);
   
   // Toggle action selection (multi-select for blends)
   const handleToggleAction = useCallback((action: SimpleAction) => {
@@ -364,7 +324,8 @@ export function QuizMode() {
   }, [painting, effectiveAction, isSubmitted, setCell]);
 
   const handleSubmit = () => {
-    if (!range) return;
+    const rangeToGrade = deltaModeEnabled ? gradingRange : range;
+    if (!rangeToGrade) return;
     // Treat any unaddressed cells as fold, then grade
     const completedResults: Record<string, GradeAction> = {};
     for (const [hand, action] of Object.entries(userSelections)) {
@@ -373,7 +334,7 @@ export function QuizMode() {
     fillRemainingAsFold();
     setIsSubmitted(true);
     const summary = gradeRangeSubmission({
-      expectedRange: range,
+      expectedRange: rangeToGrade,
       userResults: completedResults,
     });
     setGradeSummary(summary);
@@ -383,7 +344,10 @@ export function QuizMode() {
     setIsSubmitted(false);
     setGradeSummary(null);
     setShowCorrectAnswers(false);
-    if (effectiveScenario === 'vs-raise' && range) {
+    if (deltaModeEnabled) {
+      const startRange = getRangeForSpot(currentSpot);
+      if (startRange) initializeFromSolverChart(startRange.data);
+    } else if (effectiveScenario === 'vs-raise' && range) {
       initializeForVsRaise(range.data);
     } else {
       resetToFold();
@@ -394,7 +358,10 @@ export function QuizMode() {
   };
 
   const handleClear = () => {
-    if (effectiveScenario === 'vs-raise' && range) {
+    if (deltaModeEnabled) {
+      const startRange = getRangeForSpot(currentSpot);
+      if (startRange) initializeFromSolverChart(startRange.data);
+    } else if (effectiveScenario === 'vs-raise' && range) {
       initializeForVsRaise(range.data);
     } else {
       resetToFold();
@@ -424,7 +391,7 @@ export function QuizMode() {
       <main className={`${painting.isPainting ? 'select-none' : ''}`}>
         {/* Mobile Layout */}
         <div className="lg:hidden flex flex-col pb-28">
-          {/* Mobile Dropdown Bar at top */}
+          {/* Mobile: header with spot bar; Delta button + target row live inside for alignment */}
           <MobileDropdownBar
             position={effectivePosition}
             stackSize={stackSize}
@@ -438,6 +405,14 @@ export function QuizMode() {
             onCallerChange={setCaller}
             disabled={isSubmitted}
             filterByAvailability={true}
+            deltaModeEnabled={deltaModeEnabled}
+            onDeltaToggle={() => {
+              const next = !deltaModeEnabled;
+              setDeltaModeEnabled(next);
+              if (next) setTargetSpot(currentSpot);
+            }}
+            targetSpot={targetSpot}
+            onTargetSpotChange={setTargetSpot}
           />
           {showAssumeOpenToggle && (
             <div className="self-start px-3 py-1.5">
@@ -470,7 +445,7 @@ export function QuizMode() {
           {/* Mobile Grid */}
           <div className="flex-1 p-1 relative">
             {/* Toggle between user answers and correct answers */}
-            {isSubmitted && rangeExists && (
+            {isSubmitted && rangeExistsForDisplay && (
               <div className="flex justify-center mb-2">
                 <div className="inline-flex rounded-lg bg-slate-100 p-1">
                   <button
@@ -513,23 +488,23 @@ export function QuizMode() {
             
             <RangeChart
               userSelections={userSelections}
-              correctRange={range?.data}
+              correctRange={gradingRange?.data}
               isSubmitted={isSubmitted}
-              isPainting={painting.isPainting && rangeExists && !isSubmitted}
-              selectedAction={rangeExists && !isSubmitted ? effectiveSelectedAction : null}
-              onPaint={rangeExists && !isSubmitted ? paintCell : () => {}}
-              onPaintStart={rangeExists && !isSubmitted ? handlePaintStart : () => {}}
+              isPainting={painting.isPainting && rangeExistsForDisplay && !isSubmitted}
+              selectedAction={rangeExistsForDisplay && !isSubmitted ? effectiveSelectedAction : null}
+              onPaint={rangeExistsForDisplay && !isSubmitted ? paintCell : () => {}}
+              onPaintStart={rangeExistsForDisplay && !isSubmitted ? handlePaintStart : () => {}}
               showCorrectAnswers={showCorrectAnswers}
-              blendMode={rangeExists && !isSubmitted && hasBlendSelected}
-              onPointerDown={rangeExists && effectiveAction && !isSubmitted ? onPointerDown : undefined}
-              onPointerUp={rangeExists && effectiveAction && !isSubmitted ? onPointerUp : undefined}
-              onPointerCancel={rangeExists && effectiveAction && !isSubmitted ? onPointerCancel : undefined}
+              blendMode={rangeExistsForDisplay && !isSubmitted && hasBlendSelected}
+              onPointerDown={rangeExistsForDisplay && effectiveAction && !isSubmitted ? onPointerDown : undefined}
+              onPointerUp={rangeExistsForDisplay && effectiveAction && !isSubmitted ? onPointerUp : undefined}
+              onPointerCancel={rangeExistsForDisplay && effectiveAction && !isSubmitted ? onPointerCancel : undefined}
               categoryPreviewHands={categoryPreview ? new Set(categoryPreview.hands) : null}
               categoryPreviewFloor={categoryPreview?.floor ?? null}
               overlayRangeData={assumeOpenEnabled ? opponentRfiRange?.data : null}
             />
             
-            {!rangeExists && (
+            {!rangeExistsForDisplay && (
               <div className="absolute inset-3 bg-slate-800 rounded-lg flex flex-col items-center justify-center text-center p-6">
                 <p className="text-slate-400 text-base mb-4">
                   This range hasn&apos;t been created yet
@@ -550,61 +525,48 @@ export function QuizMode() {
           <div className="flex flex-row gap-8 max-w-6xl mx-auto">
             {/* Left column - Controls */}
             <div className="flex flex-col gap-4 w-80 shrink-0">
-              {/* Header-style Range Selector */}
-              <div className="text-lg leading-relaxed">
-                <SegmentDropdown
-                  value={stackSize}
-                  options={STACK_SIZES}
-                  onChange={setStackSize}
-                  disabled={isSubmitted}
-                />
-                <span className="text-slate-400 mx-2">—</span>
-                <SegmentDropdown
-                  value={effectivePosition}
-                  options={availablePositions.map(p => ({ value: p, label: p }))}
-                  onChange={setPosition}
-                  disabled={isSubmitted}
-                />
-                {showOpponent && availableOpponents.length > 0 && (
+              {/* Spot header (Start) + delta logo; duplicate header (Target) when Delta on */}
+              <div className="flex flex-col gap-2">
+                <div className="flex items-start gap-2">
+                  <div className="text-lg leading-relaxed flex-1 min-w-0">
+                    <SpotSelector
+                      spot={currentSpot}
+                      onChange={syncSpotToUrl}
+                      disabled={isSubmitted}
+                      filterByAvailability={true}
+                      headerStyle={true}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    title="Delta Mode: Start from this spot and transform to another. Chart fills with this spot; you edit toward the target. Submit grades against the target spot. Click to set target."
+                    onClick={() => {
+                      const next = !deltaModeEnabled;
+                      setDeltaModeEnabled(next);
+                      if (next) setTargetSpot(currentSpot);
+                    }}
+                    disabled={isSubmitted}
+                    className={`
+                      shrink-0 w-8 h-8 rounded-md flex items-center justify-center text-lg font-bold
+                      ${deltaModeEnabled ? 'bg-slate-900 text-white' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'}
+                      ${isSubmitted ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                    `}
+                  >
+                    Δ
+                  </button>
+                </div>
+                {deltaModeEnabled && (
                   <>
-                    <span className="text-slate-400 mx-1">vs</span>
-                    <SegmentDropdown
-                      value={effectiveOpponent || availableOpponents[0]}
-                      options={availableOpponents.map(p => ({ value: p, label: p }))}
-                      onChange={setOpponent}
-                      disabled={isSubmitted}
-                    />
-                    {effectiveScenario === 'vs-raise-call' && <span className="text-slate-400 mx-1">raise</span>}
-                  </>
-                )}
-                {showCaller && availableCallers.length > 0 && (
-                  <>
-                    <SegmentDropdown
-                      value={effectiveCaller || availableCallers[0]}
-                      options={availableCallers.map(p => ({ value: p, label: p }))}
-                      onChange={setCaller}
-                      disabled={isSubmitted}
-                    />
-                    <span className="mx-1"></span>
-                    <SegmentDropdown
-                      value={effectiveScenario}
-                      options={availableScenarios.map(s => ({ value: s, label: SCENARIOS.find(sc => sc.value === s)?.label || s }))}
-                      onChange={setScenario}
-                      displayValue="call"
-                      disabled={isSubmitted}
-                    />
-                  </>
-                )}
-                {effectiveScenario !== 'vs-raise-call' && (
-                  <>
-                    <span className="text-slate-400 mx-1"> </span>
-                    <SegmentDropdown
-                      value={effectiveScenario}
-                      options={availableScenarios.map(s => ({ value: s, label: SCENARIOS.find(sc => sc.value === s)?.label || s }))}
-                      onChange={setScenario}
-                      displayValue={SCENARIO_DISPLAY[effectiveScenario]}
-                      disabled={isSubmitted}
-                    />
+                    <FaArrowDown className="size-6 self-center" />
+                    <div className="text-lg leading-relaxed">
+                      <SpotSelector
+                        spot={targetSpot}
+                        onChange={setTargetSpot}
+                        disabled={isSubmitted}
+                        filterByAvailability={true}
+                        headerStyle={true}
+                      />
+                    </div>
                   </>
                 )}
               </div>
@@ -631,21 +593,21 @@ export function QuizMode() {
                 </label>
               )}
 
-              {rangeExists && (
-                <Card>
-                  <ActionPalette
+              {rangeExistsForDisplay && (
+        <Card>
+          <ActionPalette
                     mode="quiz"
                     selectedActions={selectedActions}
                     onToggleAction={handleToggleAction}
                     onSelectAction={handleSelectAction}
                     multiSelectMode={multiSelectMode}
                     onMultiToggle={handleMultiToggle}
-                    disabled={isSubmitted || !rangeExists}
+                    disabled={isSubmitted || !rangeExistsForDisplay}
                   />
                 </Card>
               )}
 
-              {rangeExists && (
+              {rangeExistsForDisplay && (
                 <div className="flex flex-col gap-2">
                   {!isSubmitted ? (
                     <>
@@ -663,7 +625,7 @@ export function QuizMode() {
                           Submit
                         </button>
                       </div>
-                      {effectiveScenario === 'vs-raise' && emptyCount > 0 && (
+                      {gradingSpot.scenario === 'vs-raise' && emptyCount > 0 && (
                         <button
                           onClick={fillRemainingAsFold}
                           title="Set all remaining empty cells to fold so you can submit"
@@ -693,7 +655,7 @@ export function QuizMode() {
             {/* Right column - Grid */}
             <div className="flex-1 min-w-0 relative">
               {/* Toggle between user answers and correct answers */}
-              {isSubmitted && rangeExists && (
+              {isSubmitted && rangeExistsForDisplay && (
                 <div className="flex justify-center mb-3">
                   <div className="inline-flex rounded-lg bg-slate-100 p-1">
                     <button
@@ -726,23 +688,23 @@ export function QuizMode() {
               
               <RangeChart
                 userSelections={userSelections}
-                correctRange={range?.data}
+                correctRange={gradingRange?.data}
                 isSubmitted={isSubmitted}
-                isPainting={painting.isPainting && rangeExists && !isSubmitted}
-                selectedAction={rangeExists && !isSubmitted ? effectiveSelectedAction : null}
-                onPaint={rangeExists && !isSubmitted ? paintCell : () => {}}
-                onPaintStart={rangeExists && !isSubmitted ? handlePaintStart : () => {}}
+                isPainting={painting.isPainting && rangeExistsForDisplay && !isSubmitted}
+                selectedAction={rangeExistsForDisplay && !isSubmitted ? effectiveSelectedAction : null}
+                onPaint={rangeExistsForDisplay && !isSubmitted ? paintCell : () => {}}
+                onPaintStart={rangeExistsForDisplay && !isSubmitted ? handlePaintStart : () => {}}
                 showCorrectAnswers={showCorrectAnswers}
-                blendMode={rangeExists && !isSubmitted && hasBlendSelected}
-                onPointerDown={rangeExists && effectiveAction && !isSubmitted ? onPointerDown : undefined}
-                onPointerUp={rangeExists && effectiveAction && !isSubmitted ? onPointerUp : undefined}
-                onPointerCancel={rangeExists && effectiveAction && !isSubmitted ? onPointerCancel : undefined}
+                blendMode={rangeExistsForDisplay && !isSubmitted && hasBlendSelected}
+                onPointerDown={rangeExistsForDisplay && effectiveAction && !isSubmitted ? onPointerDown : undefined}
+                onPointerUp={rangeExistsForDisplay && effectiveAction && !isSubmitted ? onPointerUp : undefined}
+                onPointerCancel={rangeExistsForDisplay && effectiveAction && !isSubmitted ? onPointerCancel : undefined}
                 categoryPreviewHands={categoryPreview ? new Set(categoryPreview.hands) : null}
                 categoryPreviewFloor={categoryPreview?.floor ?? null}
                 overlayRangeData={assumeOpenEnabled ? opponentRfiRange?.data : null}
               />
               
-              {!rangeExists && (
+              {!rangeExistsForDisplay && (
                 <div className="absolute inset-0 bg-slate-800 rounded-lg flex flex-col items-center justify-center text-center p-6">
                   <p className="text-slate-400 text-lg mb-4">
                     This range hasn&apos;t been created yet
@@ -761,7 +723,7 @@ export function QuizMode() {
       </main>
 
       {/* Mobile Action Bar */}
-      {rangeExists && (
+      {rangeExistsForDisplay && (
         <MobileActionBar
           mode="quiz"
           selectedActions={selectedActions}
