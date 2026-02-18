@@ -1,0 +1,65 @@
+---
+description: Chart Topper coding conventions — tech stack, patterns, and what to avoid
+alwaysApply: true
+---
+
+# Coding Conventions
+
+## Tech Stack
+
+- **Next.js 16** — App Router only (no Pages Router)
+- **React 19** — functional components, hooks
+- **TypeScript 5** — strict mode; avoid `any`; prefer types from `types/index.ts`
+- **Tailwind CSS 4** — all styling via Tailwind classes; no CSS modules, no inline styles
+- **`clsx` + `tailwind-merge`** — use `cn()` from `lib/utils.ts` for conditional/merged classes
+- **`lucide-react`** — icons only from this library
+
+## Project Structure
+
+```
+app/           Next.js App Router pages and API routes
+components/    React components (shared/ for reused primitives)
+hooks/         Custom React hooks — stateful logic lives here
+lib/           Pure utility functions (gradeRange.ts, utils.ts)
+types/         TypeScript types — extend here, don't redefine elsewhere
+data/ranges/   Static range TypeScript files + index.ts registry
+```
+
+## Component Patterns
+
+- Extract stateful logic into hooks in `hooks/`; keep components focused on rendering
+- Responsive layout: desktop = two-column (controls left, grid right); mobile = single-column with fixed bottom action bar (`MobileActionBar`)
+- Use `MobileDropdownBar` pattern for mobile controls
+- Long-press interactions use 700ms threshold (see `usePainting` for reference)
+- Drag/paint selection is a first-class interaction — don't break pointer event handling on `RangeChart` / `HandCell`
+
+## State Management
+
+- URL search params are the source of truth for navigation state (`position`, `stackSize`, `scenario`, `opponent`, `caller`) — managed via `useUrlState`
+- No global state library (no Redux, Zustand, etc.) — use URL state + local `useState`/`useReducer`
+- Range data is loaded synchronously via `getRange()` from `data/ranges/index.ts` — no `useEffect` data fetching for ranges
+
+## Data Conventions
+
+- Never add async loading for range data — it's static TypeScript
+- To add a new range: create `data/ranges/{slug}.ts`, import it in `index.ts`, register in `RANGE_REGISTRY`
+- `'black'` action = hand not in hero's range (not a real action choice — skip in grading/UI where appropriate)
+- Builder Mode is dev-only; always keep it gated from production
+
+## TypeScript
+
+- Import shared types from `@/types`, not re-declared locally
+- Use type guards from `types/index.ts`: `isSimpleAction()`, `isBlendType()`, `getBlendType()`, `getPrimaryAction()`
+- `HandAction = SimpleAction | BlendedAction` — always handle both cases
+- `QuizAction = SimpleAction | BlendType` — what the user submits in quiz
+
+## In an ideal world
+- Look for DRY code opportunities, and maintain in components/shared
+
+## What to Avoid
+
+- CSS modules or `style={}` props for layout/color — use Tailwind
+- `any` type — use proper types or generics
+- Async data fetching for ranges — synchronous imports only
+- Adding dependencies without a clear reason — the stack is intentionally lean
+- Touching Builder mode without confirming dev-only intent

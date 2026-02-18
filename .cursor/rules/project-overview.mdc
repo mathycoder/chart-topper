@@ -1,0 +1,62 @@
+---
+description: Chart Topper app overview — purpose, domain model, data architecture, and modes
+alwaysApply: true
+---
+
+# Chart Topper — Project Overview
+
+Chart Topper is a **poker range training app**. Users study and quiz themselves on GTO (Game Theory Optimal) preflop ranges across positions, stack sizes, and scenarios.  My goal is to move past traditional range study and develop features that promote deeper learning and understanding.  
+
+## Domain Model
+
+**Positions** (8-max table, early to late): `UTG | UTG+1 | LJ | HJ | CO | BTN | SB | BB`
+
+**Stack sizes**: `5bb | 10bb | 15bb | 25bb | 50bb | 80bb`
+
+**Scenarios**:
+- `rfi` — Raise First In (no prior action)
+- `vs-raise` — Hero faces a single raise (needs `opponentPosition`)
+- `vs-raise-call` — Hero faces a raise with a caller behind (needs `opponentPosition` + `callerPosition`)
+- `vs-3bet` — Hero re-raised after opening (needs `opponentPosition`)
+- `vs-4bet` — Hero faces a 4-bet (needs `opponentPosition`)
+
+**Actions**:
+- `SimpleAction`: `'raise' | 'call' | 'fold' | 'shove' | 'black'`
+  - `'black'` = hand is not in hero's range; excluded from grading
+- `BlendedAction`: `{ raise?: number; call?: number; fold?: number; shove?: number }` — percentages summing to 100 (mixed strategies)
+- `HandAction = SimpleAction | BlendedAction`
+
+**The grid**: A 13×13 matrix of hand combos (169 total). Rows/cols are card ranks `A K Q J T 9 8 7 6 5 4 3 2`. Upper-right triangle = suited hands (e.g. `AKs`), lower-left = offsuit (e.g. `AKo`), diagonal = pairs (e.g. `AA`).
+
+## Data Architecture
+
+- **Range files**: `data/ranges/{stack}-{position}-{scenario}.ts` — each exports a `PokerRange` object with `meta`, `data` (169-hand `RangeData`), and optional `notes`
+- **Registry**: `data/ranges/index.ts` — `RANGE_REGISTRY` keyed by slug (e.g. `'80bb-btn-rfi'`). Use `getRange(stackSize, position, scenario, opponent?, caller?)` to fetch; returns `null` if not yet available
+- **No database** — all range data is static TypeScript, imported synchronously
+- **Adding a range**: create the `.ts` file in `data/ranges/`, import it in `index.ts`, add to `RANGE_REGISTRY`
+
+## App Modes
+
+**Quiz Mode** (`/` — default): User selects an action for each hand in the 13×13 grid, then checks against the correct range. Grading supports half-credit (user picks dominant action of a blended hand). Blend mode lets users answer with a `BlendType` (e.g. `'raise-call'`) rather than a single action.
+
+**View Mode** (`/view`): Read-only display of a range with statistics. No selections.
+
+**Builder Mode** (`/builder`): Dev-only tool for creating/editing ranges. Gated from production.
+
+## Key Types (`types/index.ts`)
+
+```ts
+type PokerRange = { meta: RangeMeta; data: RangeData; notes?: RangeNotes }
+type RangeMeta = { stackSize, position, scenario, opponentPosition?, callerPosition?, displayName, description? }
+type RangeData = Record<HandCombo, HandAction>
+type QuizAction = SimpleAction | BlendType  // what the user picks in quiz
+type CheckResult = { correct, incorrect, halfCredit, total, percentage, totalScore, details }
+```
+
+## URL State
+
+Navigation is driven by URL params managed by `useUrlState` hook: `position`, `stackSize`, `scenario`, `opponent`, `caller`. No router.push — state updates happen via URL search params.
+
+## Grading
+
+`lib/gradeRange.ts` — full credit for exact match; half credit if user picks the dominant action of a blended hand; zero otherwise. `'black'` hands are excluded from scoring.
