@@ -39,6 +39,8 @@ Chart Topper is a **poker range training app**. Users study and quiz themselves 
 
 **Quiz Mode** (`/` — default): User selects an action for each hand in the 13×13 grid, then checks against the correct range. Grading supports half-credit (user picks dominant action of a blended hand). Blend mode lets users answer with a `BlendType` (e.g. `'raise-call'`) rather than a single action.
 
+**Delta Mode** (within Quiz Mode): Single-axis relational training. User clicks the Δ button, then clicks a header segment (stack size, hero position, or opponent) to select the axis to vary. The chart fills with the Start range; the user edits toward the Target. Scenario is locked. The target row renders as a "ghost" `SpotSelector` — invisible spacers mirror the header layout so the arrow + target dropdown align directly under the changing segment. Key state: `deltaAxis: DeltaAxis | null` and `deltaTargetValue: string | null`; `targetSpot` is derived by overriding the single axis on `currentSpot`. Grading runs against the target spot's range. Type: `DeltaAxis = 'stackSize' | 'position' | 'opponent'`.
+
 **View Mode** (`/view`): Read-only display of a range with statistics. No selections.
 
 **Builder Mode** (`/builder`): Dev-only tool for creating/editing ranges. Gated from production.
