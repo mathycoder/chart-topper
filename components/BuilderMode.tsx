@@ -209,7 +209,7 @@ export function BuilderMode() {
         <div className="hidden lg:block p-4 lg:p-8 max-w-[1050px] mx-auto">
           <div className="flex flex-row gap-8 max-w-6xl mx-auto">
             {/* Left column - Controls */}
-            <div className="flex flex-col gap-4 w-80 shrink-0">
+            <div className="flex flex-col gap-4 w-90 shrink-0">
               <Card>
                 <RangeDropdowns
                   position={position}

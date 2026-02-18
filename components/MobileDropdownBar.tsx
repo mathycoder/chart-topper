@@ -1,9 +1,8 @@
 'use client';
 
 import { useMemo, useCallback, useRef, useEffect } from 'react';
-import type { Position, StackSize, Scenario, SpotDescriptor } from '@/types';
+import type { Position, StackSize, Scenario, SpotDescriptor, DeltaAxis } from '@/types';
 import { SpotSelector } from './SpotSelector';
-import { FaArrowDown } from 'react-icons/fa';
 
 interface MobileDropdownBarProps {
   position: Position;
@@ -19,11 +18,14 @@ interface MobileDropdownBarProps {
   disabled?: boolean;
   /** When true, only show options that have range data (for View/Quiz). Default: false (for Builder). */
   filterByAvailability?: boolean;
-  /** Optional Delta mode: show Delta button and target row so Start/Target headings align. */
+  /** Optional Delta mode: show Delta button and single-axis target. */
   deltaModeEnabled?: boolean;
   onDeltaToggle?: () => void;
-  targetSpot?: SpotDescriptor;
-  onTargetSpotChange?: (spot: SpotDescriptor) => void;
+  deltaAxis?: DeltaAxis | null;
+  onSelectDeltaAxis?: (axis: DeltaAxis) => void;
+  deltaTargetValue?: string | null;
+  onDeltaTargetChange?: (value: string) => void;
+  deltaTargetOptions?: { value: string; label: string }[];
 }
 
 /**
@@ -46,8 +48,11 @@ export function MobileDropdownBar({
   filterByAvailability = false,
   deltaModeEnabled = false,
   onDeltaToggle,
-  targetSpot,
-  onTargetSpotChange,
+  deltaAxis,
+  onSelectDeltaAxis,
+  deltaTargetValue,
+  onDeltaTargetChange,
+  deltaTargetOptions,
 }: MobileDropdownBarProps) {
   const spot = useMemo((): SpotDescriptor => ({
     stackSize,
@@ -65,7 +70,7 @@ export function MobileDropdownBar({
     onCallerChange(s.caller);
   }, [onStackSizeChange, onPositionChange, onScenarioChange, onOpponentChange, onCallerChange]);
 
-  const showDelta = onDeltaToggle != null && targetSpot != null && onTargetSpotChange != null;
+  const showDelta = onDeltaToggle != null;
   const deltaButtonRef = useRef<HTMLButtonElement>(null);
   const deltaTouchHandledRef = useRef(false);
   const deltaToggleRef = useRef<() => void>(() => {});
@@ -95,13 +100,16 @@ export function MobileDropdownBar({
               disabled={disabled}
               filterByAvailability={filterByAvailability}
               stackVertical={false}
+              deltaMode={deltaModeEnabled}
+              deltaAxis={deltaAxis ?? null}
+              onSelectDeltaAxis={onSelectDeltaAxis}
             />
           </div>
           {showDelta && (
             <button
               ref={deltaButtonRef}
               type="button"
-              title="Delta Mode: Start from this spot and transform to another. Chart fills with this spot; you edit toward the target. Submit grades against the target spot. Click to set target."
+              title="Delta Mode: pick one axis to vary (stack, hero, opponent). Click a segment to select it."
               onClick={() => {
                 if (deltaTouchHandledRef.current) {
                   deltaTouchHandledRef.current = false;
@@ -121,20 +129,23 @@ export function MobileDropdownBar({
             </button>
           )}
         </div>
-        {/* Target spot row when Delta on - left-aligned with Start row */}
-        {showDelta && deltaModeEnabled && (
-          <>
-            <FaArrowDown className="size-4 self-center" />
-            <div className="w-full flex flex-wrap justify-start">
-              <SpotSelector
-                spot={targetSpot}
-                onChange={onTargetSpotChange}
-                disabled={disabled}
-                filterByAvailability={filterByAvailability}
-                stackVertical={false}
-              />
-            </div>
-          </>
+        {/* Ghost target row: arrow + dropdown aligned under the delta axis segment */}
+        {deltaModeEnabled && deltaAxis && deltaTargetOptions && deltaTargetOptions.length > 0 && onDeltaTargetChange && (
+          <div className="mt-1">
+            <SpotSelector
+              spot={spot}
+              onChange={onChange}
+              disabled={disabled}
+              filterByAvailability={filterByAvailability}
+              stackVertical={false}
+              deltaMode={true}
+              deltaAxis={deltaAxis}
+              deltaTargetMode={true}
+              deltaTargetValue={deltaTargetValue}
+              deltaTargetOptions={deltaTargetOptions}
+              onDeltaTargetChange={onDeltaTargetChange}
+            />
+          </div>
         )}
     </div>
   );

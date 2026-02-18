@@ -159,6 +159,9 @@ export type SpotDescriptor = {
   caller: Position | null;
 };
 
+// Delta Mode: which single axis is being varied
+export type DeltaAxis = 'stackSize' | 'position' | 'opponent';
+
 // ============================================
 // Teaching / Explanation Metadata (our framework)
 // ============================================

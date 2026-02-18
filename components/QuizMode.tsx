@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { FaArrowDown } from 'react-icons/fa';
-import type { Scenario, SimpleAction, QuizAction, Position, StackSize, SpotDescriptor } from '@/types';
+import type { Scenario, SimpleAction, QuizAction, Position, StackSize, SpotDescriptor, DeltaAxis } from '@/types';
 import { useUrlState, useQuizSelections, usePainting } from '@/hooks';
 import { getRange, getRangeForSpot, getAvailableScenarios, getAvailablePositions, getAvailableOpponents, getAvailableCallers } from '@/data/ranges';
 import { getCategoryHandsAtOrAboveFloor, getCategoryForHand } from '@/data/hands';
@@ -12,7 +11,7 @@ import { ActionPalette } from './ActionPalette';
 import { ResultsSummary } from './ResultsSummary';
 import { MobileActionBar, deriveBlendType } from './MobileActionBar';
 import { MobileDropdownBar } from './MobileDropdownBar';
-import { SpotSelector } from './SpotSelector';
+import { SpotSelector, STACK_SIZES } from './SpotSelector';
 import { gradeRangeSubmission, type ChartGradeSummary, type GradeAction } from '@/lib/gradeRange';
 
 /**
@@ -94,9 +93,69 @@ export function QuizMode() {
     caller: effectiveCaller,
   }), [stackSize, effectivePosition, effectiveScenario, effectiveOpponent, effectiveCaller]);
 
-  // Delta Mode: main header = Start; duplicate header below = Target. Toggled by delta logo next to header.
+  // Delta Mode: single-axis variation. User picks one axis (stack, position, opponent) to vary.
   const [deltaModeEnabled, setDeltaModeEnabled] = useState(false);
-  const [targetSpot, setTargetSpot] = useState<SpotDescriptor>(currentSpot);
+  const [deltaAxis, setDeltaAxis] = useState<DeltaAxis | null>(null);
+  const [deltaTargetValue, setDeltaTargetValue] = useState<string | null>(null);
+
+  // Derive target spot from current spot + delta axis override
+  const targetSpot = useMemo((): SpotDescriptor => {
+    if (!deltaAxis || !deltaTargetValue) return currentSpot;
+    if (deltaAxis === 'stackSize') return { ...currentSpot, stackSize: deltaTargetValue as StackSize };
+    if (deltaAxis === 'position') return { ...currentSpot, position: deltaTargetValue as Position };
+    if (deltaAxis === 'opponent') return { ...currentSpot, opponent: deltaTargetValue as Position };
+    return currentSpot;
+  }, [currentSpot, deltaAxis, deltaTargetValue]);
+
+  // Target dropdown options: available values for the selected axis, excluding the current value
+  const deltaTargetOptions = useMemo(() => {
+    if (!deltaAxis) return [];
+    if (deltaAxis === 'stackSize') {
+      return STACK_SIZES.filter(s =>
+        s.value !== stackSize && getRange(s.value, effectivePosition, effectiveScenario, effectiveOpponent, effectiveCaller) !== null
+      );
+    }
+    if (deltaAxis === 'position') {
+      return availablePositions.filter(p => p !== effectivePosition).map(p => ({ value: p, label: p }));
+    }
+    if (deltaAxis === 'opponent') {
+      return availableOpponents.filter(p => p !== effectiveOpponent).map(p => ({ value: p, label: p }));
+    }
+    return [];
+  }, [deltaAxis, stackSize, effectivePosition, effectiveScenario, effectiveOpponent, effectiveCaller, availablePositions, availableOpponents]);
+
+  // Auto-correct deltaTargetValue when target options change
+  useEffect(() => {
+    if (!deltaAxis || !deltaModeEnabled || deltaTargetOptions.length === 0) return;
+    if (deltaTargetValue && deltaTargetOptions.some(o => o.value === deltaTargetValue)) return;
+    setDeltaTargetValue(deltaTargetOptions[0]?.value ?? null);
+  }, [deltaAxis, deltaModeEnabled, deltaTargetValue, deltaTargetOptions]);
+
+  // Next-value preset: pick the next item in the ordered list after the current value
+  const getNextValue = useCallback((axis: DeltaAxis): string | null => {
+    let values: string[];
+    let current: string;
+    if (axis === 'stackSize') {
+      values = STACK_SIZES.map(s => s.value);
+      current = stackSize;
+    } else if (axis === 'position') {
+      values = availablePositions;
+      current = effectivePosition;
+    } else {
+      values = availableOpponents;
+      current = effectiveOpponent ?? '';
+    }
+    const remaining = values.filter(v => v !== current);
+    if (remaining.length === 0) return null;
+    const idx = values.indexOf(current);
+    const nextInList = values[idx + 1];
+    return nextInList && nextInList !== current ? nextInList : remaining[0];
+  }, [stackSize, effectivePosition, effectiveOpponent, availablePositions, availableOpponents]);
+
+  const handleSelectDeltaAxis = useCallback((axis: DeltaAxis) => {
+    setDeltaAxis(axis);
+    setDeltaTargetValue(getNextValue(axis));
+  }, [getNextValue]);
 
   // Sync a spot descriptor into URL state (used by the main header SpotSelector)
   const syncSpotToUrl = useCallback((s: SpotDescriptor) => {
@@ -409,10 +468,16 @@ export function QuizMode() {
             onDeltaToggle={() => {
               const next = !deltaModeEnabled;
               setDeltaModeEnabled(next);
-              if (next) setTargetSpot(currentSpot);
+              if (next) {
+                setDeltaAxis(null);
+                setDeltaTargetValue(null);
+              }
             }}
-            targetSpot={targetSpot}
-            onTargetSpotChange={setTargetSpot}
+            deltaAxis={deltaAxis}
+            onSelectDeltaAxis={handleSelectDeltaAxis}
+            deltaTargetValue={deltaTargetValue}
+            onDeltaTargetChange={setDeltaTargetValue}
+            deltaTargetOptions={deltaTargetOptions}
           />
           {showAssumeOpenToggle && (
             <div className="self-start px-3 py-1.5">
@@ -524,8 +589,8 @@ export function QuizMode() {
         <div className="hidden lg:block p-4 lg:p-8 max-w-[1050px] mx-auto">
           <div className="flex flex-row gap-8 max-w-6xl mx-auto">
             {/* Left column - Controls */}
-            <div className="flex flex-col gap-4 w-80 shrink-0">
-              {/* Spot header (Start) + delta logo; duplicate header (Target) when Delta on */}
+            <div className="flex flex-col gap-4 w-90 shrink-0">
+              {/* Spot header (Start) + delta logo; single-axis target when Delta on */}
               <div className="flex flex-col gap-2">
                 <div className="flex items-start gap-2">
                   <div className="text-lg leading-relaxed flex-1 min-w-0">
@@ -535,15 +600,21 @@ export function QuizMode() {
                       disabled={isSubmitted}
                       filterByAvailability={true}
                       headerStyle={true}
+                      deltaMode={deltaModeEnabled}
+                      deltaAxis={deltaAxis}
+                      onSelectDeltaAxis={handleSelectDeltaAxis}
                     />
                   </div>
                   <button
                     type="button"
-                    title="Delta Mode: Start from this spot and transform to another. Chart fills with this spot; you edit toward the target. Submit grades against the target spot. Click to set target."
+                    title="Delta Mode: pick one axis to vary (stack, hero, opponent). Click a segment to select it."
                     onClick={() => {
                       const next = !deltaModeEnabled;
                       setDeltaModeEnabled(next);
-                      if (next) setTargetSpot(currentSpot);
+                      if (next) {
+                        setDeltaAxis(null);
+                        setDeltaTargetValue(null);
+                      }
                     }}
                     disabled={isSubmitted}
                     className={`
@@ -555,19 +626,22 @@ export function QuizMode() {
                     Δ
                   </button>
                 </div>
-                {deltaModeEnabled && (
-                  <>
-                    <FaArrowDown className="size-6 self-center" />
-                    <div className="text-lg leading-relaxed">
-                      <SpotSelector
-                        spot={targetSpot}
-                        onChange={setTargetSpot}
-                        disabled={isSubmitted}
-                        filterByAvailability={true}
-                        headerStyle={true}
-                      />
-                    </div>
-                  </>
+                {deltaModeEnabled && deltaAxis && deltaTargetOptions.length > 0 && (
+                  <div className="text-lg leading-relaxed">
+                    <SpotSelector
+                      spot={currentSpot}
+                      onChange={syncSpotToUrl}
+                      disabled={isSubmitted}
+                      filterByAvailability={true}
+                      headerStyle={true}
+                      deltaMode={true}
+                      deltaAxis={deltaAxis}
+                      deltaTargetMode={true}
+                      deltaTargetValue={deltaTargetValue}
+                      deltaTargetOptions={deltaTargetOptions}
+                      onDeltaTargetChange={setDeltaTargetValue}
+                    />
+                  </div>
                 )}
               </div>
 
