@@ -1,21 +1,49 @@
 'use client';
 
+import type { RangeData } from '@/types';
 import type { ChartGradeSummary } from '@/lib/gradeRange';
 
 interface ResultsSummaryProps {
   gradeSummary: ChartGradeSummary;
+  /** The correct range to derive action-composition percentages from (matches ViewMode stats). */
+  rangeData?: RangeData;
+  isDeltaMode?: boolean;
 }
 
 /**
  * Displays the quiz results summary after submission.
  * Shows percentage, correct/incorrect counts, and action breakdown.
  */
-export function ResultsSummary({ gradeSummary }: ResultsSummaryProps) {
+/** Count weighted combo frequencies in a range (mirrors ViewMode's countActions). */
+function countRangeActions(data: RangeData) {
+  let raise = 0, call = 0, fold = 0, shove = 0, black = 0;
+  for (const action of Object.values(data)) {
+    if (typeof action === 'string') {
+      if (action === 'raise') raise++;
+      else if (action === 'call') call++;
+      else if (action === 'fold') fold++;
+      else if (action === 'shove') shove++;
+      else if (action === 'black') black++;
+    } else {
+      raise += (action.raise ?? 0) / 100;
+      call  += (action.call  ?? 0) / 100;
+      fold  += (action.fold  ?? 0) / 100;
+      shove += (action.shove ?? 0) / 100;
+    }
+  }
+  const playable = 169 - black;
+  return { raise, call, fold, shove, black, playable };
+}
+
+export function ResultsSummary({ gradeSummary, rangeData, isDeltaMode = false }: ResultsSummaryProps) {
   const percentage = Math.round(gradeSummary.overall.accuracy * 100);
-  
-  // Calculate total playable hands (excludes black hands which are not in hero's range)
+
+  // Total graded hands (excludes 'black' hands not in hero's range)
   const { attempted, unanswered } = gradeSummary.overall;
   const totalPlayable = attempted + unanswered;
+
+  // Range composition stats — same calculation as ViewMode
+  const rangeStats = rangeData ? countRangeActions(rangeData) : null;
 
   const getPerformanceColor = () => {
     if (percentage >= 90) return 'text-green-600';
@@ -23,23 +51,17 @@ export function ResultsSummary({ gradeSummary }: ResultsSummaryProps) {
     return 'text-red-600';
   };
 
-  const getPerformanceMessage = () => {
-    if (percentage === 100) return 'Perfect!';
-    if (percentage >= 90) return 'Excellent!';
-    if (percentage >= 70) return 'Good job!';
-    if (percentage >= 50) return 'Keep practicing';
-    return 'Study this range more';
-  };
+  const ACTION_META = [
+    { key: 'raise' as const, label: 'Raise', bgClass: 'bg-red-100',  textClass: 'text-red-700'  },
+    { key: 'call'  as const, label: 'Call',  bgClass: 'bg-green-100', textClass: 'text-green-700' },
+    { key: 'fold'  as const, label: 'Fold',  bgClass: 'bg-blue-100',  textClass: 'text-blue-700'  },
+    { key: 'shove' as const, label: 'Shove', bgClass: 'bg-rose-200',  textClass: 'text-rose-800'  },
+  ];
 
-  // Build action breakdown - only show actions that have expected hands
-  const actionBreakdown = [
-    { key: 'raise', label: 'Raise', bgClass: 'bg-red-100', textClass: 'text-red-700' },
-    { key: 'call', label: 'Call', bgClass: 'bg-green-100', textClass: 'text-green-700' },
-    { key: 'fold', label: 'Fold', bgClass: 'bg-blue-100', textClass: 'text-blue-700' },
-    { key: 'shove', label: 'Shove', bgClass: 'bg-rose-200', textClass: 'text-rose-800' },
-  ].filter(action => {
-    const stats = gradeSummary.overall.byAction[action.key as keyof typeof gradeSummary.overall.byAction];
-    return stats && stats.expected > 0;
+  // Show pills for actions that exist in the correct range (or graded range if no rangeData)
+  const actionBreakdown = ACTION_META.filter(({ key }) => {
+    if (rangeStats) return rangeStats[key] > 0;
+    return (gradeSummary.overall.byAction[key]?.expected ?? 0) > 0;
   });
 
   return (
@@ -47,44 +69,51 @@ export function ResultsSummary({ gradeSummary }: ResultsSummaryProps) {
       <span className="text-sm font-medium text-slate-500 uppercase tracking-wide">
         Results
       </span>
-      
+
       <div className={`text-5xl font-bold ${getPerformanceColor()}`}>
         {percentage}%
       </div>
-      
+
       <div className="flex gap-4 text-sm">
         <span className="text-green-600 font-medium">
           ✓ {gradeSummary.overall.correct} correct
         </span>
         {gradeSummary.overall.halfCredit > 0 && (
           <span className="text-amber-600 font-medium">
-            ½ {gradeSummary.overall.halfCredit} half credit
+            ½ {gradeSummary.overall.halfCredit} partial
           </span>
         )}
         <span className="text-red-600 font-medium">
           ✗ {gradeSummary.overall.wrong} incorrect
         </span>
       </div>
-      
-      {/* Show total playable hands if not 169 (indicates black hands were excluded) */}
-      {totalPlayable < 169 && (
-        <span className="text-xs text-slate-500">
-          {totalPlayable} playable hands (out of 169)
-        </span>
-      )}
-      
-      <span className="text-slate-600 font-medium mt-1">
-        {getPerformanceMessage()}
-      </span>
 
-      {/* Action breakdown - only show actions with expected hands */}
+      {/* Contextual hand count */}
+      {isDeltaMode ? (
+        <span className="text-xs text-slate-500">
+          {totalPlayable} hand{totalPlayable !== 1 ? 's' : ''} changed
+        </span>
+      ) : totalPlayable < 169 ? (
+        <span className="text-xs text-slate-500">
+          {totalPlayable} playable hands
+        </span>
+      ) : null}
+
+      {/* Action composition pills — percentages match ViewMode's range summary */}
       {actionBreakdown.length > 0 && (
         <div className="flex flex-wrap justify-center gap-2 mt-3 text-xs">
-          {actionBreakdown.map(action => {
-            const stats = gradeSummary.overall.byAction[action.key as keyof typeof gradeSummary.overall.byAction];
+          {actionBreakdown.map(({ key, label, bgClass, textClass }) => {
+            let pct: number;
+            if (rangeStats && rangeStats.playable > 0) {
+              pct = Math.round((rangeStats[key] / rangeStats.playable) * 100);
+            } else {
+              const stats = gradeSummary.overall.byAction[key];
+              const score = stats.correct + stats.halfCredit * 0.5;
+              pct = totalPlayable > 0 ? Math.round((score / totalPlayable) * 100) : 0;
+            }
             return (
-              <div key={action.key} className={`px-2 py-1 ${action.bgClass} ${action.textClass} rounded`}>
-                {action.label}: {Math.round(stats.accuracy * 100)}%
+              <div key={key} className={`px-2 py-1 ${bgClass} ${textClass} rounded`}>
+                {label}: {pct}%
               </div>
             );
           })}

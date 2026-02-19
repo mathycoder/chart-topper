@@ -80,8 +80,8 @@ const ALL_BLEND_TYPES: BlendType[] = [
   'fold-shove',
 ];
 
-// Quiz answers can be simple actions OR blend types
-export type QuizAction = SimpleAction | BlendType;
+// Quiz answers can be simple actions, blend types, or "mixed" (unspecified mix)
+export type QuizAction = SimpleAction | BlendType | 'mixed';
 
 // Type guard for blend types
 export function isBlendType(action: QuizAction): action is BlendType {
@@ -248,6 +248,26 @@ export type PokerRange = {
 
   // Optional: add as you enrich ranges
   notes?: RangeNotes;
+};
+
+// ============================================
+// Scoring Types (scoreChoice)
+// ============================================
+
+export type GradeBucket = 'perfect' | 'good' | 'partial' | 'miss';
+
+export type ScoreResult = {
+  score: number;       // [0, 1]
+  gradeBucket: GradeBucket;
+  explain: string;
+};
+
+export type ScoreConfig = {
+  MIX_MIN: number;            // min second-action prob to be "meaningfully mixed" (default 0.15)
+  STRONG: number;             // pTop threshold for STRONG band (default 0.75)
+  MODERATE: number;           // pTop threshold for MODERATE band (default 0.60)
+  TINY_MIN: number;           // minority prob floor; caps score at 0.25 (default 0.10)
+  mixedPenaltyScore: number;  // score for MIXED on effectively pure spot (default 0.0)
 };
 
 // ============================================

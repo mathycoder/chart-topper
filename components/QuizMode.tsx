@@ -563,7 +563,7 @@ export function QuizMode() {
 
               {/* Results Summary */}
               {isSubmitted && gradeSummary && (
-                <ResultsSummary gradeSummary={gradeSummary} />
+                <ResultsSummary gradeSummary={gradeSummary} rangeData={range?.data} />
               )}
             </div>
 

@@ -696,12 +696,11 @@ export function DeltaMode() {
               )}
 
               {isSubmitted && gradeSummary && (
-                <>
-                  <div className="text-sm text-slate-500 text-center">
-                    Scored on {diffHands.size} changed hand{diffHands.size !== 1 ? 's' : ''}
-                  </div>
-                  <ResultsSummary gradeSummary={gradeSummary} />
-                </>
+                <ResultsSummary
+                  gradeSummary={gradeSummary}
+                  rangeData={targetRange?.data}
+                  isDeltaMode={true}
+                />
               )}
             </div>
 

@@ -1,28 +1,25 @@
-import type { PokerRange, HandAction, SimpleAction, BlendType } from '@/types';
-import { getBlendType as getBlendTypeFromTypes, isBlendType } from '@/types';
+import type { PokerRange, HandAction, SimpleAction, BlendType, GradeBucket } from '@/types';
+import { isBlendType } from '@/types';
+import { scoreChoice } from '@/lib/scoreChoice';
+import type { UserChoice } from '@/lib/scoreChoice';
 
-/**
- * Output model (UI-friendly)
- * Now supports blend types for quiz answers
- */
-export type GradeAction = SimpleAction | BlendType;
+export type GradeAction = SimpleAction | BlendType | 'mixed';
 
 export type ChartGradeSummary = {
   overall: {
-    accuracy: number; // 0..1 (accounts for half credit)
+    accuracy: number;   // 0..1 (totalScore / attempted)
     attempted: number;
-    correct: number; // Full credit answers
-    halfCredit: number; // Half credit answers (dominant action on blended)
-    wrong: number;
+    correct: number;    // "perfect" bucket count
+    halfCredit: number; // "good" + "partial" bucket count
+    wrong: number;      // "miss" bucket count
     unanswered: number;
-    totalScore: number; // Sum of all scores (1.0 for correct, 0.5 for half credit)
+    totalScore: number; // fractional sum across all attempted hands
+    byBucket: Record<GradeBucket, number>;
     byAction: Record<SimpleAction, { expected: number; correct: number; halfCredit: number; accuracy: number }>;
   };
 };
 
-/**
- * --- helpers -------------------------------------------------
- */
+// --- Helpers ------------------------------------------------------------------
 
 function isSimpleAction(a: HandAction): a is SimpleAction {
   return typeof a === 'string';
@@ -43,56 +40,45 @@ function getPrimaryAction(a: HandAction): SimpleAction {
   return 'shove';
 }
 
-function getBlendType(a: HandAction): BlendType | null {
-  return getBlendTypeFromTypes(a);
+/**
+ * Convert a HandAction to a solver probability distribution (values sum to 1).
+ * SimpleAction becomes { action: 1.0 }.
+ * BlendedAction percentages (0-100) are divided by 100 and only non-zero keys kept.
+ */
+function toSolverDist(action: HandAction): Record<string, number> {
+  if (isSimpleAction(action)) {
+    return { [action]: 1.0 };
+  }
+  const dist: Record<string, number> = {};
+  const keys: Array<keyof typeof action> = ['raise', 'call', 'fold', 'shove'];
+  for (const k of keys) {
+    const v = action[k] ?? 0;
+    if (v > 0) dist[k] = v / 100;
+  }
+  return dist;
 }
 
 /**
- * Grade a single hand answer.
- * Returns: { score, isHalfCredit }
- * - score: 1.0 (correct), 0.5 (half credit), 0.0 (wrong)
- * - isHalfCredit: true if user got dominant action on blended hand
+ * Map a GradeAction (user quiz answer) to the UserChoice expected by scoreChoice.
+ * Any BlendType (e.g. 'raise-fold') is treated as 'mixed'.
+ * 'black' should never reach grading; fall through to 'fold' as a safety guard.
  */
-function gradeHandAnswer(expected: HandAction, got: GradeAction): { score: number; isHalfCredit: boolean } {
-  const expectedPrimary = getPrimaryAction(expected);
-  const expectedBlendType = getBlendType(expected);
-  
-  // Simple expected action - needs exact match
-  if (isSimpleAction(expected)) {
-    if (got === expected) {
-      return { score: 1.0, isHalfCredit: false };
-    }
-    return { score: 0.0, isHalfCredit: false };
-  }
-  
-  // Blended expected action
-  // Full credit: user selected correct blend type
-  if (expectedBlendType && got === expectedBlendType) {
-    return { score: 1.0, isHalfCredit: false };
-  }
-  
-  // Half credit: user selected dominant action (simple, not blend type)
-  if (!isBlendType(got) && got === expectedPrimary) {
-    return { score: 0.5, isHalfCredit: true };
-  }
-  
-  // Wrong
-  return { score: 0.0, isHalfCredit: false };
+function toUserChoice(got: GradeAction): UserChoice {
+  if (got === 'mixed') return 'mixed';
+  if (isBlendType(got)) return 'mixed';
+  if (got === 'black') return 'fold'; // should never happen
+  return got;
 }
 
-/**
- * --- main ----------------------------------------------------
- */
+// --- Main export --------------------------------------------------------------
 
 export function gradeRangeSubmission(args: {
   expectedRange: PokerRange;
   userResults: Record<string, GradeAction>;
 }): ChartGradeSummary {
   const { expectedRange, userResults } = args;
-
   const expectedData = expectedRange.data as Record<string, HandAction>;
 
-  // Overall counters
   let attempted = 0;
   let correct = 0;
   let halfCreditCount = 0;
@@ -100,17 +86,22 @@ export function gradeRangeSubmission(args: {
   let unanswered = 0;
   let totalScore = 0;
 
-  const byAction: ChartGradeSummary['overall']['byAction'] = {
-    raise: { expected: 0, correct: 0, halfCredit: 0, accuracy: 0 },
-    call: { expected: 0, correct: 0, halfCredit: 0, accuracy: 0 },
-    fold: { expected: 0, correct: 0, halfCredit: 0, accuracy: 0 },
-    shove: { expected: 0, correct: 0, halfCredit: 0, accuracy: 0 },
-    black: { expected: 0, correct: 0, halfCredit: 0, accuracy: 0 }, // Not graded, but tracked
+  const byBucket: Record<GradeBucket, number> = {
+    perfect: 0,
+    good: 0,
+    partial: 0,
+    miss: 0,
   };
 
-  // Grade every hand in expected range data
+  const byAction: ChartGradeSummary['overall']['byAction'] = {
+    raise: { expected: 0, correct: 0, halfCredit: 0, accuracy: 0 },
+    call:  { expected: 0, correct: 0, halfCredit: 0, accuracy: 0 },
+    fold:  { expected: 0, correct: 0, halfCredit: 0, accuracy: 0 },
+    shove: { expected: 0, correct: 0, halfCredit: 0, accuracy: 0 },
+    black: { expected: 0, correct: 0, halfCredit: 0, accuracy: 0 },
+  };
+
   for (const [hand, action] of Object.entries(expectedData)) {
-    // Skip 'black' hands - they are not in hero's range and shouldn't be graded
     if (action === 'black') {
       byAction.black.expected += 1;
       continue;
@@ -127,34 +118,29 @@ export function gradeRangeSubmission(args: {
 
     attempted += 1;
 
-    // Grade the answer with half-credit support
-    const { score, isHalfCredit } = gradeHandAnswer(action, got);
-    totalScore += score;
+    const solverDist = toSolverDist(action);
+    const userChoice = toUserChoice(got);
+    const { score, gradeBucket } = scoreChoice(solverDist, userChoice);
 
-    if (score === 1.0) {
+    totalScore += score;
+    byBucket[gradeBucket] += 1;
+
+    if (gradeBucket === 'perfect') {
       correct += 1;
       byAction[expectedPrimary].correct += 1;
-      continue;
-    }
-
-    if (isHalfCredit) {
+    } else if (gradeBucket === 'good' || gradeBucket === 'partial') {
       halfCreditCount += 1;
       byAction[expectedPrimary].halfCredit += 1;
-    }
-
-    if (score === 0) {
+    } else {
       wrong += 1;
     }
   }
 
-  // finalize byAction accuracies (count full + half credit for accuracy)
   for (const a of Object.keys(byAction) as SimpleAction[]) {
     const exp = byAction[a].expected;
     const fullCredit = byAction[a].correct;
-    const halfCredit = byAction[a].halfCredit;
-    // Accuracy treats half credit as 0.5
-    const effectiveCorrect = fullCredit + (halfCredit * 0.5);
-    byAction[a].accuracy = exp > 0 ? effectiveCorrect / exp : 1;
+    const half = byAction[a].halfCredit;
+    byAction[a].accuracy = exp > 0 ? (fullCredit + half * 0.5) / exp : 1;
   }
 
   const accuracy = attempted > 0 ? totalScore / attempted : 0;
@@ -168,6 +154,7 @@ export function gradeRangeSubmission(args: {
       wrong,
       unanswered,
       totalScore,
+      byBucket,
       byAction,
     },
   };
