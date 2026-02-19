@@ -98,7 +98,7 @@ export function SegmentDropdown<T extends string>({
 }
 
 export const STACK_SIZES: { value: StackSize; label: string }[] = [
-  { value: '80bb', label: '80bb+' },
+  { value: '80bb', label: '80bb' },
   { value: '50bb', label: '50bb' },
   { value: '25bb', label: '25bb' },
   { value: '15bb', label: '15bb' },
@@ -135,8 +135,17 @@ export interface SpotSelectorProps {
   deltaMode?: boolean;
   deltaAxis?: DeltaAxis | null;
   onSelectDeltaAxis?: (axis: DeltaAxis) => void;
-  /** Ghost/target mode: renders invisible spacers for non-delta segments, arrow+dropdown for delta segment */
+  /** Ghost/target mode: renders invisible spacers for non-delta segments, content for delta segment */
   deltaTargetMode?: boolean;
+  /**
+   * Controls what the axis segment renders in deltaTargetMode:
+   * - 'both' (default): arrow stacked above dropdown (original ghost behavior)
+   * - 'arrow': only the arrow, invisible spacers everywhere else
+   * - 'value': only the dropdown, non-axis segments show as locked visible text (requires deltaTargetVisible)
+   */
+  deltaTargetRowMode?: 'both' | 'arrow' | 'value';
+  /** When true (with deltaTargetMode + 'value' mode), non-delta segments show as visible locked text */
+  deltaTargetVisible?: boolean;
   deltaTargetValue?: string | null;
   deltaTargetOptions?: { value: string; label: string }[];
   onDeltaTargetChange?: (value: string) => void;
@@ -160,6 +169,8 @@ export function SpotSelector({
   deltaAxis = null,
   onSelectDeltaAxis,
   deltaTargetMode = false,
+  deltaTargetRowMode = 'both',
+  deltaTargetVisible = false,
   deltaTargetValue,
   deltaTargetOptions,
   onDeltaTargetChange,
@@ -228,38 +239,58 @@ export function SpotSelector({
     <span className={`invisible font-semibold ${textClass}`}>{label}</span>
   );
 
+  // Visible-locked helper: shows label as non-interactive text (for deltaTargetVisible mode)
+  const visibleLocked = (label: string): ReactNode => (
+    <span className={`font-semibold text-slate-500 ${textClass}`}>{label}</span>
+  );
+
   // Ghost separator: invisible, same width
   const ghostSep = (text: string, extraClass: string = ''): ReactNode => (
     <span className={`invisible text-slate-400 mx-0.5 ${extraClass}`}>{text}</span>
   );
 
-  // The target segment: arrow above, dropdown below
-  const targetSegment = (): ReactNode => (
-    <div className="flex flex-col items-start gap-0.5">
-      <FaArrowDown className={`text-slate-400 ${headerStyle ? 'size-6' : 'size-4'}`} />
-      <SegmentDropdown
-        value={deltaTargetValue ?? deltaTargetOptions?.[0]?.value ?? ''}
-        options={deltaTargetOptions ?? []}
-        onChange={(v: string) => onDeltaTargetChange?.(v)}
-        headerStyle={headerStyle}
-      />
-    </div>
+  const targetDropdown = (
+    <SegmentDropdown
+      value={deltaTargetValue ?? deltaTargetOptions?.[0]?.value ?? ''}
+      options={deltaTargetOptions ?? []}
+      onChange={(v: string) => onDeltaTargetChange?.(v)}
+      headerStyle={headerStyle}
+    />
   );
 
-  // Render either the target segment (if this is the delta axis) or a ghost spacer
+  // Renders the axis segment depending on the row mode
+  const targetSegment = (): ReactNode => {
+    if (deltaTargetRowMode === 'arrow') {
+      return <FaArrowDown className={`text-slate-400 ${headerStyle ? 'size-6' : 'size-4'}`} />;
+    }
+    if (deltaTargetRowMode === 'value') {
+      return targetDropdown;
+    }
+    // 'both': original ghost behavior — arrow stacked above dropdown
+    return (
+      <div className="flex flex-col items-start gap-0.5">
+        <FaArrowDown className={`text-slate-400 ${headerStyle ? 'size-6' : 'size-4'}`} />
+        {targetDropdown}
+      </div>
+    );
+  };
+
+  // Non-axis segments: invisible spacer for 'arrow' and 'both' modes; visible locked text for 'value' mode
   const segmentOrGhost = (axis: DeltaAxis | null, label: string, normalContent: ReactNode): ReactNode => {
     if (!deltaTargetMode) return normalContent;
     if (axis !== null && deltaAxis === axis) return targetSegment();
+    if (deltaTargetRowMode === 'value' && deltaTargetVisible) return visibleLocked(label);
     return ghost(label);
   };
 
-  // Render either a normal separator or a ghost separator
+  // Separators: invisible for 'arrow' and 'both' modes; visible for 'value' mode
   const sepOrGhost = (text: string, extraClass: string = ''): ReactNode => {
-    if (deltaTargetMode) return ghostSep(text, extraClass);
-    return <span className={`text-slate-400 mx-0.5 ${extraClass}`}>{text}</span>;
+    if (!deltaTargetMode) return <span className={`text-slate-400 mx-0.5 ${extraClass}`}>{text}</span>;
+    if (deltaTargetRowMode === 'value' && deltaTargetVisible) return <span className={`text-slate-400 mx-0.5 ${extraClass}`}>{text}</span>;
+    return ghostSep(text, extraClass);
   };
 
-  const rowClass = stackVertical ? 'flex flex-col gap-1.5' : 'flex flex-wrap items-baseline gap-1';
+  const rowClass = stackVertical ? 'flex flex-col gap-1.5' : 'flex flex-wrap items-center gap-1';
   const stackLabel = STACK_SIZES.find(s => s.value === spot.stackSize)?.label ?? spot.stackSize;
   const scenarioLabel = SCENARIO_DISPLAY[effectiveScenario];
 

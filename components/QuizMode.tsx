@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import type { Scenario, SimpleAction, QuizAction, Position, StackSize, SpotDescriptor, DeltaAxis } from '@/types';
+import type { Scenario, SimpleAction, QuizAction, Position, StackSize, SpotDescriptor } from '@/types';
 import { useUrlState, useQuizSelections, usePainting } from '@/hooks';
-import { getRange, getRangeForSpot, getAvailableScenarios, getAvailablePositions, getAvailableOpponents, getAvailableCallers } from '@/data/ranges';
+import { getRange, getAvailableScenarios, getAvailablePositions, getAvailableOpponents, getAvailableCallers } from '@/data/ranges';
 import { getCategoryHandsAtOrAboveFloor, getCategoryForHand } from '@/data/hands';
 import { Card } from './shared';
 import { RangeChart } from './RangeChart';
@@ -11,7 +11,7 @@ import { ActionPalette } from './ActionPalette';
 import { ResultsSummary } from './ResultsSummary';
 import { MobileActionBar, deriveBlendType } from './MobileActionBar';
 import { MobileDropdownBar } from './MobileDropdownBar';
-import { SpotSelector, STACK_SIZES } from './SpotSelector';
+import { SpotSelector } from './SpotSelector';
 import { gradeRangeSubmission, type ChartGradeSummary, type GradeAction } from '@/lib/gradeRange';
 
 /**
@@ -21,7 +21,7 @@ import { gradeRangeSubmission, type ChartGradeSummary, type GradeAction } from '
  */
 export function QuizMode() {
   const { position, stackSize, scenario, opponent, caller, assumeOpen, setAssumeOpen, setPosition, setStackSize, setScenario, setOpponent, setCaller } = useUrlState('/');
-  const { userSelections, setCell, clearSelections, resetToFold, initializeWithBlackHands, initializeForVsRaise, initializeFromSolverChart, fillRemainingAsFold, filledCount, totalCells } = useQuizSelections();
+  const { userSelections, setCell, clearSelections, resetToFold, initializeWithBlackHands, initializeForVsRaise, fillRemainingAsFold, filledCount, totalCells } = useQuizSelections();
   const emptyCount = totalCells - filledCount;
 
   // Get available options based on what ranges actually exist
@@ -93,70 +93,6 @@ export function QuizMode() {
     caller: effectiveCaller,
   }), [stackSize, effectivePosition, effectiveScenario, effectiveOpponent, effectiveCaller]);
 
-  // Delta Mode: single-axis variation. User picks one axis (stack, position, opponent) to vary.
-  const [deltaModeEnabled, setDeltaModeEnabled] = useState(false);
-  const [deltaAxis, setDeltaAxis] = useState<DeltaAxis | null>(null);
-  const [deltaTargetValue, setDeltaTargetValue] = useState<string | null>(null);
-
-  // Derive target spot from current spot + delta axis override
-  const targetSpot = useMemo((): SpotDescriptor => {
-    if (!deltaAxis || !deltaTargetValue) return currentSpot;
-    if (deltaAxis === 'stackSize') return { ...currentSpot, stackSize: deltaTargetValue as StackSize };
-    if (deltaAxis === 'position') return { ...currentSpot, position: deltaTargetValue as Position };
-    if (deltaAxis === 'opponent') return { ...currentSpot, opponent: deltaTargetValue as Position };
-    return currentSpot;
-  }, [currentSpot, deltaAxis, deltaTargetValue]);
-
-  // Target dropdown options: available values for the selected axis, excluding the current value
-  const deltaTargetOptions = useMemo(() => {
-    if (!deltaAxis) return [];
-    if (deltaAxis === 'stackSize') {
-      return STACK_SIZES.filter(s =>
-        s.value !== stackSize && getRange(s.value, effectivePosition, effectiveScenario, effectiveOpponent, effectiveCaller) !== null
-      );
-    }
-    if (deltaAxis === 'position') {
-      return availablePositions.filter(p => p !== effectivePosition).map(p => ({ value: p, label: p }));
-    }
-    if (deltaAxis === 'opponent') {
-      return availableOpponents.filter(p => p !== effectiveOpponent).map(p => ({ value: p, label: p }));
-    }
-    return [];
-  }, [deltaAxis, stackSize, effectivePosition, effectiveScenario, effectiveOpponent, effectiveCaller, availablePositions, availableOpponents]);
-
-  // Auto-correct deltaTargetValue when target options change
-  useEffect(() => {
-    if (!deltaAxis || !deltaModeEnabled || deltaTargetOptions.length === 0) return;
-    if (deltaTargetValue && deltaTargetOptions.some(o => o.value === deltaTargetValue)) return;
-    setDeltaTargetValue(deltaTargetOptions[0]?.value ?? null);
-  }, [deltaAxis, deltaModeEnabled, deltaTargetValue, deltaTargetOptions]);
-
-  // Next-value preset: pick the next item in the ordered list after the current value
-  const getNextValue = useCallback((axis: DeltaAxis): string | null => {
-    let values: string[];
-    let current: string;
-    if (axis === 'stackSize') {
-      values = STACK_SIZES.map(s => s.value);
-      current = stackSize;
-    } else if (axis === 'position') {
-      values = availablePositions;
-      current = effectivePosition;
-    } else {
-      values = availableOpponents;
-      current = effectiveOpponent ?? '';
-    }
-    const remaining = values.filter(v => v !== current);
-    if (remaining.length === 0) return null;
-    const idx = values.indexOf(current);
-    const nextInList = values[idx + 1];
-    return nextInList && nextInList !== current ? nextInList : remaining[0];
-  }, [stackSize, effectivePosition, effectiveOpponent, availablePositions, availableOpponents]);
-
-  const handleSelectDeltaAxis = useCallback((axis: DeltaAxis) => {
-    setDeltaAxis(axis);
-    setDeltaTargetValue(getNextValue(axis));
-  }, [getNextValue]);
-
   // Sync a spot descriptor into URL state (used by the main header SpotSelector)
   const syncSpotToUrl = useCallback((s: SpotDescriptor) => {
     setStackSize(s.stackSize);
@@ -166,11 +102,7 @@ export function QuizMode() {
     setCaller(s.caller);
   }, [setStackSize, setPosition, setScenario, setOpponent, setCaller]);
 
-  // Single source of truth for grading: Target when Delta ON, else current spot
-  const gradingSpot = deltaModeEnabled ? targetSpot : currentSpot;
-  const gradingRange = useMemo(() => getRangeForSpot(gradingSpot), [gradingSpot]);
-  const rangeForDisplay = deltaModeEnabled ? gradingRange : range;
-  const rangeExistsForDisplay = rangeForDisplay !== null;
+  const rangeExistsForDisplay = rangeExists;
 
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [gradeSummary, setGradeSummary] = useState<ChartGradeSummary | null>(null);
@@ -203,7 +135,7 @@ export function QuizMode() {
   const showAssumeOpenToggle = effectiveScenario === 'vs-raise' && rangeExists;
   const assumeOpenEnabled = assumeOpen && opponentRfiRange !== null;
 
-  // Reset quiz state when range parameters change (or on first mount). When Delta Mode is ON, chart is driven by main header (currentSpot) only.
+  // Reset quiz state when range parameters change (or on first mount)
   useEffect(() => {
     const prev = prevParamsRef.current;
     const paramsChanged = prev === null ||
@@ -218,22 +150,22 @@ export function QuizMode() {
       setGradeSummary(null);
       setSelectedActions(new Set());
       setMultiSelectMode(false);
-      if (!deltaModeEnabled && range) {
+      if (range) {
         if (effectiveScenario === 'vs-raise') {
           initializeForVsRaise(range.data);
         } else {
           initializeWithBlackHands(range.data);
         }
-      } else if (!deltaModeEnabled) {
+      } else {
         resetToFold();
       }
       prevParamsRef.current = { position: effectivePosition, stackSize, scenario: effectiveScenario, opponent: effectiveOpponent, caller: effectiveCaller };
     }
-  }, [effectivePosition, stackSize, effectiveScenario, effectiveOpponent, effectiveCaller, range, deltaModeEnabled, initializeWithBlackHands, initializeForVsRaise, resetToFold]);
+  }, [effectivePosition, stackSize, effectiveScenario, effectiveOpponent, effectiveCaller, range, initializeWithBlackHands, initializeForVsRaise, resetToFold]);
 
-  // Also initialize on first load if range has black hands (skip when Delta Mode drives the chart)
+  // Initialize on first load if range has black hands
   useEffect(() => {
-    if (!deltaModeEnabled && range && !isSubmitted) {
+    if (range && !isSubmitted) {
       const hasBlackHands = Object.values(range.data).some(action => action === 'black');
       const hasBlackSelections = Object.values(userSelections).some(action => action === 'black');
       if (hasBlackHands && !hasBlackSelections) {
@@ -244,31 +176,7 @@ export function QuizMode() {
         }
       }
     }
-  }, [deltaModeEnabled, range, isSubmitted, userSelections, effectiveScenario, initializeWithBlackHands, initializeForVsRaise]);
-
-  // Delta Mode: when enabled, fill chart from Start (main header = currentSpot); when currentSpot changes, reinit
-  useEffect(() => {
-    if (!deltaModeEnabled) return;
-    const startRange = getRangeForSpot(currentSpot);
-    if (startRange) {
-      initializeFromSolverChart(startRange.data);
-    }
-  }, [deltaModeEnabled, currentSpot, initializeFromSolverChart]);
-
-  const prevDeltaModeRef = useRef(false);
-
-  // Delta Mode: when disabled, reinit chart from current URL spot (only on transition OFF)
-  useEffect(() => {
-    const wasDelta = prevDeltaModeRef.current;
-    prevDeltaModeRef.current = deltaModeEnabled;
-    if (wasDelta && !deltaModeEnabled && range) {
-      if (effectiveScenario === 'vs-raise') {
-        initializeForVsRaise(range.data);
-      } else {
-        initializeWithBlackHands(range.data);
-      }
-    }
-  }, [deltaModeEnabled, range, effectiveScenario, initializeWithBlackHands, initializeForVsRaise]);
+  }, [range, isSubmitted, userSelections, effectiveScenario, initializeWithBlackHands, initializeForVsRaise]);
   
   // Toggle action selection (multi-select for blends)
   const handleToggleAction = useCallback((action: SimpleAction) => {
@@ -383,9 +291,7 @@ export function QuizMode() {
   }, [painting, effectiveAction, isSubmitted, setCell]);
 
   const handleSubmit = () => {
-    const rangeToGrade = deltaModeEnabled ? gradingRange : range;
-    if (!rangeToGrade) return;
-    // Treat any unaddressed cells as fold, then grade
+    if (!range) return;
     const completedResults: Record<string, GradeAction> = {};
     for (const [hand, action] of Object.entries(userSelections)) {
       completedResults[hand] = (action ?? 'fold') as GradeAction;
@@ -393,7 +299,7 @@ export function QuizMode() {
     fillRemainingAsFold();
     setIsSubmitted(true);
     const summary = gradeRangeSubmission({
-      expectedRange: rangeToGrade,
+      expectedRange: range,
       userResults: completedResults,
     });
     setGradeSummary(summary);
@@ -403,10 +309,7 @@ export function QuizMode() {
     setIsSubmitted(false);
     setGradeSummary(null);
     setShowCorrectAnswers(false);
-    if (deltaModeEnabled) {
-      const startRange = getRangeForSpot(currentSpot);
-      if (startRange) initializeFromSolverChart(startRange.data);
-    } else if (effectiveScenario === 'vs-raise' && range) {
+    if (effectiveScenario === 'vs-raise' && range) {
       initializeForVsRaise(range.data);
     } else {
       resetToFold();
@@ -417,10 +320,7 @@ export function QuizMode() {
   };
 
   const handleClear = () => {
-    if (deltaModeEnabled) {
-      const startRange = getRangeForSpot(currentSpot);
-      if (startRange) initializeFromSolverChart(startRange.data);
-    } else if (effectiveScenario === 'vs-raise' && range) {
+    if (effectiveScenario === 'vs-raise' && range) {
       initializeForVsRaise(range.data);
     } else {
       resetToFold();
@@ -464,20 +364,6 @@ export function QuizMode() {
             onCallerChange={setCaller}
             disabled={isSubmitted}
             filterByAvailability={true}
-            deltaModeEnabled={deltaModeEnabled}
-            onDeltaToggle={() => {
-              const next = !deltaModeEnabled;
-              setDeltaModeEnabled(next);
-              if (next) {
-                setDeltaAxis(null);
-                setDeltaTargetValue(null);
-              }
-            }}
-            deltaAxis={deltaAxis}
-            onSelectDeltaAxis={handleSelectDeltaAxis}
-            deltaTargetValue={deltaTargetValue}
-            onDeltaTargetChange={setDeltaTargetValue}
-            deltaTargetOptions={deltaTargetOptions}
           />
           {showAssumeOpenToggle && (
             <div className="self-start px-3 py-1.5">
@@ -553,7 +439,7 @@ export function QuizMode() {
             
             <RangeChart
               userSelections={userSelections}
-              correctRange={gradingRange?.data}
+              correctRange={range?.data}
               isSubmitted={isSubmitted}
               isPainting={painting.isPainting && rangeExistsForDisplay && !isSubmitted}
               selectedAction={rangeExistsForDisplay && !isSubmitted ? effectiveSelectedAction : null}
@@ -590,59 +476,14 @@ export function QuizMode() {
           <div className="flex flex-row gap-8 max-w-6xl mx-auto">
             {/* Left column - Controls */}
             <div className="flex flex-col gap-4 w-90 shrink-0">
-              {/* Spot header (Start) + delta logo; single-axis target when Delta on */}
-              <div className="flex flex-col gap-2">
-                <div className="flex items-start gap-2">
-                  <div className="text-lg leading-relaxed flex-1 min-w-0">
-                    <SpotSelector
-                      spot={currentSpot}
-                      onChange={syncSpotToUrl}
-                      disabled={isSubmitted}
-                      filterByAvailability={true}
-                      headerStyle={true}
-                      deltaMode={deltaModeEnabled}
-                      deltaAxis={deltaAxis}
-                      onSelectDeltaAxis={handleSelectDeltaAxis}
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    title="Delta Mode: pick one axis to vary (stack, hero, opponent). Click a segment to select it."
-                    onClick={() => {
-                      const next = !deltaModeEnabled;
-                      setDeltaModeEnabled(next);
-                      if (next) {
-                        setDeltaAxis(null);
-                        setDeltaTargetValue(null);
-                      }
-                    }}
-                    disabled={isSubmitted}
-                    className={`
-                      shrink-0 w-8 h-8 rounded-md flex items-center justify-center text-lg font-bold
-                      ${deltaModeEnabled ? 'bg-slate-900 text-white' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'}
-                      ${isSubmitted ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-                    `}
-                  >
-                    Δ
-                  </button>
-                </div>
-                {deltaModeEnabled && deltaAxis && deltaTargetOptions.length > 0 && (
-                  <div className="text-lg leading-relaxed">
-                    <SpotSelector
-                      spot={currentSpot}
-                      onChange={syncSpotToUrl}
-                      disabled={isSubmitted}
-                      filterByAvailability={true}
-                      headerStyle={true}
-                      deltaMode={true}
-                      deltaAxis={deltaAxis}
-                      deltaTargetMode={true}
-                      deltaTargetValue={deltaTargetValue}
-                      deltaTargetOptions={deltaTargetOptions}
-                      onDeltaTargetChange={setDeltaTargetValue}
-                    />
-                  </div>
-                )}
+              <div className="text-lg leading-relaxed">
+                <SpotSelector
+                  spot={currentSpot}
+                  onChange={syncSpotToUrl}
+                  disabled={isSubmitted}
+                  filterByAvailability={true}
+                  headerStyle={true}
+                />
               </div>
 
               {showAssumeOpenToggle && (
@@ -699,7 +540,7 @@ export function QuizMode() {
                           Submit
                         </button>
                       </div>
-                      {gradingSpot.scenario === 'vs-raise' && emptyCount > 0 && (
+                      {effectiveScenario === 'vs-raise' && emptyCount > 0 && (
                         <button
                           onClick={fillRemainingAsFold}
                           title="Set all remaining empty cells to fold so you can submit"
@@ -762,7 +603,7 @@ export function QuizMode() {
               
               <RangeChart
                 userSelections={userSelections}
-                correctRange={gradingRange?.data}
+                correctRange={range?.data}
                 isSubmitted={isSubmitted}
                 isPainting={painting.isPainting && rangeExistsForDisplay && !isSubmitted}
                 selectedAction={rangeExistsForDisplay && !isSubmitted ? effectiveSelectedAction : null}

@@ -35,6 +35,8 @@ interface RangeChartProps {
   categoryPreviewFloor?: string | null;
   /** Opponent RFI range data for context overlay on empty cells (e.g. Assume UTG Open) */
   overlayRangeData?: RangeData | null;
+  /** Set of hand names to render dimmed (lighter color) — used in Delta Mode for start-range cells */
+  dimmedHands?: Set<string> | null;
 }
 
 /**
@@ -63,6 +65,7 @@ export function RangeChart({
   categoryPreviewHands = null,
   categoryPreviewFloor = null,
   overlayRangeData = null,
+  dimmedHands = null,
 }: RangeChartProps) {
   const gridRef = useRef<HTMLDivElement>(null);
   const lastTouchedHandRef = useRef<string | null>(null);
@@ -249,6 +252,7 @@ export function RangeChart({
               isInCategoryPreview={isInCategoryPreview}
               isCategoryPreviewFloor={isCategoryPreviewFloor}
               overlayAction={overlayAction}
+              isDimmed={dimmedHands?.has(hand) ?? false}
             />
           );
         })

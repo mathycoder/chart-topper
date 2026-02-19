@@ -78,7 +78,7 @@ Ranges categorized by three dimensions:
 
 | Dimension | Options |
 |-----------|---------|
-| **Stack Size** | 80bb+, 40bb, 25bb, 15bb |
+| **Stack Size** | 80bb, 40bb, 25bb, 15bb |
 | **Position** | UTG, UTG+1, LJ, HJ, CO, BTN, SB, BB |
 | **Scenario** | RFI, vs Raise, vs 3-Bet, vs 4-Bet, After Limp |
 

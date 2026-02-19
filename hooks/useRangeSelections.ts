@@ -232,3 +232,88 @@ export function useQuizSelections(): UseQuizSelectionsReturn {
     allFilled,
   };
 }
+
+interface UseDeltaSelectionsReturn {
+  userSelections: QuizSelections;
+  setCell: (hand: string, action: QuizAction | null) => void;
+  userPaintedHands: Set<string>;
+  initializeFromStartRange: (rangeData: Record<string, HandAction>) => void;
+  clearSelections: () => void;
+  fillRemainingAsFold: () => void;
+  filledCount: number;
+  totalCells: number;
+}
+
+/**
+ * Hook for managing user selections in Delta Mode.
+ * Tracks which cells have been explicitly painted by the user (vs pre-populated from start range).
+ */
+export function useDeltaSelections(): UseDeltaSelectionsReturn {
+  const [userSelections, setUserSelections] = useState<QuizSelections>(() => {
+    const initial: QuizSelections = {};
+    ALL_HANDS.forEach(hand => {
+      initial[hand] = null;
+    });
+    return initial;
+  });
+
+  const [userPaintedHands, setUserPaintedHands] = useState<Set<string>>(new Set());
+
+  const setCell = useCallback((hand: string, action: QuizAction | null) => {
+    setUserSelections(prev => ({ ...prev, [hand]: action }));
+    setUserPaintedHands(prev => new Set([...prev, hand]));
+  }, []);
+
+  // Populate from start range data and clear user-painted tracking
+  const initializeFromStartRange = useCallback((rangeData: Record<string, HandAction>) => {
+    setUserSelections(() => {
+      const selections: QuizSelections = {};
+      ALL_HANDS.forEach(hand => {
+        const action = rangeData[hand];
+        if (action === 'black') {
+          selections[hand] = 'black';
+        } else if (isSimpleAction(action)) {
+          selections[hand] = action;
+        } else {
+          const blendType = getBlendType(action);
+          selections[hand] = blendType ?? getPrimaryAction(action);
+        }
+      });
+      return selections;
+    });
+    setUserPaintedHands(new Set());
+  }, []);
+
+  const clearSelections = useCallback(() => {
+    setUserSelections(() => {
+      const blank: QuizSelections = {};
+      ALL_HANDS.forEach(hand => { blank[hand] = null; });
+      return blank;
+    });
+    setUserPaintedHands(new Set());
+  }, []);
+
+  const fillRemainingAsFold = useCallback(() => {
+    setUserSelections(prev => {
+      const next: QuizSelections = {};
+      ALL_HANDS.forEach(hand => {
+        next[hand] = prev[hand] === null ? 'fold' : prev[hand];
+      });
+      return next;
+    });
+  }, []);
+
+  const filledCount = Object.values(userSelections).filter(v => v !== null && v !== 'black').length;
+  const totalCells = ALL_HANDS.length;
+
+  return {
+    userSelections,
+    setCell,
+    userPaintedHands,
+    initializeFromStartRange,
+    clearSelections,
+    fillRemainingAsFold,
+    filledCount,
+    totalCells,
+  };
+}

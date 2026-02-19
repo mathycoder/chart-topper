@@ -85,7 +85,7 @@ function generateDisplayName(stack: string, position: string, scenario: string, 
   };
   const scenarioDisplay = scenarioNames[scenario] || scenario;
   
-  // vs-raise-call: "80bb+ BTN vs UTG raise and HJ call"
+  // vs-raise-call: "80bb BTN vs UTG raise and HJ call"
   if (scenario === 'vs-raise-call' && opponent && caller) {
     return `${stack}+ ${position} vs ${opponent} raise and ${caller} call`;
   }

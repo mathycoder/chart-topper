@@ -1,7 +1,7 @@
 import type { PokerRange, Position, StackSize, Scenario, SpotDescriptor } from '@/types';
 
 ////////////////////////////////////////////////////////////
-// 80bb+ ranges
+// 80bb ranges
 ////////////////////////////////////////////////////////////
 // RFI ranges
 import range80bbUtgRfi from './80bb-utg-rfi';
@@ -175,7 +175,7 @@ function buildKey(
  */
 const RANGE_REGISTRY: Record<string, PokerRange> = {
   ////////////////////////////////////////////////////////////
-// 80bb+ ranges
+// 80bb ranges
 ////////////////////////////////////////////////////////////
   // RFI ranges
   '80bb-utg-rfi': range80bbUtgRfi,

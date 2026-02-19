@@ -47,6 +47,8 @@ interface HandCellProps {
   isCategoryPreviewFloor?: boolean;
   /** Context overlay on empty cells (e.g. opponent RFI range when "Assume Open" is on; simple or blended) */
   overlayAction?: HandAction | null;
+  /** When true, overlays white at 45% to show a lighter/dimmed version of the cell color (start range in Delta Mode) */
+  isDimmed?: boolean;
 }
 
 /**
@@ -113,6 +115,7 @@ export function HandCell({
   isInCategoryPreview = false,
   isCategoryPreviewFloor = false,
   overlayAction = null,
+  isDimmed = false,
 }: HandCellProps) {
   const [isHovered, setIsHovered] = useState(false);
   const cellRef = useRef<HTMLDivElement>(null);
@@ -320,6 +323,10 @@ export function HandCell({
           />
         )
       )}
+      {/* Delta Mode dim overlay: white wash to show start range in lighter colors */}
+      {isDimmed && actionToDisplay && actionToDisplay !== 'black' && (
+        <div className="absolute inset-0 bg-white/45 pointer-events-none z-1" aria-hidden />
+      )}
       {/* Category preview floor: gentle pulsing overlay */}
       {isCategoryPreviewFloor && (
         <div
@@ -328,12 +335,12 @@ export function HandCell({
         />
       )}
       {/* Hand name */}
-      <span className="relative z-10 drop-shadow-sm">{hand}</span>
+      <span className="relative z-20 drop-shadow-sm">{hand}</span>
 
       {/* Wrong-answer indicator: white X only. Correct cells get no marker. */}
       {isSubmitted && isCorrect === false && (
         <span
-          className="absolute top-0.5 right-0.5 text-[10px] text-white drop-shadow-lg pointer-events-none"
+          className="absolute top-0.5 right-0.5 text-[10px] text-white drop-shadow-lg pointer-events-none z-20"
           aria-label="Incorrect"
         >
           ✗

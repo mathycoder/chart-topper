@@ -146,7 +146,7 @@ export type RangeMeta = {
   scenario: Scenario;
   opponentPosition?: Position; // Raiser for vs-raise, vs-raise-call scenarios
   callerPosition?: Position; // Caller for vs-raise-call (3-way pot) scenarios
-  displayName: string; // Human-readable: "80bb+ UTG - Raise First In"
+  displayName: string; // Human-readable: "80bb UTG - Raise First In"
   description?: string; // Strategy explanation for this range
 };
 

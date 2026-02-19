@@ -77,7 +77,7 @@ function getValidHeroPositions(scenario: Scenario): Position[] {
 }
 
 const STACK_SIZES: { value: StackSize; label: string }[] = [
-  { value: '80bb', label: '80bb+' },
+  { value: '80bb', label: '80bb' },
   { value: '50bb', label: '50bb' },
   { value: '25bb', label: '25bb' },
   { value: '15bb', label: '15bb' },

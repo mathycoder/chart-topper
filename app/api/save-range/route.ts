@@ -124,7 +124,7 @@ function getDisplayName(stackSize: string, position: string, scenario: string, o
     'vs-3bet': 'vs 3-Bet',
   };
   
-  // vs-raise-call: "80bb+ BTN vs UTG raise and HJ call"
+  // vs-raise-call: "80bb BTN vs UTG raise and HJ call"
   if (scenario === 'vs-raise-call' && opponent && caller) {
     return `${stackSize}+ ${position} vs ${opponent} raise and ${caller} call`;
   }
