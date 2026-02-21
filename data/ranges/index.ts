@@ -127,6 +127,21 @@ import range10bbLjRfi from './10bb-lj-RFI';
 import range10bbHjRfi from './10bb-hj-RFI';
 import range10bbCoRfi from './10bb-co-RFI';
 import range10bbBtnRfi from './10bb-btn-RFI';
+// vs Raise ranges 
+import range10bbUtgPlus1VsUtgVsRaise from './10bb-utgplus1-vs-utg-vs-raise';
+import range10bbHjVsUtgVsRaise from './10bb-hj-vs-utg-vs-raise';
+import range10bbBtnVsUtgVsRaise from './10bb-btn-vs-utg-vs-raise';
+import range10bbSbVsUtgVsRaise from './10bb-sb-vs-utg-vs-raise';
+import range10bbBbVsUtgVsRaise from './10bb-bb-vs-utg-vs-raise';
+import range10bbHjVsLjVsRaise from './10bb-hj-vs-lj-vs-raise';
+import range10bbBtnVsLjVsRaise from './10bb-btn-vs-lj-vs-raise';
+import range10bbSbVsLjVsRaise from './10bb-sb-vs-lj-vs-raise';
+import range10bbBbVsLjVsRaise from './10bb-bb-vs-lj-vs-raise';
+import range10bbBtnVsCoVsRaise from './10bb-btn-vs-co-vs-raise';
+import range10bbSbVsCoVsRaise from './10bb-sb-vs-co-vs-raise';
+import range10bbBbVsCoVsRaise from './10bb-bb-vs-co-vs-raise';
+import range10bbSbVsBtnVsRaise from './10bb-sb-vs-btn-vs-raise';
+import range10bbBbVsBtnVsRaise from './10bb-bb-vs-btn-vs-raise';
 
 ////////////////////////////////////////////////////////////
 // 5bb+ ranges
@@ -289,7 +304,21 @@ const RANGE_REGISTRY: Record<string, PokerRange> = {
   '10bb-hj-rfi': range10bbHjRfi,
   '10bb-co-rfi': range10bbCoRfi,
   '10bb-btn-rfi': range10bbBtnRfi,
-
+  // vs Raise ranges 
+  '10bb-utgplus1-vs-utg-vs-raise': range10bbUtgPlus1VsUtgVsRaise,
+  '10bb-hj-vs-utg-vs-raise': range10bbHjVsUtgVsRaise,
+  '10bb-btn-vs-utg-vs-raise': range10bbBtnVsUtgVsRaise,
+  '10bb-sb-vs-utg-vs-raise': range10bbSbVsUtgVsRaise,
+  '10bb-bb-vs-utg-vs-raise': range10bbBbVsUtgVsRaise, 
+  '10bb-hj-vs-lj-vs-raise': range10bbHjVsLjVsRaise,
+  '10bb-btn-vs-lj-vs-raise': range10bbBtnVsLjVsRaise,
+  '10bb-sb-vs-lj-vs-raise': range10bbSbVsLjVsRaise,
+  '10bb-bb-vs-lj-vs-raise': range10bbBbVsLjVsRaise,
+  '10bb-btn-vs-co-vs-raise': range10bbBtnVsCoVsRaise,
+  '10bb-sb-vs-co-vs-raise': range10bbSbVsCoVsRaise,
+  '10bb-bb-vs-co-vs-raise': range10bbBbVsCoVsRaise,
+  '10bb-sb-vs-btn-vs-raise': range10bbSbVsBtnVsRaise,
+  '10bb-bb-vs-btn-vs-raise': range10bbBbVsBtnVsRaise,
   // 5bb+ ranges
   '5bb-utg-rfi': range5bbUtgRfi,
   '5bb-utgplus1-rfi': range5bbUtgPlus1Rfi,
