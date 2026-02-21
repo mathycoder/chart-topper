@@ -102,7 +102,7 @@ export function CategoryFloor({ category, rangeData, variant = 'traditional' }: 
 
   return (
     <div className="flex flex-col gap-2">
-      <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+      <span className="text-xs font-semibold text-cream-muted uppercase tracking-wide">
         {config.shortName}
       </span>
       <div className="flex flex-wrap gap-3">
@@ -116,7 +116,7 @@ export function CategoryFloor({ category, rangeData, variant = 'traditional' }: 
             {/* Bounded segment: show ceiling cards with a dash separator */}
             {!segment.touchesTop && segment.ceiling !== segment.floor && (
               <>
-                <span className="-ml-3 text-xl font-bold text-slate-600 leading-none">–</span>
+                <span className="-ml-3 text-xl font-bold text-cream-muted leading-none">–</span>
                 <ComboCards
                   cards={getCards(category, segment.ceiling)}
                   showPlus={false}

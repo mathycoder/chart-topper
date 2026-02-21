@@ -35,10 +35,10 @@ export const metadata: Metadata = {
 
 function NavigationFallback() {
   return (
-    <nav className="bg-white border-b border-slate-200 sticky top-0 z-50">
+    <nav className="bg-felt-surface border-b border-felt-border sticky top-0 z-50">
       <div className="max-w-4xl mx-auto px-4">
         <div className="flex items-center justify-between h-14">
-          <span className="text-xl font-bold text-slate-900">♠️ Chart Topper</span>
+          <span className="text-xl font-bold text-cream">♠ Chart Topper</span>
         </div>
       </div>
     </nav>
@@ -51,7 +51,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Blocking script: applies theme before first paint to prevent flash */}
+        <script dangerouslySetInnerHTML={{ __html: `(function(){try{var p=new URLSearchParams(window.location.search);var t=p.get('theme');if(t!=='classic'&&t!=='felt')t=localStorage.getItem('chart-topper-theme');if(t==='classic')document.documentElement.setAttribute('data-theme','classic');}catch(e){}})();` }} />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

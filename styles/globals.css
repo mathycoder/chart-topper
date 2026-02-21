@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-@theme inline {
+@theme {
   /* Base colors */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -9,22 +9,33 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 
+  /* Felt palette */
+  --color-felt-bg: #0a1f14;
+  --color-felt-surface: #112a1a;
+  --color-felt-elevated: #1a3d27;
+  --color-felt-border: #1e4d2e;
+  --color-felt-muted: #2d6644;
+  --color-gold: #c9a84c;
+  --color-gold-hover: #b8912e;
+  --color-cream: #f5e6c8;
+  --color-cream-muted: #a89878;
+
   /* Action colors for poker range builder */
-  --color-action-raise: #dc2626;
-  --color-action-call: #16a34a;
-  --color-action-fold: #2563eb;
-  --color-action-shove: #8b0000;  /* Dark red for all-in */
-  --color-action-black: #becbd6;  /* Light slate for hands not in hero's range */
+  --color-action-raise: #f87171;
+  --color-action-call: #34d399;
+  --color-action-fold: #4a7ab5;
+  --color-action-shove: #dc2626;
+  --color-action-black: #1a3a25;
 
   /* Hover variants */
-  --color-action-raise-hover: #b91c1c;
-  --color-action-call-hover: #15803d;
-  --color-action-fold-hover: #1d4ed8;
-  --color-action-shove-hover: #6b0000;
-  --color-action-black-hover: #becbd6;
+  --color-action-raise-hover: #ef4444;
+  --color-action-call-hover: #10b981;
+  --color-action-fold-hover: #3d6aa5;
+  --color-action-shove-hover: #b91c1c;
+  --color-action-black-hover: #243d2e;
 
   /* Cell states */
-  --color-cell-empty: #f8fafc;
+  --color-cell-empty: #1e3d2a;
   --color-cell-correct: #22c55e;
   --color-cell-incorrect: #ef4444;
 
@@ -37,8 +48,37 @@
 }
 
 :root {
+  --background: #0a1f14;
+  --foreground: #f5e6c8;
+}
+
+/* Classic (light) theme overrides — applied when <html data-theme="classic"> */
+[data-theme="classic"] {
   --background: #ffffff;
   --foreground: #171717;
+
+  --color-felt-bg: #ffffff;
+  --color-felt-surface: #ffffff;
+  --color-felt-elevated: #f8fafc;
+  --color-felt-border: #e2e8f0;
+  --color-felt-muted: #f1f5f9;
+  --color-gold: #1e293b;
+  --color-gold-hover: #0f172a;
+  --color-cream: #171717;
+  --color-cream-muted: #475569;
+
+  --color-action-raise: #dc2626;
+  --color-action-call: #16a34a;
+  --color-action-fold: #2563eb;
+  --color-action-shove: #8b0000;
+  --color-action-black: #becbd6;
+  --color-action-raise-hover: #b91c1c;
+  --color-action-call-hover: #15803d;
+  --color-action-fold-hover: #1d4ed8;
+  --color-action-shove-hover: #6b0000;
+  --color-action-black-hover: #becbd6;
+
+  --color-cell-empty: #f8fafc;
 }
 
 body {

@@ -149,15 +149,15 @@ export function BlendPicker({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md mx-4">
+      <div className="bg-felt-surface rounded-xl shadow-2xl p-6 w-full max-w-md mx-4 border border-felt-border">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-semibold text-slate-900">
-            Set Blend {handName && <span className="text-slate-500">({handName})</span>}
+          <h3 className="text-lg font-semibold text-cream">
+            Set Blend {handName && <span className="text-cream-muted">({handName})</span>}
           </h3>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 text-xl leading-none"
+            className="text-cream-muted hover:text-cream text-xl leading-none"
           >
             ×
           </button>
@@ -165,7 +165,7 @@ export function BlendPicker({
 
         {/* Preview */}
         <div
-          className="h-12 rounded-lg mb-6 border border-slate-200"
+          className="h-12 rounded-lg mb-6 border border-felt-border"
           style={{ background: getPreviewGradient() }}
         />
 
@@ -174,8 +174,8 @@ export function BlendPicker({
           {/* Raise slider */}
           <div>
             <div className="flex justify-between text-sm mb-1">
-              <span className="font-medium text-red-600">Raise</span>
-              <span className="text-slate-600">{raise}%</span>
+              <span className="font-medium text-action-raise">Raise</span>
+              <span className="text-cream-muted">{raise}%</span>
             </div>
             <input
               type="range"
@@ -183,15 +183,15 @@ export function BlendPicker({
               max="100"
               value={raise}
               onChange={(e) => handleRaiseChange(Number(e.target.value))}
-              className="w-full h-2 rounded-lg appearance-none cursor-pointer bg-red-100 accent-red-600"
+              className="w-full h-2 rounded-lg appearance-none cursor-pointer bg-felt-elevated accent-action-raise"
             />
           </div>
 
           {/* Call slider */}
           <div>
             <div className="flex justify-between text-sm mb-1">
-              <span className="font-medium text-green-600">Call</span>
-              <span className="text-slate-600">{call}%</span>
+              <span className="font-medium text-action-call">Call</span>
+              <span className="text-cream-muted">{call}%</span>
             </div>
             <input
               type="range"
@@ -199,15 +199,15 @@ export function BlendPicker({
               max="100"
               value={call}
               onChange={(e) => handleCallChange(Number(e.target.value))}
-              className="w-full h-2 rounded-lg appearance-none cursor-pointer bg-green-100 accent-green-600"
+              className="w-full h-2 rounded-lg appearance-none cursor-pointer bg-felt-elevated accent-action-call"
             />
           </div>
 
           {/* Fold slider */}
           <div>
             <div className="flex justify-between text-sm mb-1">
-              <span className="font-medium text-blue-600">Fold</span>
-              <span className="text-slate-600">{fold}%</span>
+              <span className="font-medium text-action-fold">Fold</span>
+              <span className="text-cream-muted">{fold}%</span>
             </div>
             <input
               type="range"
@@ -215,20 +215,20 @@ export function BlendPicker({
               max="100"
               value={fold}
               onChange={(e) => handleFoldChange(Number(e.target.value))}
-              className="w-full h-2 rounded-lg appearance-none cursor-pointer bg-blue-100 accent-blue-600"
+              className="w-full h-2 rounded-lg appearance-none cursor-pointer bg-felt-elevated accent-action-fold"
             />
           </div>
         </div>
 
         {/* Presets */}
         <div className="mb-6">
-          <div className="text-sm font-medium text-slate-500 mb-2">Quick Presets</div>
+          <div className="text-sm font-medium text-cream-muted mb-2">Quick Presets</div>
           <div className="flex flex-wrap gap-2">
             {PRESETS.map((preset, i) => (
               <button
                 key={i}
                 onClick={() => applyPreset(preset.value)}
-                className="px-3 py-1.5 text-sm rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
+                className="px-3 py-1.5 text-sm rounded-lg bg-felt-elevated hover:bg-felt-muted text-cream transition-colors"
               >
                 {preset.label}
               </button>
@@ -240,13 +240,13 @@ export function BlendPicker({
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-2.5 rounded-lg font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors"
+            className="flex-1 px-4 py-2.5 rounded-lg font-medium text-cream bg-felt-elevated hover:bg-felt-muted transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={handleConfirm}
-            className="flex-1 px-4 py-2.5 rounded-lg font-medium text-white bg-slate-900 hover:bg-slate-800 transition-colors"
+            className="flex-1 px-4 py-2.5 rounded-lg font-medium text-felt-bg bg-gold hover:bg-gold-hover transition-colors"
           >
             Apply
           </button>

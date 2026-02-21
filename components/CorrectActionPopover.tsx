@@ -79,7 +79,7 @@ export function CorrectActionPopover({
       ref={popoverRef}
       className={`
         w-40 p-2.5 
-        bg-white rounded-lg shadow-xl border border-slate-200
+        bg-felt-elevated rounded-lg shadow-xl border border-felt-border
         text-xs
         pointer-events-none
         ${triggerRef && fixedStyle
@@ -98,36 +98,36 @@ export function CorrectActionPopover({
           border-l-[6px] border-l-transparent
           border-r-[6px] border-r-transparent
           ${position === 'top'
-            ? 'border-t-[6px] border-t-white'
-            : 'border-b-[6px] border-b-white'
+            ? 'border-t-[6px] border-t-felt-elevated'
+            : 'border-b-[6px] border-b-felt-elevated'
           }
         `}
       />
 
-      <div className="font-semibold text-slate-800 mb-1.5">
+      <div className="font-semibold text-cream mb-1.5">
         Correct Answer
       </div>
 
       {isBlended ? (
         <div className="space-y-1">
           {formatBlendedAction(correctAction as BlendedAction).map((line, i) => (
-            <div key={i} className="text-slate-700">
+            <div key={i} className="text-cream">
               {line}
             </div>
           ))}
-          <div className="text-slate-500 mt-1">
+          <div className="text-cream-muted mt-1">
             ({blendType})
           </div>
         </div>
       ) : (
-        <div className="text-slate-700 capitalize font-medium">
+        <div className="text-cream capitalize font-medium">
           {primaryAction}
         </div>
       )}
 
-      <div className="border-t border-slate-100 mt-2 pt-2">
-        <div className="text-slate-500">
-          You selected: <span className="text-slate-700 font-medium capitalize">{userAnswer}</span>
+      <div className="border-t border-felt-border mt-2 pt-2">
+        <div className="text-cream-muted">
+          You selected: <span className="text-cream font-medium capitalize">{userAnswer}</span>
         </div>
         {isHalfCredit && (
           <div className="text-amber-600 font-medium mt-1">

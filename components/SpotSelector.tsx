@@ -45,7 +45,7 @@ export function SegmentDropdown<T extends string>({
 
   if (deltaRole === 'locked') {
     return (
-      <span className={`font-semibold text-slate-400 ${headerStyle ? 'text-lg leading-relaxed' : 'text-sm'} ${className}`}>
+      <span className={`font-semibold text-cream-muted ${headerStyle ? 'text-lg leading-relaxed' : 'text-sm'} ${className}`}>
         {currentLabel}
       </span>
     );
@@ -66,16 +66,16 @@ export function SegmentDropdown<T extends string>({
         onClick={handleClick}
         disabled={disabled}
         className={`
-          font-semibold text-slate-900 underline decoration-slate-300 decoration-dashed underline-offset-4
+          font-semibold text-cream underline decoration-felt-muted decoration-dashed underline-offset-4
           transition-colors
           ${headerStyle ? 'text-lg leading-relaxed' : 'text-sm'}
-          ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:decoration-slate-500 cursor-pointer'}
+          ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:decoration-gold cursor-pointer'}
         `}
       >
         {currentLabel}
       </button>
       {isOpen && !disabled && (
-        <div className="absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg py-1 z-50 min-w-[100px]">
+        <div className="absolute top-full left-0 mt-1 bg-felt-elevated border border-felt-border rounded-lg shadow-lg py-1 z-50 min-w-[100px]">
           {options.map(({ value: optValue, label }) => (
             <button
               key={optValue}
@@ -84,8 +84,8 @@ export function SegmentDropdown<T extends string>({
                 setIsOpen(false);
               }}
               className={`
-                block w-full text-left px-3 py-1.5 text-sm
-                ${optValue === value ? 'bg-slate-100 font-medium' : 'hover:bg-slate-50'}
+                block w-full text-left px-3 py-1.5 text-sm text-cream
+                ${optValue === value ? 'bg-felt-muted font-medium' : 'hover:bg-felt-border'}
               `}
             >
               {label}
@@ -241,12 +241,12 @@ export function SpotSelector({
 
   // Visible-locked helper: shows label as non-interactive text (for deltaTargetVisible mode)
   const visibleLocked = (label: string): ReactNode => (
-    <span className={`font-semibold text-slate-500 ${textClass}`}>{label}</span>
+    <span className={`font-semibold text-cream-muted ${textClass}`}>{label}</span>
   );
 
   // Ghost separator: invisible, same width
   const ghostSep = (text: string, extraClass: string = ''): ReactNode => (
-    <span className={`invisible text-slate-400 mx-0.5 ${extraClass}`}>{text}</span>
+    <span className={`invisible text-cream-muted mx-0.5 ${extraClass}`}>{text}</span>
   );
 
   const targetDropdown = (
@@ -261,7 +261,7 @@ export function SpotSelector({
   // Renders the axis segment depending on the row mode
   const targetSegment = (): ReactNode => {
     if (deltaTargetRowMode === 'arrow') {
-      return <FaArrowDown className={`text-slate-400 ${headerStyle ? 'size-6' : 'size-4'}`} />;
+      return <FaArrowDown className={`text-cream-muted ${headerStyle ? 'size-6' : 'size-4'}`} />;
     }
     if (deltaTargetRowMode === 'value') {
       return targetDropdown;
@@ -269,7 +269,7 @@ export function SpotSelector({
     // 'both': original ghost behavior — arrow stacked above dropdown
     return (
       <div className="flex flex-col items-start gap-0.5">
-        <FaArrowDown className={`text-slate-400 ${headerStyle ? 'size-6' : 'size-4'}`} />
+        <FaArrowDown className={`text-cream-muted ${headerStyle ? 'size-6' : 'size-4'}`} />
         {targetDropdown}
       </div>
     );
@@ -285,8 +285,8 @@ export function SpotSelector({
 
   // Separators: invisible for 'arrow' and 'both' modes; visible for 'value' mode
   const sepOrGhost = (text: string, extraClass: string = ''): ReactNode => {
-    if (!deltaTargetMode) return <span className={`text-slate-400 mx-0.5 ${extraClass}`}>{text}</span>;
-    if (deltaTargetRowMode === 'value' && deltaTargetVisible) return <span className={`text-slate-400 mx-0.5 ${extraClass}`}>{text}</span>;
+    if (!deltaTargetMode) return <span className={`text-cream-muted mx-0.5 ${extraClass}`}>{text}</span>;
+    if (deltaTargetRowMode === 'value' && deltaTargetVisible) return <span className={`text-cream-muted mx-0.5 ${extraClass}`}>{text}</span>;
     return ghostSep(text, extraClass);
   };
 

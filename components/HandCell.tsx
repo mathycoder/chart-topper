@@ -213,9 +213,9 @@ export function HandCell({
     }
   };
 
-  // Get text color (white for colored backgrounds, dark for empty)
+  // Get text color (white for colored backgrounds, cream for empty)
   const getTextColor = () => {
-    return actionToDisplay ? 'text-white' : 'text-slate-700';
+    return actionToDisplay ? 'text-white' : 'text-cream';
   };
 
   // Handle mouse down - start painting or report pointer down for tap detection
@@ -289,7 +289,7 @@ export function HandCell({
         w-full aspect-square
         text-xs sm:text-sm font-medium
         cursor-pointer
-        border-r border-b border-slate-200/50 lg:border lg:border-slate-200
+        border-r border-b border-felt-border/50 lg:border lg:border-felt-border
         select-none
         ${getBackgroundClass()}
         ${getTextColor()}
@@ -306,26 +306,29 @@ export function HandCell({
     >
       {/* Context overlay: opponent opening range on empty cells (e.g. Assume UTG Open) */}
       {userAction === null && !isBlackCell && overlayAction && (
-        isSimpleAction(overlayAction) ? (
-          <div
-            className="absolute inset-0 rounded-sm pointer-events-none"
-            style={{
-              backgroundColor: ACTION_COLORS[overlayAction as keyof typeof ACTION_COLORS] ?? ACTION_COLORS.fold,
-              opacity: overlayAction === 'raise' ? 0.25 : overlayAction === 'fold' ? 0.15 : 0.2,
-            }}
-            aria-hidden
-          />
-        ) : (
-          <div
-            className="absolute inset-0 rounded-sm pointer-events-none"
-            style={{ background: buildBlendedGradient(overlayAction), opacity: 0.25 }}
-            aria-hidden
-          />
-        )
+        <>
+          {isSimpleAction(overlayAction) ? (
+            <div
+              className="absolute inset-0 rounded-sm pointer-events-none"
+              style={{
+                backgroundColor: ACTION_COLORS[overlayAction as keyof typeof ACTION_COLORS] ?? ACTION_COLORS.fold,
+                opacity: 0.65,
+              }}
+              aria-hidden
+            />
+          ) : (
+            <div
+              className="absolute inset-0 rounded-sm pointer-events-none"
+              style={{ background: buildBlendedGradient(overlayAction), opacity: 0.65 }}
+              aria-hidden
+            />
+          )}
+          <div className="absolute inset-0 rounded-sm bg-black/35 pointer-events-none" aria-hidden />
+        </>
       )}
       {/* Delta Mode dim overlay: white wash to show start range in lighter colors */}
       {isDimmed && actionToDisplay && actionToDisplay !== 'black' && (
-        <div className="absolute inset-0 bg-white/45 pointer-events-none z-1" aria-hidden />
+        <div className="absolute inset-0 bg-black/35 pointer-events-none z-1" aria-hidden />
       )}
       {/* Category preview floor: gentle pulsing overlay */}
       {isCategoryPreviewFloor && (

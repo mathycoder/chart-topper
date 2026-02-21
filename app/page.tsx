@@ -4,7 +4,7 @@ import { QuizMode } from '@/components/QuizMode';
 function QuizModeLoading() {
   return (
     <div className="min-h-screen flex items-center justify-center">
-      <div className="text-slate-600">Loading...</div>
+      <div className="text-cream-muted">Loading...</div>
     </div>
   );
 }

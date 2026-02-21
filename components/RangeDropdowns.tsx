@@ -110,9 +110,9 @@ export function RangeDropdowns({
 }: RangeDropdownsProps) {
   const selectClasses = `
     px-3 py-2 rounded-lg
-    bg-white border border-slate-300
-    text-slate-900 text-sm font-medium
-    focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent
+    bg-felt-elevated border border-felt-border
+    text-cream text-sm font-medium
+    focus:outline-none focus:ring-2 focus:ring-gold focus:border-transparent
     disabled:opacity-50 disabled:cursor-not-allowed
     cursor-pointer
   `;
@@ -176,7 +176,7 @@ export function RangeDropdowns({
     <div className="flex flex-wrap gap-3 justify-center">
       {/* Position */}
       <div className="flex flex-col gap-1">
-        <label className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+        <label className="text-xs font-medium text-cream-muted uppercase tracking-wide">
           Position
         </label>
         <select
@@ -195,7 +195,7 @@ export function RangeDropdowns({
 
       {/* Stack Size */}
       <div className="flex flex-col gap-1">
-        <label className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+        <label className="text-xs font-medium text-cream-muted uppercase tracking-wide">
           Stack Size
         </label>
         <select
@@ -214,7 +214,7 @@ export function RangeDropdowns({
 
       {/* Scenario */}
       <div className="flex flex-col gap-1">
-        <label className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+        <label className="text-xs font-medium text-cream-muted uppercase tracking-wide">
           Scenario
         </label>
         <select
@@ -234,7 +234,7 @@ export function RangeDropdowns({
       {/* Opponent (Raiser) - only shown for non-RFI scenarios */}
       {showOpponent && validOpponents.length > 0 && (
         <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+          <label className="text-xs font-medium text-cream-muted uppercase tracking-wide">
             {scenario === 'vs-raise-call' ? 'Raiser' : 'Opponent'}
           </label>
           <select
@@ -258,7 +258,7 @@ export function RangeDropdowns({
       {/* Caller - only shown for vs-raise-call scenario */}
       {showCaller && validCallers.length > 0 && (
         <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+          <label className="text-xs font-medium text-cream-muted uppercase tracking-wide">
             Caller
           </label>
           <select

@@ -52,6 +52,9 @@ export function useUrlState(basePath: string): UseUrlStateReturn {
     params.set('position', position);
     params.set('stackSize', stackSize);
     params.set('scenario', scenario);
+    // Preserve theme param set independently by useTheme
+    const themeParam = new URLSearchParams(window.location.search).get('theme');
+    if (themeParam) params.set('theme', themeParam);
     // Only include opponent in URL if scenario is not RFI
     if (scenario !== 'rfi' && opponent) {
       params.set('opponent', opponent);

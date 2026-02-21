@@ -213,9 +213,10 @@ export function RangeChart({
   }, [getHandFromPoint, useLongPress]);
 
   return (
+    <div className="lg:p-2 lg:bg-felt-surface lg:rounded-xl lg:border lg:border-felt-border lg:shadow-sm">
     <div 
       ref={gridRef}
-      className="grid rounded-sm shadow-inner overflow-hidden transitions-enabled touch-none"
+      className="grid rounded-sm overflow-hidden transitions-enabled touch-none"
       style={{
         gridTemplateColumns: 'repeat(13, minmax(0, 1fr))',
         gridTemplateRows: 'repeat(13, minmax(0, 1fr))',
@@ -257,6 +258,7 @@ export function RangeChart({
           );
         })
       )}
+    </div>
     </div>
   );
 }

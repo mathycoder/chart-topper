@@ -184,7 +184,7 @@ export function MobileActionBar(props: MobileActionBarProps) {
     };
     
     return (
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-3 pt-3 pb-safe z-40 lg:hidden">
+      <div className="fixed bottom-0 left-0 right-0 bg-felt-surface border-t border-felt-border px-3 pt-3 pb-safe z-40 lg:hidden">
         {/* Row 1: Action buttons + Multi toggle */}
         <div className="flex items-center gap-1.5 mb-2">
           {actionsToShow.map(({ action, label, color }) => {
@@ -201,7 +201,7 @@ export function MobileActionBar(props: MobileActionBarProps) {
                   transition-all duration-150
                   ${color}
                   ${isSelected 
-                    ? 'ring-2 ring-offset-1 ring-slate-900 opacity-100' 
+                    ? 'ring-2 ring-offset-1 ring-offset-felt-surface ring-gold opacity-100' 
                     : 'opacity-50'
                   }
                   ${disabled 
@@ -230,8 +230,8 @@ export function MobileActionBar(props: MobileActionBarProps) {
               font-medium text-xs
               transition-all duration-150
               ${multiSelectMode 
-                ? 'bg-slate-700 text-white ring-2 ring-offset-1 ring-slate-900' 
-                : 'bg-slate-200 text-slate-600'
+                ? 'bg-felt-muted text-cream ring-2 ring-offset-1 ring-offset-felt-surface ring-gold' 
+                : 'bg-felt-elevated text-cream-muted'
               }
               ${disabled 
                 ? 'cursor-not-allowed opacity-30' 
@@ -248,7 +248,7 @@ export function MobileActionBar(props: MobileActionBarProps) {
           {submitState === 'submitted' ? (
             <button
               onClick={onReset}
-              className="w-full py-3 rounded-lg font-semibold text-sm text-slate-700 bg-slate-100 active:bg-slate-200"
+              className="w-full py-3 rounded-lg font-semibold text-sm text-cream bg-felt-elevated active:bg-felt-muted"
             >
               Try Again
             </button>
@@ -257,7 +257,7 @@ export function MobileActionBar(props: MobileActionBarProps) {
               {onClear && (
                 <button
                   onClick={onClear}
-                  className="flex-1 py-3 rounded-lg font-semibold text-sm text-slate-700 bg-slate-100 active:bg-slate-200"
+                  className="flex-1 py-3 rounded-lg font-semibold text-sm text-cream bg-felt-elevated active:bg-felt-muted"
                 >
                   Clear
                 </button>
@@ -266,10 +266,10 @@ export function MobileActionBar(props: MobileActionBarProps) {
                 onClick={onSubmit}
                 disabled={submitState === 'disabled'}
                 className={`
-                  ${onClear ? 'flex-1' : 'w-full'} py-3 rounded-lg font-semibold text-sm text-white
+                  ${onClear ? 'flex-1' : 'w-full'} py-3 rounded-lg font-semibold text-sm
                   ${submitState === 'ready'
-                    ? 'bg-slate-900 active:bg-slate-800'
-                    : 'bg-slate-300 cursor-not-allowed'
+                    ? 'bg-gold text-felt-bg active:bg-gold-hover'
+                    : 'bg-felt-elevated text-cream-muted cursor-not-allowed'
                   }
                 `}
               >
@@ -285,7 +285,7 @@ export function MobileActionBar(props: MobileActionBarProps) {
             <button
               onClick={onFillRestAsFold}
               title="Set all remaining empty cells to fold"
-              className="w-full py-2 rounded-lg font-medium text-sm text-slate-600 bg-slate-50 active:bg-slate-100 border border-slate-200"
+              className="w-full py-2 rounded-lg font-medium text-sm text-cream-muted bg-felt-elevated active:bg-felt-muted border border-felt-border"
             >
               Fill rest as fold ({emptyCount} left)
             </button>
@@ -354,15 +354,15 @@ export function MobileActionBar(props: MobileActionBarProps) {
   
   const selectClasses = `
     px-2 py-1.5 rounded-md
-    bg-slate-50 border border-slate-200
-    text-slate-900 text-xs font-medium
-    focus:outline-none focus:ring-1 focus:ring-slate-400
+    bg-felt-elevated border border-felt-border
+    text-cream text-xs font-medium
+    focus:outline-none focus:ring-1 focus:ring-gold
     disabled:opacity-50
     cursor-pointer
   `;
   
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-3 pt-2 pb-safe z-40 lg:hidden">
+    <div className="fixed bottom-0 left-0 right-0 bg-felt-surface border-t border-felt-border px-3 pt-2 pb-safe z-40 lg:hidden">
       {/* Row 1: Action buttons */}
       <div className="flex items-center gap-2 mb-2">
         <div className="flex gap-1 flex-1">
@@ -380,7 +380,7 @@ export function MobileActionBar(props: MobileActionBarProps) {
                   transition-all duration-150
                   ${color}
                   ${isSelected 
-                    ? 'ring-2 ring-offset-1 ring-slate-900 opacity-100' 
+                    ? 'ring-2 ring-offset-1 ring-offset-felt-surface ring-gold opacity-100' 
                     : 'opacity-50'
                   }
                   ${disabled 
@@ -403,7 +403,7 @@ export function MobileActionBar(props: MobileActionBarProps) {
                 font-medium text-xs
                 bg-gradient-to-r from-action-raise via-action-call to-action-fold
                 ${blendMode 
-                  ? 'ring-2 ring-offset-1 ring-slate-900' 
+                  ? 'ring-2 ring-offset-1 ring-offset-felt-surface ring-gold' 
                   : 'opacity-70'
                 }
                 ${disabled 
@@ -412,7 +412,7 @@ export function MobileActionBar(props: MobileActionBarProps) {
                 }
               `}
             >
-              <span className="bg-white/90 px-1 py-0.5 rounded text-slate-800 text-xs font-bold">Mix</span>
+              <span className="bg-felt-bg/80 px-1 py-0.5 rounded text-cream text-xs font-bold">Mix</span>
             </button>
           )}
         </div>
@@ -420,7 +420,7 @@ export function MobileActionBar(props: MobileActionBarProps) {
         <button
           onClick={onClear}
           disabled={disabled}
-          className="px-3 py-2 rounded-lg font-semibold text-xs text-slate-700 bg-slate-100 active:bg-slate-200"
+          className="px-3 py-2 rounded-lg font-semibold text-xs text-cream bg-felt-elevated active:bg-felt-muted"
         >
           Clear
         </button>
@@ -431,7 +431,7 @@ export function MobileActionBar(props: MobileActionBarProps) {
             px-3 py-2 rounded-lg font-semibold text-xs text-white
             ${canSave && !isSaving
               ? 'bg-green-600 active:bg-green-700'
-              : 'bg-slate-300 cursor-not-allowed'
+              : 'bg-felt-elevated text-cream-muted cursor-not-allowed'
             }
           `}
         >
@@ -453,7 +453,7 @@ export function MobileActionBar(props: MobileActionBarProps) {
         
         {showOpponent && validOpponents.length > 0 && (
           <>
-            <span className="text-slate-400 text-xs">vs</span>
+            <span className="text-cream-muted text-xs">vs</span>
             <select
               value={effectiveOpponent || ''}
               onChange={(e) => onOpponentChange(e.target.value as Position)}
@@ -468,7 +468,7 @@ export function MobileActionBar(props: MobileActionBarProps) {
         
         {showCaller && validCallers.length > 0 && (
           <>
-            <span className="text-slate-400 text-xs">+</span>
+            <span className="text-cream-muted text-xs">+</span>
             <select
               value={effectiveCaller || ''}
               onChange={(e) => onCallerChange(e.target.value as Position)}
@@ -481,7 +481,7 @@ export function MobileActionBar(props: MobileActionBarProps) {
           </>
         )}
         
-        <span className="text-slate-300 text-xs">|</span>
+        <span className="text-cream-muted text-xs">|</span>
         
         <select
           value={stackSize}
@@ -493,7 +493,7 @@ export function MobileActionBar(props: MobileActionBarProps) {
           ))}
         </select>
         
-        <span className="text-slate-300 text-xs">|</span>
+        <span className="text-cream-muted text-xs">|</span>
         
         <select
           value={scenario}

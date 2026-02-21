@@ -424,7 +424,7 @@ export function DeltaMode() {
       className={`
         shrink-0 flex items-center justify-center font-bold
         ${headerStyle ? 'w-8 h-8 text-lg rounded-md' : 'w-7 h-7 text-base rounded'}
-        ${deltaAxisPickMode ? 'bg-slate-900 text-white' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'}
+        ${deltaAxisPickMode ? 'bg-gold text-felt-bg' : 'bg-felt-elevated text-cream-muted hover:bg-felt-muted hover:text-cream'}
         ${isSubmitted ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
       `}
     >
@@ -480,11 +480,11 @@ export function DeltaMode() {
         {/* Mobile Layout */}
         <div className="lg:hidden flex flex-col pb-28">
           {/* Mobile header — CSS grid: labels col | content col */}
-          <div className="bg-white border-b border-slate-200 px-3 py-2.5">
+          <div className="bg-felt-surface border-b border-felt-border px-3 py-2.5">
             <div className="grid gap-x-2 gap-y-1" style={{ gridTemplateColumns: '3.5rem 1fr' }}>
               {/* Row 1: Starting label | starting range + Δ */}
               <div className="flex items-center">
-                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Start</span>
+                <span className="text-xs font-semibold text-cream-muted uppercase tracking-wide">Start</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="flex-1 min-w-0 text-sm leading-relaxed">
@@ -506,7 +506,7 @@ export function DeltaMode() {
                   className={`
                     shrink-0 w-7 h-7 text-base rounded flex items-center justify-center font-bold
                     touch-manipulation select-none
-                    ${deltaAxisPickMode ? 'bg-slate-900 text-white' : 'bg-slate-200 text-slate-600'}
+                    ${deltaAxisPickMode ? 'bg-gold text-felt-bg' : 'bg-felt-elevated text-cream-muted'}
                     ${isSubmitted ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer active:opacity-80'}
                   `}
                 >
@@ -528,7 +528,7 @@ export function DeltaMode() {
               {deltaAxis && (
                 <>
                   <div className="flex items-center">
-                    <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Target</span>
+                    <span className="text-xs font-semibold text-cream-muted uppercase tracking-wide">Target</span>
                   </div>
                   <div className="text-sm leading-relaxed">
                     {targetRangeRow(false)}
@@ -542,16 +542,16 @@ export function DeltaMode() {
           <div className="flex-1 p-1 relative">
             {isSubmitted && hasValidTarget && (
               <div className="flex justify-center mb-2">
-                <div className="inline-flex rounded-lg bg-slate-100 p-1">
+                <div className="inline-flex rounded-lg bg-felt-elevated p-1">
                   <button
                     onClick={() => setShowCorrectAnswers(false)}
-                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${!showCorrectAnswers ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'}`}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${!showCorrectAnswers ? 'bg-felt-muted text-cream shadow-sm' : 'text-cream-muted'}`}
                   >
                     My Answers
                   </button>
                   <button
                     onClick={() => setShowCorrectAnswers(true)}
-                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${showCorrectAnswers ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'}`}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${showCorrectAnswers ? 'bg-felt-muted text-cream shadow-sm' : 'text-cream-muted'}`}
                   >
                     Correct
                   </button>
@@ -560,17 +560,17 @@ export function DeltaMode() {
             )}
 
             {isSubmitted && gradeSummary && (
-              <div className="mb-2 px-3 py-2 bg-slate-100 rounded-lg text-center">
-                <span className="text-lg font-bold text-slate-900">{Math.round(gradeSummary.overall.accuracy * 100)}%</span>
-                <span className="text-sm text-slate-600 ml-2">
+              <div className="mb-2 px-3 py-2 bg-felt-elevated rounded-lg text-center">
+                <span className="text-lg font-bold text-cream">{Math.round(gradeSummary.overall.accuracy * 100)}%</span>
+                <span className="text-sm text-cream-muted ml-2">
                   {gradeSummary.overall.correct}/{gradeSummary.overall.attempted} of {diffHands.size} changes correct
                 </span>
               </div>
             )}
 
             {!hasValidTarget && (
-              <div className="absolute inset-3 bg-slate-50 border-2 border-dashed border-slate-200 rounded-lg flex flex-col items-center justify-center text-center p-6">
-                <p className="text-slate-400 text-sm">
+              <div className="absolute inset-3 bg-felt-elevated border-2 border-dashed border-felt-border rounded-lg flex flex-col items-center justify-center text-center p-6">
+                <p className="text-cream-muted text-sm">
                   Tap Δ then a field to set the varying axis
                 </p>
               </div>
@@ -605,7 +605,7 @@ export function DeltaMode() {
               {/* Header: Starting Range + Δ button */}
               <div className="flex flex-col gap-1">
                 <div>
-                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Starting Range</p>
+                  <p className="text-xs font-semibold text-cream-muted uppercase tracking-wide mb-1">Starting Range</p>
                   <div className="flex items-start gap-2">
                     <div className="text-lg leading-relaxed flex-1 min-w-0">
                       {startingRangeRow(true)}
@@ -615,12 +615,12 @@ export function DeltaMode() {
                 </div>
 
                 {!deltaAxis && !deltaAxisPickMode && (
-                  <p className="text-sm text-slate-500">
+                  <p className="text-sm text-cream-muted">
                     Click Δ then a field to choose your target axis
                   </p>
                 )}
                 {deltaAxisPickMode && (
-                  <p className="text-sm text-slate-700 font-medium">
+                  <p className="text-sm text-cream font-medium">
                     Click a field to set it as the varying axis
                   </p>
                 )}
@@ -635,7 +635,7 @@ export function DeltaMode() {
                 {/* Target Range value row */}
                 {deltaAxis && (
                   <div>
-                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Target Range</p>
+                    <p className="text-xs font-semibold text-cream-muted uppercase tracking-wide mb-1">Target Range</p>
                     <div className="text-lg leading-relaxed">
                       {targetRangeRow(true)}
                     </div>
@@ -664,13 +664,13 @@ export function DeltaMode() {
                       <div className="flex gap-2">
                         <button
                           onClick={handleClear}
-                          className="flex-1 px-6 py-3 rounded-lg font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-all duration-150"
+                          className="flex-1 px-6 py-3 rounded-lg font-semibold text-cream bg-felt-elevated hover:bg-felt-muted transition-all duration-150"
                         >
                           Clear
                         </button>
                         <button
                           onClick={handleSubmit}
-                          className="flex-1 px-6 py-3 rounded-lg font-semibold text-white bg-slate-900 hover:bg-slate-800 cursor-pointer transition-all duration-150"
+                          className="flex-1 px-6 py-3 rounded-lg font-semibold text-felt-bg bg-gold hover:bg-gold-hover cursor-pointer transition-all duration-150"
                         >
                           Submit
                         </button>
@@ -678,7 +678,7 @@ export function DeltaMode() {
                       {scenario === 'vs-raise' && emptyCount > 0 && (
                         <button
                           onClick={fillRemainingAsFold}
-                          className="w-full px-4 py-2 text-sm font-medium text-slate-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition-colors"
+                          className="w-full px-4 py-2 text-sm font-medium text-cream-muted bg-felt-elevated hover:bg-felt-muted border border-felt-border rounded-lg transition-colors"
                         >
                           Fill rest as fold ({emptyCount} left)
                         </button>
@@ -687,7 +687,7 @@ export function DeltaMode() {
                   ) : (
                     <button
                       onClick={handleReset}
-                      className="w-full px-6 py-3 rounded-lg font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-all duration-150"
+                      className="w-full px-6 py-3 rounded-lg font-semibold text-cream bg-felt-elevated hover:bg-felt-muted transition-all duration-150"
                     >
                       Try Again
                     </button>
@@ -708,16 +708,16 @@ export function DeltaMode() {
             <div className="flex-1 min-w-0 relative">
               {isSubmitted && hasValidTarget && (
                 <div className="flex justify-center mb-3">
-                  <div className="inline-flex rounded-lg bg-slate-100 p-1">
+                  <div className="inline-flex rounded-lg bg-felt-elevated p-1">
                     <button
                       onClick={() => setShowCorrectAnswers(false)}
-                      className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${!showCorrectAnswers ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                      className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${!showCorrectAnswers ? 'bg-felt-muted text-cream shadow-sm' : 'text-cream-muted hover:text-cream'}`}
                     >
                       My Answers
                     </button>
                     <button
                       onClick={() => setShowCorrectAnswers(true)}
-                      className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${showCorrectAnswers ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                      className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${showCorrectAnswers ? 'bg-felt-muted text-cream shadow-sm' : 'text-cream-muted hover:text-cream'}`}
                     >
                       Correct Answers
                     </button>
@@ -726,8 +726,8 @@ export function DeltaMode() {
               )}
 
               {!hasValidTarget && (
-                <div className="absolute inset-0 bg-slate-50 border-2 border-dashed border-slate-200 rounded-lg flex flex-col items-center justify-center text-center p-8">
-                  <p className="text-slate-400 text-base">
+                <div className="absolute inset-0 bg-felt-elevated border-2 border-dashed border-felt-border rounded-lg flex flex-col items-center justify-center text-center p-8">
+                  <p className="text-cream-muted text-base">
                     Click Δ then a field to set the varying axis
                   </p>
                 </div>

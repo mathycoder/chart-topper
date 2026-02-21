@@ -234,7 +234,7 @@ export function BuilderMode() {
                   onBlendClick={handleBlendClick}
                 />
                 {blendMode && (
-                  <div className="mt-2 px-3 py-2 bg-slate-100 rounded-lg text-sm text-slate-600">
+                  <div className="mt-2 px-3 py-2 bg-felt-elevated rounded-lg text-sm text-cream-muted">
                     Click a cell to set blend percentages
                   </div>
                 )}
@@ -242,14 +242,14 @@ export function BuilderMode() {
 
               {/* Description */}
               <Card>
-                <label className="text-sm font-semibold text-slate-700 mb-2 block">
+                <label className="text-sm font-semibold text-cream mb-2 block">
                   Description
                 </label>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Strategy explanation for this range..."
-                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent resize-none"
+                  className="w-full px-3 py-2 text-sm text-cream bg-felt-elevated border border-felt-border rounded-lg focus:outline-none focus:ring-2 focus:ring-gold focus:border-transparent resize-none placeholder:text-cream-muted"
                   rows={3}
                 />
               </Card>
@@ -258,7 +258,7 @@ export function BuilderMode() {
               <div className="flex gap-2">
                 <button
                   onClick={handleClear}
-                  className="flex-1 px-4 py-3 rounded-lg font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 transition-all duration-150"
+                  className="flex-1 px-4 py-3 rounded-lg font-semibold text-cream bg-felt-elevated border border-felt-border hover:bg-felt-muted transition-all duration-150"
                 >
                   Clear
                 </button>
@@ -270,7 +270,7 @@ export function BuilderMode() {
                     transition-all duration-150
                     ${allFilled && !isSaving
                       ? 'bg-green-600 hover:bg-green-700 cursor-pointer'
-                      : 'bg-slate-300 cursor-not-allowed'
+                      : 'bg-felt-elevated text-cream-muted cursor-not-allowed'
                     }
                   `}
                 >

@@ -385,9 +385,9 @@ export function QuizMode() {
                   checked={assumeOpen}
                   onChange={(e) => setAssumeOpen(e.target.checked)}
                   disabled={!opponentRfiRange || isSubmitted}
-                  className="rounded border-slate-300 text-slate-900 focus:ring-slate-500 cursor-pointer shrink-0"
+                  className="rounded border-felt-border text-gold focus:ring-gold cursor-pointer shrink-0"
                 />
-                <span className="text-sm font-medium text-slate-700">
+                <span className="text-sm font-medium text-cream">
                   Assume {effectiveOpponent} Open
                 </span>
               </label>
@@ -398,14 +398,14 @@ export function QuizMode() {
             {/* Toggle between user answers and correct answers */}
             {isSubmitted && rangeExistsForDisplay && (
               <div className="flex justify-center mb-2">
-                <div className="inline-flex rounded-lg bg-slate-100 p-1">
+                <div className="inline-flex rounded-lg bg-felt-elevated p-1">
                   <button
                     onClick={() => setShowCorrectAnswers(false)}
                     className={`
                       px-3 py-1.5 text-xs font-medium rounded-md transition-colors
                       ${!showCorrectAnswers 
-                        ? 'bg-white text-slate-900 shadow-sm' 
-                        : 'text-slate-600'
+                        ? 'bg-felt-muted text-cream shadow-sm' 
+                        : 'text-cream-muted'
                       }
                     `}
                   >
@@ -416,8 +416,8 @@ export function QuizMode() {
                     className={`
                       px-3 py-1.5 text-xs font-medium rounded-md transition-colors
                       ${showCorrectAnswers 
-                        ? 'bg-white text-slate-900 shadow-sm' 
-                        : 'text-slate-600'
+                        ? 'bg-felt-muted text-cream shadow-sm' 
+                        : 'text-cream-muted'
                       }
                     `}
                   >
@@ -429,9 +429,9 @@ export function QuizMode() {
             
             {/* Results summary on mobile (shown after submit) */}
             {isSubmitted && gradeSummary && (
-              <div className="mb-2 px-3 py-2 bg-slate-100 rounded-lg text-center">
-                <span className="text-lg font-bold text-slate-900">{Math.round(gradeSummary.overall.accuracy * 100)}%</span>
-                <span className="text-sm text-slate-600 ml-2">
+              <div className="mb-2 px-3 py-2 bg-felt-elevated rounded-lg text-center">
+                <span className="text-lg font-bold text-cream">{Math.round(gradeSummary.overall.accuracy * 100)}%</span>
+                <span className="text-sm text-cream-muted ml-2">
                   {gradeSummary.overall.correct}/{gradeSummary.overall.attempted} correct
                 </span>
               </div>
@@ -456,13 +456,13 @@ export function QuizMode() {
             />
             
             {!rangeExistsForDisplay && (
-              <div className="absolute inset-3 bg-slate-800 rounded-lg flex flex-col items-center justify-center text-center p-6">
-                <p className="text-slate-400 text-base mb-4">
+              <div className="absolute inset-3 bg-felt-elevated rounded-lg flex flex-col items-center justify-center text-center p-6 border border-felt-border">
+                <p className="text-cream-muted text-base mb-4">
                   This range hasn&apos;t been created yet
                 </p>
                 <a 
                   href={`/builder?position=${effectivePosition}&stackSize=${stackSize}&scenario=${effectiveScenario}${effectiveOpponent ? `&opponent=${effectiveOpponent}` : ''}`}
-                  className="px-4 py-2 bg-slate-700 text-white rounded-lg font-medium text-sm"
+                  className="px-4 py-2 bg-felt-muted text-cream rounded-lg font-medium text-sm"
                 >
                   Create in Builder
                 </a>
@@ -500,9 +500,9 @@ export function QuizMode() {
                     checked={assumeOpen}
                     onChange={(e) => setAssumeOpen(e.target.checked)}
                     disabled={!opponentRfiRange || isSubmitted}
-                    className="rounded border-slate-300 text-slate-900 focus:ring-slate-500 cursor-pointer"
+                    className="rounded border-felt-border text-gold focus:ring-gold cursor-pointer"
                   />
-                  <span className="text-sm font-medium text-slate-700">
+                  <span className="text-sm font-medium text-cream">
                     Assume {effectiveOpponent} Open
                   </span>
                 </label>
@@ -529,13 +529,13 @@ export function QuizMode() {
                       <div className="flex gap-2">
                         <button
                           onClick={handleClear}
-                          className="flex-1 px-6 py-3 rounded-lg font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-all duration-150"
+                          className="flex-1 px-6 py-3 rounded-lg font-semibold text-cream bg-felt-elevated hover:bg-felt-muted transition-all duration-150"
                         >
                           Clear
                         </button>
                         <button
                           onClick={handleSubmit}
-                          className="flex-1 px-6 py-3 rounded-lg font-semibold text-white bg-slate-900 hover:bg-slate-800 cursor-pointer transition-all duration-150"
+                          className="flex-1 px-6 py-3 rounded-lg font-semibold text-felt-bg bg-gold hover:bg-gold-hover cursor-pointer transition-all duration-150"
                         >
                           Submit
                         </button>
@@ -544,7 +544,7 @@ export function QuizMode() {
                         <button
                           onClick={fillRemainingAsFold}
                           title="Set all remaining empty cells to fold so you can submit"
-                          className="w-full px-4 py-2 text-sm font-medium text-slate-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition-colors"
+                          className="w-full px-4 py-2 text-sm font-medium text-cream-muted bg-felt-elevated hover:bg-felt-muted border border-felt-border rounded-lg transition-colors"
                         >
                           Fill rest as fold ({emptyCount} left)
                         </button>
@@ -553,7 +553,7 @@ export function QuizMode() {
                   ) : (
                     <button
                       onClick={handleReset}
-                      className="w-full px-6 py-3 rounded-lg font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-all duration-150"
+                      className="w-full px-6 py-3 rounded-lg font-semibold text-cream bg-felt-elevated hover:bg-felt-muted transition-all duration-150"
                     >
                       Try Again
                     </button>
@@ -572,14 +572,14 @@ export function QuizMode() {
               {/* Toggle between user answers and correct answers */}
               {isSubmitted && rangeExistsForDisplay && (
                 <div className="flex justify-center mb-3">
-                  <div className="inline-flex rounded-lg bg-slate-100 p-1">
+                  <div className="inline-flex rounded-lg bg-felt-elevated p-1">
                     <button
                       onClick={() => setShowCorrectAnswers(false)}
                       className={`
                         px-4 py-2 text-sm font-medium rounded-md transition-colors
                         ${!showCorrectAnswers 
-                          ? 'bg-white text-slate-900 shadow-sm' 
-                          : 'text-slate-600 hover:text-slate-900'
+                          ? 'bg-felt-muted text-cream shadow-sm' 
+                          : 'text-cream-muted hover:text-cream'
                         }
                       `}
                     >
@@ -590,8 +590,8 @@ export function QuizMode() {
                       className={`
                         px-4 py-2 text-sm font-medium rounded-md transition-colors
                         ${showCorrectAnswers 
-                          ? 'bg-white text-slate-900 shadow-sm' 
-                          : 'text-slate-600 hover:text-slate-900'
+                          ? 'bg-felt-muted text-cream shadow-sm' 
+                          : 'text-cream-muted hover:text-cream'
                         }
                       `}
                     >
@@ -620,13 +620,13 @@ export function QuizMode() {
               />
               
               {!rangeExistsForDisplay && (
-                <div className="absolute inset-0 bg-slate-800 rounded-lg flex flex-col items-center justify-center text-center p-6">
-                  <p className="text-slate-400 text-lg mb-4">
+                <div className="absolute inset-0 bg-felt-elevated rounded-lg flex flex-col items-center justify-center text-center p-6 border border-felt-border">
+                  <p className="text-cream-muted text-lg mb-4">
                     This range hasn&apos;t been created yet
                   </p>
                   <a 
                     href={`/builder?position=${effectivePosition}&stackSize=${stackSize}&scenario=${effectiveScenario}${effectiveOpponent ? `&opponent=${effectiveOpponent}` : ''}`}
-                    className="px-4 py-2 bg-slate-700 text-white rounded-lg font-medium hover:bg-slate-600 transition-colors"
+                    className="px-4 py-2 bg-felt-muted text-cream rounded-lg font-medium hover:bg-gold hover:text-felt-bg transition-colors"
                   >
                     Create in Builder
                   </a>

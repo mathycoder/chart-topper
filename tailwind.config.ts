@@ -8,24 +8,35 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // Felt palette
+        'felt-bg': '#0a1f14',
+        'felt-surface': '#112a1a',
+        'felt-elevated': '#1a3d27',
+        'felt-border': '#1e4d2e',
+        'felt-muted': '#2d6644',
+        'gold': '#c9a84c',
+        'gold-hover': '#b8912e',
+        'cream': '#f5e6c8',
+        'cream-muted': '#a89878',
+
         // Action colors for the range builder
-        'action-raise': '#dc2626',
-        'action-call': '#16a34a',
-        'action-fold': '#2563eb',
-        'action-shove': '#8b0000',
-        'action-black': '#e2e8f0',
+        'action-raise': '#f87171',
+        'action-call': '#34d399',
+        'action-fold': '#4a7ab5',
+        'action-shove': '#dc2626',
+        'action-black': '#1a3a25',
         
         // Cell state colors
-        'cell-empty': '#f8fafc',
+        'cell-empty': '#1e3d2a',
         'cell-correct': '#22c55e',
         'cell-incorrect': '#ef4444',
         
         // Hover states
-        'action-raise-hover': '#b91c1c',
-        'action-call-hover': '#15803d',
-        'action-fold-hover': '#1d4ed8',
-        'action-shove-hover': '#6b0000',
-        'action-black-hover': '#cbd5e1',
+        'action-raise-hover': '#ef4444',
+        'action-call-hover': '#10b981',
+        'action-fold-hover': '#3d6aa5',
+        'action-shove-hover': '#b91c1c',
+        'action-black-hover': '#243d2e',
       },
       spacing: {
         'cell': '2.5rem',

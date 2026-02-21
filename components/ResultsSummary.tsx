@@ -52,10 +52,10 @@ export function ResultsSummary({ gradeSummary, rangeData, isDeltaMode = false }:
   };
 
   const ACTION_META = [
-    { key: 'raise' as const, label: 'Raise', bgClass: 'bg-red-100',  textClass: 'text-red-700'  },
-    { key: 'call'  as const, label: 'Call',  bgClass: 'bg-green-100', textClass: 'text-green-700' },
-    { key: 'fold'  as const, label: 'Fold',  bgClass: 'bg-blue-100',  textClass: 'text-blue-700'  },
-    { key: 'shove' as const, label: 'Shove', bgClass: 'bg-rose-200',  textClass: 'text-rose-800'  },
+    { key: 'raise' as const, label: 'Raise', bgClass: 'bg-action-raise/20',  textClass: 'text-action-raise'  },
+    { key: 'call'  as const, label: 'Call',  bgClass: 'bg-action-call/20',   textClass: 'text-action-call'   },
+    { key: 'fold'  as const, label: 'Fold',  bgClass: 'bg-action-fold/20',   textClass: 'text-action-fold'   },
+    { key: 'shove' as const, label: 'Shove', bgClass: 'bg-action-shove/20',  textClass: 'text-action-shove'  },
   ];
 
   // Show pills for actions that exist in the correct range (or graded range if no rangeData)
@@ -65,8 +65,8 @@ export function ResultsSummary({ gradeSummary, rangeData, isDeltaMode = false }:
   });
 
   return (
-    <div className="flex flex-col items-center gap-2 p-6 bg-white rounded-xl shadow-lg border border-slate-200">
-      <span className="text-sm font-medium text-slate-500 uppercase tracking-wide">
+    <div className="flex flex-col items-center gap-2 p-6 bg-felt-surface rounded-xl shadow-lg border border-felt-border">
+      <span className="text-sm font-medium text-cream-muted uppercase tracking-wide">
         Results
       </span>
 
@@ -90,11 +90,11 @@ export function ResultsSummary({ gradeSummary, rangeData, isDeltaMode = false }:
 
       {/* Contextual hand count */}
       {isDeltaMode ? (
-        <span className="text-xs text-slate-500">
+        <span className="text-xs text-cream-muted">
           {totalPlayable} hand{totalPlayable !== 1 ? 's' : ''} changed
         </span>
       ) : totalPlayable < 169 ? (
-        <span className="text-xs text-slate-500">
+        <span className="text-xs text-cream-muted">
           {totalPlayable} playable hands
         </span>
       ) : null}

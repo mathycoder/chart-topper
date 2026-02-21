@@ -35,7 +35,7 @@ export function ComboCards({ cards, showPlus, variant = 'traditional' }: ComboCa
       </div>
       {/* Plus sign — absolutely positioned, overlapping the front card's bottom-right */}
       {showPlus && (
-        <span className="absolute top-2 right-0 z-20 text-xl font-bold text-slate-600 leading-none">
+        <span className="absolute top-2 right-0 z-20 text-xl font-bold text-cream-muted leading-none">
           +
         </span>
       )}

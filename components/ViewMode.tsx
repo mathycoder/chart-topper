@@ -124,7 +124,7 @@ export function ViewMode() {
         {/* Mobile Layout */}
         <div className="lg:hidden flex flex-col pb-12">
           {/* Mobile Header */}
-          <div className="bg-white border-b border-slate-200 px-3 py-2.5 flex items-center justify-center flex-wrap">
+          <div className="bg-felt-surface border-b border-felt-border px-3 py-2.5 flex items-center justify-center flex-wrap">
             <SpotSelector
               spot={currentSpot}
               onChange={syncSpotToUrl}
@@ -144,13 +144,13 @@ export function ViewMode() {
                 onPaintStart={() => {}}
               />
             ) : (
-              <div className="bg-slate-800 rounded-lg flex flex-col items-center justify-center text-center p-6 aspect-square">
-                <p className="text-slate-400 text-base mb-4">
+              <div className="bg-felt-elevated rounded-lg flex flex-col items-center justify-center text-center p-6 aspect-square border border-felt-border">
+                <p className="text-cream-muted text-base mb-4">
                   This range hasn&apos;t been created yet
                 </p>
                 <a 
                   href={`/builder?position=${effectivePosition}&stackSize=${stackSize}&scenario=${effectiveScenario}${effectiveOpponent ? `&opponent=${effectiveOpponent}` : ''}`}
-                  className="px-4 py-2 bg-slate-700 text-white rounded-lg font-medium text-sm"
+                  className="px-4 py-2 bg-felt-muted text-cream rounded-lg font-medium text-sm"
                 >
                   Create in Builder
                 </a>
@@ -177,35 +177,35 @@ export function ViewMode() {
               {/* Range Stats */}
               {rangeExists && stats && (
                 <Card>
-                  <h3 className="text-sm font-semibold text-slate-700 mb-3">Range Summary</h3>
+                  <h3 className="text-sm font-semibold text-cream mb-3">Range Summary</h3>
                   <div className="flex flex-col gap-2 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-slate-500">Raise:</span>
-                      <span className="font-medium text-red-600">{(stats.raise / stats.playable * 100).toFixed(1)}%</span>
+                      <span className="text-cream-muted">Raise:</span>
+                      <span className="font-medium text-action-raise">{(stats.raise / stats.playable * 100).toFixed(1)}%</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-slate-500">Call:</span>
-                      <span className="font-medium text-green-600">{(stats.call / stats.playable * 100).toFixed(1)}%</span>
+                      <span className="text-cream-muted">Call:</span>
+                      <span className="font-medium text-action-call">{(stats.call / stats.playable * 100).toFixed(1)}%</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-slate-500">Fold:</span>
-                      <span className="font-medium text-blue-600">{(stats.fold / stats.playable * 100).toFixed(1)}%</span>
+                      <span className="text-cream-muted">Fold:</span>
+                      <span className="font-medium text-action-fold">{(stats.fold / stats.playable * 100).toFixed(1)}%</span>
                     </div>
                     {stats.shove > 0 && (
                       <div className="flex justify-between">
-                        <span className="text-slate-500">Shove:</span>
-                        <span className="font-medium text-rose-700">{(stats.shove / stats.playable * 100).toFixed(1)}%</span>
+                        <span className="text-cream-muted">Shove:</span>
+                        <span className="font-medium text-action-shove">{(stats.shove / stats.playable * 100).toFixed(1)}%</span>
                       </div>
                     )}
                     {stats.black > 0 && (
-                      <div className="flex justify-between text-xs text-slate-400 pt-1 border-t border-slate-100">
+                      <div className="flex justify-between text-xs text-cream-muted pt-1 border-t border-felt-border">
                         <span>Playable hands:</span>
                         <span>{stats.playable} of 169</span>
                       </div>
                     )}
                   </div>
                   {range?.meta.description && (
-                    <p className="mt-3 pt-3 border-t border-slate-200 text-sm text-slate-600 italic">
+                    <p className="mt-3 pt-3 border-t border-felt-border text-sm text-cream-muted italic">
                       {range.meta.description}
                     </p>
                   )}
@@ -214,25 +214,25 @@ export function ViewMode() {
 
               {/* Legend */}
               <Card>
-                <h3 className="text-sm font-semibold text-slate-700 mb-3">Legend</h3>
-                <div className="flex flex-col gap-2 text-sm">
-                  <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 rounded bg-action-raise"></div>
-                    <span className="text-slate-600">Raise / 3-Bet</span>
+                  <h3 className="text-sm font-semibold text-cream mb-3">Legend</h3>
+                  <div className="flex flex-col gap-2 text-sm">
+                    <div className="flex items-center gap-2">
+                      <div className="w-5 h-5 rounded bg-action-raise"></div>
+                      <span className="text-cream-muted">Raise / 3-Bet</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-5 h-5 rounded bg-action-call"></div>
+                      <span className="text-cream-muted">Call</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-5 h-5 rounded bg-action-fold"></div>
+                      <span className="text-cream-muted">Fold</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-5 h-5 rounded" style={{ background: 'linear-gradient(to right, var(--color-action-raise) 50%, var(--color-action-call) 50%)' }}></div>
+                      <span className="text-cream-muted">Mixed Strategy</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 rounded bg-action-call"></div>
-                    <span className="text-slate-600">Call</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 rounded bg-action-fold"></div>
-                    <span className="text-slate-600">Fold</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 rounded" style={{ background: 'linear-gradient(to right, var(--color-action-raise) 50%, var(--color-action-call) 50%)' }}></div>
-                    <span className="text-slate-600">Mixed Strategy</span>
-                  </div>
-                </div>
               </Card>
             </div>
 
@@ -248,13 +248,13 @@ export function ViewMode() {
                   onPaintStart={() => {}}
                 />
               ) : (
-                <div className="bg-slate-800 rounded-lg flex flex-col items-center justify-center text-center p-6 aspect-square">
-                  <p className="text-slate-400 text-lg mb-4">
+                <div className="bg-felt-elevated rounded-lg flex flex-col items-center justify-center text-center p-6 aspect-square border border-felt-border">
+                  <p className="text-cream-muted text-lg mb-4">
                     This range hasn&apos;t been created yet
                   </p>
                   <a 
                     href={`/builder?position=${effectivePosition}&stackSize=${stackSize}&scenario=${effectiveScenario}${effectiveOpponent ? `&opponent=${effectiveOpponent}` : ''}`}
-                    className="px-4 py-2 bg-slate-700 text-white rounded-lg font-medium hover:bg-slate-600 transition-colors"
+                    className="px-4 py-2 bg-felt-muted text-cream rounded-lg font-medium hover:bg-gold hover:text-felt-bg transition-colors"
                   >
                     Create in Builder
                   </a>
@@ -267,13 +267,13 @@ export function ViewMode() {
 
       {/* Mobile Bottom Bar - Stats only */}
       {rangeExists && stats && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-3 py-2 pb-safe z-40 lg:hidden">
+        <div className="fixed bottom-0 left-0 right-0 bg-felt-surface border-t border-felt-border px-3 py-2 pb-safe z-40 lg:hidden">
           <div className="flex justify-center gap-4 text-xs">
-            <span className="text-red-600 font-medium">Raise: {(stats.raise / stats.playable * 100).toFixed(1)}%</span>
-            <span className="text-green-600 font-medium">Call: {(stats.call / stats.playable * 100).toFixed(1)}%</span>
-            <span className="text-blue-600 font-medium">Fold: {(stats.fold / stats.playable * 100).toFixed(1)}%</span>
+            <span className="text-action-raise font-medium">Raise: {(stats.raise / stats.playable * 100).toFixed(1)}%</span>
+            <span className="text-action-call font-medium">Call: {(stats.call / stats.playable * 100).toFixed(1)}%</span>
+            <span className="text-action-fold font-medium">Fold: {(stats.fold / stats.playable * 100).toFixed(1)}%</span>
             {stats.shove > 0 && (
-              <span className="text-rose-700 font-medium">Shove: {(stats.shove / stats.playable * 100).toFixed(1)}%</span>
+              <span className="text-action-shove font-medium">Shove: {(stats.shove / stats.playable * 100).toFixed(1)}%</span>
             )}
           </div>
         </div>

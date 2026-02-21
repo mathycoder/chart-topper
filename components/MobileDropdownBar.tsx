@@ -55,7 +55,7 @@ export function MobileDropdownBar({
   }, [onStackSizeChange, onPositionChange, onScenarioChange, onOpponentChange, onCallerChange]);
 
   return (
-    <div className="bg-white border-b border-slate-200 px-3 py-2.5 lg:hidden">
+    <div className="bg-felt-surface border-b border-felt-border px-3 py-2.5 lg:hidden">
       <div className="flex items-center gap-1 flex-wrap text-sm leading-relaxed">
         <SpotSelector
           spot={spot}

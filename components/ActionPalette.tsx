@@ -109,7 +109,7 @@ export function ActionPalette(props: ActionPaletteProps) {
                   ${color}
                   ${!disabled ? hoverColor : ''}
                   ${isSelected 
-                    ? 'ring-2 ring-offset-2 ring-slate-900' 
+                    ? 'ring-2 ring-offset-2 ring-offset-felt-surface ring-gold' 
                     : 'opacity-60'
                   }
                   ${disabled 
@@ -139,8 +139,8 @@ export function ActionPalette(props: ActionPaletteProps) {
             font-medium text-sm
             transition-all duration-150
             ${multiSelectMode 
-              ? 'bg-slate-200 text-slate-900 ring-2 ring-offset-2 ring-slate-900' 
-              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              ? 'bg-felt-muted text-cream ring-2 ring-offset-2 ring-offset-felt-surface ring-gold' 
+              : 'bg-felt-elevated text-cream-muted hover:bg-felt-muted hover:text-cream'
             }
             ${disabled 
               ? 'cursor-not-allowed opacity-50' 
@@ -176,7 +176,7 @@ export function ActionPalette(props: ActionPaletteProps) {
                 ${color}
                 ${!disabled ? hoverColor : ''}
                 ${isSelected 
-                  ? 'ring-2 ring-offset-2 ring-slate-900' 
+                  ? 'ring-2 ring-offset-2 ring-offset-felt-surface ring-gold' 
                   : 'opacity-60'
                 }
                 ${disabled 
@@ -199,21 +199,21 @@ export function ActionPalette(props: ActionPaletteProps) {
 
       {/* Builder mode: Blend button */}
       {showBlendOptions && onBlendClick && (
-        <div className="border-t border-slate-200 pt-3 mt-1">
-          <span className="text-sm font-medium text-slate-600 mb-2 block">Mixed Strategy</span>
+        <div className="border-t border-felt-border pt-3 mt-1">
+          <span className="text-sm font-medium text-cream-muted mb-2 block">Mixed Strategy</span>
           <button
             onClick={onBlendClick}
             disabled={disabled}
             className={`
               w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg
-              font-medium text-slate-700 text-sm
+              font-medium text-cream text-sm
               transition-all duration-150
               bg-gradient-to-r from-action-raise via-action-call to-action-fold
               ${!disabled ? 'hover:opacity-90' : ''}
               ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}
             `}
           >
-            <span className="bg-white/90 px-2 py-0.5 rounded text-slate-800">Blend</span>
+            <span className="bg-felt-bg/80 px-2 py-0.5 rounded text-cream">Blend</span>
           </button>
         </div>
       )}
