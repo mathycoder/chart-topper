@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
+import type { NoteSection, RangeStrategyNotes } from '@/types';
 
-// Blended action with percentages
 interface BlendedAction {
   raise?: number;
   call?: number;
@@ -15,32 +15,45 @@ interface SaveRangeRequest {
   stackSize: string;
   position: string;
   scenario: string;
-  opponent?: string; // Raiser for vs-raise and vs-raise-call scenarios
-  caller?: string; // Caller for vs-raise-call (3-way pot) scenarios
+  opponent?: string;
+  caller?: string;
   data: Record<string, HandAction>;
-  description?: string; // Strategy explanation for this range
+  description?: string;
+  strategyNotes?: NoteSection[];
+  copyNotesToMatching?: boolean;
 }
 
 /**
  * Formats a hand action for TypeScript output.
- * Simple actions become quoted strings, blended actions become object literals.
  */
 function formatAction(action: HandAction): string {
   if (typeof action === 'string') {
     return `'${action}'`;
   }
-  // Blended action - format as object
   const parts: string[] = [];
-  if (action.raise !== undefined && action.raise > 0) {
-    parts.push(`raise: ${action.raise}`);
-  }
-  if (action.call !== undefined && action.call > 0) {
-    parts.push(`call: ${action.call}`);
-  }
-  if (action.fold !== undefined && action.fold > 0) {
-    parts.push(`fold: ${action.fold}`);
-  }
+  if (action.raise !== undefined && action.raise > 0) parts.push(`raise: ${action.raise}`);
+  if (action.call !== undefined && action.call > 0) parts.push(`call: ${action.call}`);
+  if (action.fold !== undefined && action.fold > 0) parts.push(`fold: ${action.fold}`);
   return `{ ${parts.join(', ')} }`;
+}
+
+/**
+ * Serializes a RangeStrategyNotes array to indented TypeScript literal.
+ */
+function formatStrategyNotes(notes: RangeStrategyNotes, indent = '    '): string {
+  if (!notes || notes.length === 0) return '[]';
+  const inner = indent + '  ';
+  const sections = notes.map((section) => {
+    const escapedHeading = section.heading.replace(/'/g, "\\'");
+    const bullets = section.bullets
+      .map((b) => `${inner}  '${b.replace(/'/g, "\\'")}'`)
+      .join(',\n');
+    const bulletsStr = section.bullets.length > 0
+      ? `[\n${bullets},\n${inner}]`
+      : '[]';
+    return `${inner}{\n${inner}  heading: '${escapedHeading}',\n${inner}  bullets: ${bulletsStr},\n${inner}}`;
+  });
+  return `[\n${sections.join(',\n')},\n${indent}]`;
 }
 
 /**
@@ -53,9 +66,9 @@ function generateRangeFileContent(
   opponent: string | undefined,
   caller: string | undefined,
   data: Record<string, HandAction>,
-  description?: string
+  description?: string,
+  strategyNotes?: NoteSection[]
 ): string {
-  // Build variable name
   let variableName = `${position.toLowerCase().replace('+', 'Plus')}`;
   if (opponent && scenario !== 'rfi') {
     variableName += `Vs${opponent.replace('+', 'Plus')}`;
@@ -64,34 +77,36 @@ function generateRangeFileContent(
     variableName += `And${caller.replace('+', 'Plus')}`;
   }
   variableName += `${stackSize}${scenario.charAt(0).toUpperCase() + scenario.slice(1).replace(/-/g, '')}`;
-  
+
   const displayName = getDisplayName(stackSize, position, scenario, opponent, caller);
 
   const dataEntries = Object.entries(data)
     .map(([hand, action]) => `  '${hand}': ${formatAction(action)},`)
     .join('\n');
 
-  // Build meta object with optional opponentPosition, callerPosition, and description
   const metaLines = [
     `    stackSize: '${stackSize}',`,
     `    position: '${position}',`,
     `    scenario: '${scenario}',`,
   ];
-  
+
   if (opponent && scenario !== 'rfi') {
     metaLines.push(`    opponentPosition: '${opponent}',`);
   }
-  
+
   if (caller && scenario === 'vs-raise-call') {
     metaLines.push(`    callerPosition: '${caller}',`);
   }
-  
+
   metaLines.push(`    displayName: '${displayName}',`);
-  
+
   if (description) {
-    // Escape single quotes and newlines in description
     const escapedDescription = description.replace(/'/g, "\\'").replace(/\n/g, '\\n');
     metaLines.push(`    description: '${escapedDescription}',`);
+  }
+
+  if (strategyNotes && strategyNotes.length > 0) {
+    metaLines.push(`    strategyNotes: ${formatStrategyNotes(strategyNotes)},`);
   }
 
   return `import type { PokerRange, RangeData } from '@/types';
@@ -123,79 +138,110 @@ function getDisplayName(stackSize: string, position: string, scenario: string, o
     'vs-raise-call': 'vs Raise + Call',
     'vs-3bet': 'vs 3-Bet',
   };
-  
-  // vs-raise-call: "80bb BTN vs UTG raise and HJ call"
+
   if (scenario === 'vs-raise-call' && opponent && caller) {
     return `${stackSize} ${position} vs ${opponent} raise and ${caller} call`;
   }
-  
+
   if (opponent && scenario !== 'rfi') {
     return `${stackSize} ${position} vs ${opponent} - ${scenarioNames[scenario] || scenario}`;
   }
-  
+
   return `${stackSize} ${position} - ${scenarioNames[scenario] || scenario}`;
+}
+
+function getRangeFilename(
+  stackSize: string,
+  position: string,
+  scenario: string,
+  opponent?: string,
+  caller?: string
+): string {
+  const positionSlug = position.toLowerCase().replace('+', 'plus');
+
+  if (scenario === 'vs-raise-call' && opponent && caller) {
+    const raiserSlug = opponent.toLowerCase().replace('+', 'plus');
+    const callerSlug = caller.toLowerCase().replace('+', 'plus');
+    return `${stackSize}-${positionSlug}-vs-${raiserSlug}-raise-${callerSlug}-call.ts`;
+  }
+
+  if (opponent && scenario !== 'rfi') {
+    const opponentSlug = opponent.toLowerCase().replace('+', 'plus');
+    return `${stackSize}-${positionSlug}-vs-${opponentSlug}-${scenario}.ts`;
+  }
+
+  return `${stackSize}-${positionSlug}-${scenario}.ts`;
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body: SaveRangeRequest = await request.json();
-    const { stackSize, position, scenario, opponent, caller, data, description } = body;
+    const { stackSize, position, scenario, opponent, caller, data, description, strategyNotes, copyNotesToMatching } = body;
 
-    // Validate required fields
     if (!stackSize || !position || !scenario || !data) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Validate all 169 hands are present
     const handCount = Object.keys(data).length;
     if (handCount !== 169) {
-      return NextResponse.json(
-        { error: `Expected 169 hands, got ${handCount}` },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: `Expected 169 hands, got ${handCount}` }, { status: 400 });
     }
 
-    // Generate filename based on scenario type
-    const positionSlug = position.toLowerCase().replace('+', 'plus');
-    let filename: string;
-    
-    if (scenario === 'vs-raise-call' && opponent && caller) {
-      // vs-raise-call: 80bb-btn-vs-utg-raise-hj-call.ts
-      const raiserSlug = opponent.toLowerCase().replace('+', 'plus');
-      const callerSlug = caller.toLowerCase().replace('+', 'plus');
-      filename = `${stackSize}-${positionSlug}-vs-${raiserSlug}-raise-${callerSlug}-call.ts`;
-    } else if (opponent && scenario !== 'rfi') {
-      const opponentSlug = opponent.toLowerCase().replace('+', 'plus');
-      filename = `${stackSize}-${positionSlug}-vs-${opponentSlug}-${scenario}.ts`;
-    } else {
-      filename = `${stackSize}-${positionSlug}-${scenario}.ts`;
-    }
-    
     const rangesDir = path.join(process.cwd(), 'data', 'ranges');
-    const filepath = path.join(rangesDir, filename);
-
-    // Ensure directory exists
     await mkdir(rangesDir, { recursive: true });
 
-    // Generate file content
-    const content = generateRangeFileContent(stackSize, position, scenario, opponent, caller, data, description);
-
-    // Write file
+    const filename = getRangeFilename(stackSize, position, scenario, opponent, caller);
+    const filepath = path.join(rangesDir, filename);
+    const content = generateRangeFileContent(stackSize, position, scenario, opponent, caller, data, description, strategyNotes);
     await writeFile(filepath, content, 'utf-8');
+
+    let copiedCount = 0;
+
+    if (copyNotesToMatching && strategyNotes && strategyNotes.length > 0) {
+      // Dynamically import RANGE_REGISTRY to find matching ranges
+      const { RANGE_REGISTRY } = await import('@/data/ranges');
+
+      for (const [, range] of Object.entries(RANGE_REGISTRY)) {
+        const meta = range.meta;
+        // Match on stackSize + scenario; skip the range we just saved
+        if (meta.stackSize !== stackSize || meta.scenario !== scenario) continue;
+
+        const matchFilename = getRangeFilename(
+          meta.stackSize,
+          meta.position,
+          meta.scenario,
+          meta.opponentPosition,
+          meta.callerPosition
+        );
+
+        // Skip the file we already wrote above
+        if (matchFilename === filename) continue;
+
+        const matchContent = generateRangeFileContent(
+          meta.stackSize,
+          meta.position,
+          meta.scenario,
+          meta.opponentPosition,
+          meta.callerPosition,
+          range.data as Record<string, HandAction>,
+          meta.description,
+          strategyNotes
+        );
+
+        const matchFilepath = path.join(rangesDir, matchFilename);
+        await writeFile(matchFilepath, matchContent, 'utf-8');
+        copiedCount++;
+      }
+    }
 
     return NextResponse.json({
       success: true,
       filename,
       filepath: `data/ranges/${filename}`,
+      copiedCount,
     });
   } catch (error) {
     console.error('Error saving range:', error);
-    return NextResponse.json(
-      { error: 'Failed to save range' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to save range' }, { status: 500 });
   }
 }

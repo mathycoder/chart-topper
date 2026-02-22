@@ -184,6 +184,31 @@ export const btn80bbRfi: PokerRange = {
     scenario: 'rfi',
     displayName: '80bb BTN - Raise First In',
     description: 'Exploitability: maximum equity realization; low domination risk',
+    strategyNotes: [
+      {
+        heading: 'RFI at 80bb or greater',
+        bullets: [
+        'As stacks get deeper, position matters more.',
+        'Early position, raise tighter.  Players left to act can wake up with a big hand IP.',
+        'Later position, raise wider.  ',
+        'These are linear ranges that get wider and wider',
+      ],
+      },
+      {
+        heading: 'Adjusting your strategy',
+        bullets: [
+        'Against tight players who rarely three-bet, you can raise wider than these ranges.',
+        'Against a wild card who has position on you and often raises you, tighten beyond this range',
+      ],
+      },
+      {
+        heading: 'Raise Amount',
+        bullets: [
+        '2.3bb',
+        'Don\'t open limp!',
+      ],
+      },
+    ],
   },
   data,
 };

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import type { SimpleAction, HandAction, BlendedAction } from '@/types';
+import type { SimpleAction, HandAction, BlendedAction, RangeStrategyNotes } from '@/types';
 import { isSimpleAction } from '@/types';
 import { useUrlState, useRangeSelections, usePainting } from '@/hooks';
 import { getRange } from '@/data/ranges';
@@ -11,6 +11,7 @@ import { ActionPalette } from './ActionPalette';
 import { RangeDropdowns } from './RangeDropdowns';
 import { BlendPicker } from './BlendPicker';
 import { MobileActionBar } from './MobileActionBar';
+import { NotesEditor } from './NotesEditor';
 
 /**
  * Builder Mode - Create and save poker ranges.
@@ -28,6 +29,8 @@ export function BuilderMode() {
   const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [existingRangeLoaded, setExistingRangeLoaded] = useState(initialRange !== null);
   const [description, setDescription] = useState(initialRange?.meta.description ?? '');
+  const [strategyNotes, setStrategyNotes] = useState<RangeStrategyNotes>(initialRange?.meta.strategyNotes ?? []);
+  const [copyNotesToMatching, setCopyNotesToMatching] = useState(false);
   
   // Blend picker state
   const [blendPickerOpen, setBlendPickerOpen] = useState(false);
@@ -108,11 +111,13 @@ export function BuilderMode() {
         loadSelections(existingRange.data as Record<string, HandAction>);
         setExistingRangeLoaded(true);
         setDescription(existingRange.meta.description ?? '');
+        setStrategyNotes(existingRange.meta.strategyNotes ?? []);
       } else {
         clearSelections();
         setExistingRangeLoaded(false);
         setSaveMessage(null);
         setDescription('');
+        setStrategyNotes([]);
       }
       
       prevParamsRef.current = { position, stackSize, scenario, opponent, caller };
@@ -141,13 +146,24 @@ export function BuilderMode() {
       const response = await fetch('/api/save-range', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stackSize, position, scenario, opponent, caller, data, description: description || undefined }),
+        body: JSON.stringify({
+          stackSize,
+          position,
+          scenario,
+          opponent,
+          caller,
+          data,
+          description: description || undefined,
+          strategyNotes: strategyNotes.length > 0 ? strategyNotes : undefined,
+          copyNotesToMatching: copyNotesToMatching && strategyNotes.length > 0,
+        }),
       });
 
       const result = await response.json();
 
       if (result.success) {
-        setSaveMessage({ type: 'success', text: `Saved to ${result.filepath}` });
+        const copied = result.copiedCount > 0 ? ` · notes copied to ${result.copiedCount} other range${result.copiedCount === 1 ? '' : 's'}` : '';
+        setSaveMessage({ type: 'success', text: `Saved to ${result.filepath}${copied}` });
         setExistingRangeLoaded(true);
       } else {
         setSaveMessage({ type: 'error', text: result.error || 'Failed to save' });
@@ -240,18 +256,27 @@ export function BuilderMode() {
                 )}
               </Card>
 
-              {/* Description */}
+              {/* Strategy Notes */}
               <Card>
-                <label className="text-sm font-semibold text-cream mb-2 block">
-                  Description
+                <label className="text-sm font-semibold text-cream mb-3 block">
+                  Strategy Notes
                 </label>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Strategy explanation for this range..."
-                  className="w-full px-3 py-2 text-sm text-cream bg-felt-elevated border border-felt-border rounded-lg focus:outline-none focus:ring-2 focus:ring-gold focus:border-transparent resize-none placeholder:text-cream-muted"
-                  rows={3}
-                />
+                <NotesEditor value={strategyNotes} onChange={setStrategyNotes} />
+
+                {/* Copy to matching ranges checkbox */}
+                {strategyNotes.length > 0 && (
+                  <label className="flex items-start gap-2 mt-3 pt-3 border-t border-felt-border cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={copyNotesToMatching}
+                      onChange={(e) => setCopyNotesToMatching(e.target.checked)}
+                      className="mt-0.5 rounded border-felt-border text-gold focus:ring-gold cursor-pointer"
+                    />
+                    <span className="text-xs text-cream-muted leading-snug">
+                      Copy notes to all {stackSize} {scenario} ranges on save
+                    </span>
+                  </label>
+                )}
               </Card>
 
               {/* Action buttons */}

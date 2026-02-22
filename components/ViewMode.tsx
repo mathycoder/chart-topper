@@ -204,36 +204,36 @@ export function ViewMode() {
                       </div>
                     )}
                   </div>
-                  {range?.meta.description && (
-                    <p className="mt-3 pt-3 border-t border-felt-border text-sm text-cream-muted italic">
-                      {range.meta.description}
-                    </p>
+                  {(range?.meta.strategyNotes?.length || range?.meta.description) && (
+                    <div className="mt-3 pt-3 border-t border-felt-border max-h-64 overflow-y-auto">
+                      {range?.meta.strategyNotes?.length ? (
+                        <div className="flex flex-col gap-3">
+                          {range.meta.strategyNotes.map((section, i) => (
+                            <div key={i}>
+                              {section.heading && (
+                                <p className="text-sm font-semibold text-cream mb-1">{section.heading}</p>
+                              )}
+                              {section.bullets.length > 0 && (
+                                <ul className="flex flex-col gap-0.5">
+                                  {section.bullets.filter(Boolean).map((bullet, bi) => (
+                                    <li key={bi} className="flex gap-2 text-sm text-cream-muted">
+                                      <span className="shrink-0 mt-0.5">•</span>
+                                      <span>{bullet}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-cream-muted italic">{range?.meta.description}</p>
+                      )}
+                    </div>
                   )}
                 </Card>
               )}
 
-              {/* Legend */}
-              <Card>
-                  <h3 className="text-sm font-semibold text-cream mb-3">Legend</h3>
-                  <div className="flex flex-col gap-2 text-sm">
-                    <div className="flex items-center gap-2">
-                      <div className="w-5 h-5 rounded bg-action-raise"></div>
-                      <span className="text-cream-muted">Raise / 3-Bet</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-5 h-5 rounded bg-action-call"></div>
-                      <span className="text-cream-muted">Call</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-5 h-5 rounded bg-action-fold"></div>
-                      <span className="text-cream-muted">Fold</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-5 h-5 rounded" style={{ background: 'linear-gradient(to right, var(--color-action-raise) 50%, var(--color-action-call) 50%)' }}></div>
-                      <span className="text-cream-muted">Mixed Strategy</span>
-                    </div>
-                  </div>
-              </Card>
             </div>
 
             {/* Right column - Grid */}

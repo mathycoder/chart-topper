@@ -5,6 +5,7 @@ import type { Scenario, SimpleAction, QuizAction, Position, StackSize, SpotDescr
 import { useUrlState, useQuizSelections, usePainting } from '@/hooks';
 import { getRange, getAvailableScenarios, getAvailablePositions, getAvailableOpponents, getAvailableCallers } from '@/data/ranges';
 import { getCategoryHandsAtOrAboveFloor, getCategoryForHand } from '@/data/hands';
+import { Lightbulb } from 'lucide-react';
 import { Card } from './shared';
 import { RangeChart } from './RangeChart';
 import { ActionPalette } from './ActionPalette';
@@ -12,6 +13,7 @@ import { ResultsSummary } from './ResultsSummary';
 import { MobileActionBar, deriveBlendType } from './MobileActionBar';
 import { MobileDropdownBar } from './MobileDropdownBar';
 import { SpotSelector } from './SpotSelector';
+import { NotesModal } from './NotesModal';
 import { gradeRangeSubmission, type ChartGradeSummary, type GradeAction } from '@/lib/gradeRange';
 
 /**
@@ -107,6 +109,7 @@ export function QuizMode() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [gradeSummary, setGradeSummary] = useState<ChartGradeSummary | null>(null);
   const [showCorrectAnswers, setShowCorrectAnswers] = useState(false);
+  const [showHints, setShowHints] = useState(false);
 
   // Action selection state
   const [selectedActions, setSelectedActions] = useState<Set<SimpleAction>>(new Set(['raise']));
@@ -395,6 +398,19 @@ export function QuizMode() {
           )}
           {/* Mobile Grid */}
           <div className="flex-1 p-1 relative">
+            {/* Hint button row (mobile) */}
+            {rangeExistsForDisplay && (range?.meta.strategyNotes?.length || range?.meta.description) && (
+              <div className="flex justify-end mb-1 px-1">
+                <button
+                  onClick={() => setShowHints(true)}
+                  className="flex items-center gap-1 text-xs text-cream-muted hover:text-cream transition-colors"
+                  title="View strategy notes"
+                >
+                  <Lightbulb className="w-3.5 h-3.5" />
+                  Hint
+                </button>
+              </div>
+            )}
             {/* Toggle between user answers and correct answers */}
             {isSubmitted && rangeExistsForDisplay && (
               <div className="flex justify-center mb-2">
@@ -565,6 +581,18 @@ export function QuizMode() {
               {isSubmitted && gradeSummary && (
                 <ResultsSummary gradeSummary={gradeSummary} rangeData={range?.data} />
               )}
+
+              {/* Hint button — only shown when notes exist */}
+              {rangeExistsForDisplay && (range?.meta.strategyNotes?.length || range?.meta.description) && (
+                <button
+                  onClick={() => setShowHints(true)}
+                  className="self-start flex items-center gap-1.5 text-xs text-cream-muted hover:text-cream transition-colors mt-1"
+                  title="View strategy notes"
+                >
+                  <Lightbulb className="w-3.5 h-3.5" />
+                  Hint
+                </button>
+              )}
             </div>
 
             {/* Right column - Grid */}
@@ -654,6 +682,15 @@ export function QuizMode() {
           showShove={true}
         />
       )}
+
+      {/* Hints Modal */}
+      <NotesModal
+        isOpen={showHints}
+        onClose={() => setShowHints(false)}
+        strategyNotes={range?.meta.strategyNotes}
+        description={range?.meta.description}
+        title={range?.meta.displayName}
+      />
 
     </>
   );
