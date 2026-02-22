@@ -150,6 +150,22 @@ import range25bbBTNVsLJRaiseCoCall from './25bb-btn-vs-lj-raise-co-call'
 import range25bbSBVsCoRaiseBtnCall from './25bb-sb-vs-co-raise-btn-call' 
 import range25bbSBVsLJRaiseCOCall from './25bb-sb-vs-lj-raise-co-call' 
 
+// vs 3-bet ranges
+import range25bbUtgVsUtgPlus1Vs3bet from './25bb-utg-vs-utgplus1-vs-3bet';
+import range25bbUtgVsHjVs3bet from './25bb-utg-vs-hj-vs-3bet';
+import range25bbUtgVsBtnVs3bet from './25bb-utg-vs-btn-vs-3bet';
+import range25bbUtgVsSbVs3bet from './25bb-utg-vs-sb-vs-3bet';
+import range25bbUtgVsBbVs3bet from './25bb-utg-vs-bb-vs-3bet';
+import range25bbLjVsHjVs3bet from './25bb-lj-vs-hj-vs-3bet';
+import range25bbLjVsBtnVs3bet from './25bb-lj-vs-btn-vs-3bet';
+import range25bbLjVsSbVs3bet from './25bb-lj-vs-sb-vs-3bet';
+import range25bbLjVsBbVs3bet from './25bb-lj-vs-bb-vs-3bet';
+import range25bbCoVsBtnVs3bet from './25bb-co-vs-btn-vs-3bet';
+import range25bbCoVsSbVs3bet from './25bb-co-vs-sb-vs-3bet';
+import range25bbCoVsBbVs3bet from './25bb-co-vs-bb-vs-3bet';
+import range25bbBtnVsSbVs3bet from './25bb-btn-vs-sb-vs-3bet';
+import range25bbBtnVsBbVs3bet from './25bb-btn-vs-bb-vs-3bet';
+
 ////////////////////////////////////////////////////////////
 // 15bb+ ranges
 ////////////////////////////////////////////////////////////
@@ -383,6 +399,22 @@ const RANGE_REGISTRY: Record<string, PokerRange> = {
   '25bb-btn-vs-lj-raise-co-call': range25bbBTNVsLJRaiseCoCall, 
   '25bb-sb-vs-co-raise-btn-call': range25bbSBVsCoRaiseBtnCall, 
   '25bb-sb-vs-lj-raise-co-call': range25bbSBVsLJRaiseCOCall, 
+
+    // vs 3-bet ranges 
+    '25bb-utg-vs-utgplus1-vs-3bet': range25bbUtgVsUtgPlus1Vs3bet,
+    '25bb-utg-vs-hj-vs-3bet': range25bbUtgVsHjVs3bet,
+    '25bb-utg-vs-btn-vs-3bet': range25bbUtgVsBtnVs3bet,
+    '25bb-utg-vs-sb-vs-3bet': range25bbUtgVsSbVs3bet,
+    '25bb-utg-vs-bb-vs-3bet': range25bbUtgVsBbVs3bet,
+    '25bb-lj-vs-hj-vs-3bet': range25bbLjVsHjVs3bet,
+    '25bb-lj-vs-btn-vs-3bet': range25bbLjVsBtnVs3bet,
+    '25bb-lj-vs-sb-vs-3bet': range25bbLjVsSbVs3bet,
+    '25bb-lj-vs-bb-vs-3bet': range25bbLjVsBbVs3bet,
+    '25bb-co-vs-btn-vs-3bet': range25bbCoVsBtnVs3bet,
+    '25bb-co-vs-sb-vs-3bet': range25bbCoVsSbVs3bet,
+    '25bb-co-vs-bb-vs-3bet': range25bbCoVsBbVs3bet,
+    '25bb-btn-vs-sb-vs-3bet': range25bbBtnVsSbVs3bet,
+    '25bb-btn-vs-bb-vs-3bet': range25bbBtnVsBbVs3bet,
 
   ////////////////////////////////////////////////////////////
   // 15bb ranges
