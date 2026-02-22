@@ -122,6 +122,22 @@ import range25bbHjRfi from './25bb-hj-RFI';
 import range25bbCoRfi from './25bb-co-RFI';
 import range25bbBtnRfi from './25bb-btn-RFI';
 
+// vs raise ranges 
+import range25bbUtgPlus1VsUtgVsRaise from './25bb-utgplus1-vs-utg-vs-raise';
+import range25bbHjVsUtgVsRaise from './25bb-hj-vs-utg-vs-raise';
+import range25bbHjVsLjVsRaise from './25bb-hj-vs-lj-vs-raise';
+import range25bbBtnVsUtgVsRaise from './25bb-btn-vs-utg-vs-raise';
+import range25bbBtnVsLjVsRaise from './25bb-btn-vs-lj-vs-raise';
+import range25bbBtnVsCoVsRaise from './25bb-btn-vs-co-vs-raise';
+import range25bbSbVsUtgVsRaise from './25bb-sb-vs-utg-vs-raise';
+import range25bbSbVsLjVsRaise from './25bb-sb-vs-lj-vs-raise';
+import range25bbSbVsCoVsRaise from './25bb-sb-vs-co-vs-raise';
+import range25bbSbVsBtnVsRaise from './25bb-sb-vs-btn-vs-raise';
+import range25bbBbVsUtgVsRaise from './25bb-bb-vs-utg-vs-raise';
+import range25bbBbVsLjVsRaise from './25bb-bb-vs-lj-vs-raise';
+import range25bbBbVsBtnVsRaise from './25bb-bb-vs-btn-vs-raise';
+import range25bbBbVsCoVsRaise from './25bb-bb-vs-co-vs-raise';
+
 ////////////////////////////////////////////////////////////
 // 15bb+ ranges
 ////////////////////////////////////////////////////////////
@@ -316,13 +332,33 @@ const RANGE_REGISTRY: Record<string, PokerRange> = {
   '50bb-btn-vs-sb-vs-3bet': range50bbBtnVsSbVs3bet,
   '50bb-btn-vs-bb-vs-3bet': range50bbBtnVsBbVs3bet,
 
+  ////////////////////////////////////////////////////////////
   // 25bb+ ranges
+  ////////////////////////////////////////////////////////////
+
+  // RFI ranges
   '25bb-utg-rfi': range25bbUtgRfi,
   '25bb-utgplus1-rfi': range25bbUtgPlus1Rfi,
   '25bb-lj-rfi': range25bbLjRfi,
   '25bb-hj-rfi': range25bbHjRfi,
   '25bb-co-rfi': range25bbCoRfi,
   '25bb-btn-rfi': range25bbBtnRfi,
+
+  // vs Raise ranges
+  '25bb-utgplus1-vs-utg-vs-raise': range25bbUtgPlus1VsUtgVsRaise,
+  '25bb-hj-vs-utg-vs-raise': range25bbHjVsUtgVsRaise,
+  '25bb-hj-vs-lj-vs-raise': range25bbHjVsLjVsRaise,
+  '25bb-btn-vs-utg-vs-raise': range25bbBtnVsUtgVsRaise,
+  '25bb-btn-vs-lj-vs-raise': range25bbBtnVsLjVsRaise,
+  '25bb-btn-vs-co-vs-raise': range25bbBtnVsCoVsRaise,
+  '25bb-sb-vs-utg-vs-raise': range25bbSbVsUtgVsRaise,
+  '25bb-sb-vs-lj-vs-raise': range25bbSbVsLjVsRaise,
+  '25bb-sb-vs-co-vs-raise': range25bbSbVsCoVsRaise,
+  '25bb-bb-vs-utg-vs-raise': range25bbBbVsUtgVsRaise,
+  '25bb-bb-vs-lj-vs-raise': range25bbBbVsLjVsRaise,
+  '25bb-bb-vs-btn-vs-raise': range25bbBbVsBtnVsRaise,
+  '25bb-bb-vs-co-vs-raise': range25bbBbVsCoVsRaise,
+  '25bb-sb-vs-btn-vs-raise': range25bbSbVsBtnVsRaise,
 
   // 15bb+ ranges
   '15bb-utg-rfi': range15bbUtgRfi,
@@ -355,7 +391,7 @@ const RANGE_REGISTRY: Record<string, PokerRange> = {
   '10bb-bb-vs-co-vs-raise': range10bbBbVsCoVsRaise,
   '10bb-sb-vs-btn-vs-raise': range10bbSbVsBtnVsRaise,
   '10bb-bb-vs-btn-vs-raise': range10bbBbVsBtnVsRaise,
-  
+
   // 5bb+ ranges
   '5bb-utg-rfi': range5bbUtgRfi,
   '5bb-utgplus1-rfi': range5bbUtgPlus1Rfi,
