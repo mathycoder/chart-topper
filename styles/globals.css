@@ -129,12 +129,12 @@
   --color-action-raise: #e06070;
   --color-action-call: #50c488;
   --color-action-fold: #5090d8;
-  --color-action-shove: #c83030;
+  --color-action-shove: #7c3090;
   --color-action-black: #d8d0c4;
   --color-action-raise-hover: #c84858;
   --color-action-call-hover: #38aa70;
   --color-action-fold-hover: #3878c8;
-  --color-action-shove-hover: #a82020;
+  --color-action-shove-hover: #6a2080;
   --color-action-black-hover: #c8bfb0;
 
   --color-cell-empty: #ede8e0;
