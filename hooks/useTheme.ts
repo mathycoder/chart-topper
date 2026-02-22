@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 
-export type Theme = 'felt' | 'classic';
+export type Theme = 'felt' | 'classic' | 'lounge' | 'midnight' | 'chalk' | 'watercolor' | 'marker';
 
 const STORAGE_KEY = 'chart-topper-theme';
 
@@ -15,12 +15,10 @@ export function useTheme() {
     const stored = localStorage.getItem(STORAGE_KEY) as Theme | null;
 
     // URL param wins over localStorage; both fall back to 'felt'
-    const initial: Theme =
-      urlTheme === 'classic' || urlTheme === 'felt'
-        ? urlTheme
-        : stored === 'classic'
-          ? 'classic'
-          : 'felt';
+    const isValid = (v: string | null): v is Theme =>
+      v === 'felt' || v === 'classic' || v === 'lounge' || v === 'midnight' || v === 'chalk' || v === 'watercolor' || v === 'marker';
+
+    const initial: Theme = isValid(urlTheme) ? urlTheme : isValid(stored) ? stored : 'felt';
 
     setThemeState(initial);
     applyTheme(initial);
@@ -39,10 +37,10 @@ export function useTheme() {
 }
 
 function applyTheme(theme: Theme) {
-  if (theme === 'classic') {
-    document.documentElement.setAttribute('data-theme', 'classic');
-  } else {
+  if (theme === 'felt') {
     document.documentElement.removeAttribute('data-theme');
+  } else {
+    document.documentElement.setAttribute('data-theme', theme);
   }
 }
 

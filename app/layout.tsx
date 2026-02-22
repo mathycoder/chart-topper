@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import "@/styles/globals.css";
@@ -25,12 +25,13 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
     title: "Chart Topper",
   },
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
-  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 function NavigationFallback() {
@@ -54,7 +55,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         {/* Blocking script: applies theme before first paint to prevent flash */}
-        <script dangerouslySetInnerHTML={{ __html: `(function(){try{var p=new URLSearchParams(window.location.search);var t=p.get('theme');if(t!=='classic'&&t!=='felt')t=localStorage.getItem('chart-topper-theme');if(t==='classic')document.documentElement.setAttribute('data-theme','classic');}catch(e){}})();` }} />
+        <script dangerouslySetInnerHTML={{ __html: `(function(){try{var p=new URLSearchParams(window.location.search);var t=p.get('theme');var valid=['felt','classic','lounge','midnight','chalk','watercolor','marker'];if(valid.indexOf(t)<0)t=localStorage.getItem('chart-topper-theme');if(t&&t!=='felt'&&valid.indexOf(t)>=0)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();` }} />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}

@@ -22,6 +22,36 @@ const THEMES: { value: Theme; label: string; description: string; preview: strin
     preview: '#0a1f14',
   },
   {
+    value: 'lounge',
+    label: 'Lounge',
+    description: 'Warm bourbon speakeasy',
+    preview: '#1f1208',
+  },
+  {
+    value: 'midnight',
+    label: 'Midnight',
+    description: 'Deep navy high-stakes',
+    preview: '#0d1b2e',
+  },
+  {
+    value: 'chalk',
+    label: 'Chalk',
+    description: 'Blackboard study session',
+    preview: '#faf6f0',
+  },
+  {
+    value: 'marker',
+    label: 'Marker',
+    description: 'Bold whiteboard strokes',
+    preview: '#ffffff',
+  },
+  {
+    value: 'watercolor',
+    label: 'Watercolor',
+    description: 'Soft washed parchment',
+    preview: '#f0e8de',
+  },
+  {
     value: 'classic',
     label: 'Classic',
     description: 'Clean & minimal',
