@@ -126,14 +126,14 @@ function getDisplayName(stackSize: string, position: string, scenario: string, o
   
   // vs-raise-call: "80bb BTN vs UTG raise and HJ call"
   if (scenario === 'vs-raise-call' && opponent && caller) {
-    return `${stackSize}+ ${position} vs ${opponent} raise and ${caller} call`;
+    return `${stackSize} ${position} vs ${opponent} raise and ${caller} call`;
   }
   
   if (opponent && scenario !== 'rfi') {
-    return `${stackSize}+ ${position} vs ${opponent} - ${scenarioNames[scenario] || scenario}`;
+    return `${stackSize} ${position} vs ${opponent} - ${scenarioNames[scenario] || scenario}`;
   }
   
-  return `${stackSize}+ ${position} - ${scenarioNames[scenario] || scenario}`;
+  return `${stackSize} ${position} - ${scenarioNames[scenario] || scenario}`;
 }
 
 export async function POST(request: NextRequest) {
