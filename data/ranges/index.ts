@@ -138,6 +138,18 @@ import range25bbBbVsLjVsRaise from './25bb-bb-vs-lj-vs-raise';
 import range25bbBbVsBtnVsRaise from './25bb-bb-vs-btn-vs-raise';
 import range25bbBbVsCoVsRaise from './25bb-bb-vs-co-vs-raise';
 
+// vs Raise + Call ranges (3-way pots) 
+import range25bbBBVsUtgRaiseLjCall from './25bb-bb-vs-utg-raise-lj-call'
+import range25bbBTNVsUtgRaiseLjCall from './25bb-btn-vs-utg-raise-lj-call'
+import range25bbHJVsUtgRaiseLjCall from './25bb-hj-vs-utg-raise-lj-call'
+import range25bbSBVsUtgRaiseLjCall from './25bb-sb-vs-utg-raise-lj-call'
+import range25bbBBVsBtnRaiseSbCall from './25bb-bb-vs-btn-raise-sb-call'
+import range25bbBBVsCORaiseBtnCall from './25bb-bb-vs-co-raise-btn-call' 
+import range25bbBBVsLJRaiseCoCall from './25bb-bb-vs-lj-raise-co-call' 
+import range25bbBTNVsLJRaiseCoCall from './25bb-btn-vs-lj-raise-co-call'  
+import range25bbSBVsCoRaiseBtnCall from './25bb-sb-vs-co-raise-btn-call' 
+import range25bbSBVsLJRaiseCOCall from './25bb-sb-vs-lj-raise-co-call' 
+
 ////////////////////////////////////////////////////////////
 // 15bb+ ranges
 ////////////////////////////////////////////////////////////
@@ -360,7 +372,21 @@ const RANGE_REGISTRY: Record<string, PokerRange> = {
   '25bb-bb-vs-co-vs-raise': range25bbBbVsCoVsRaise,
   '25bb-sb-vs-btn-vs-raise': range25bbSbVsBtnVsRaise,
 
-  // 15bb+ ranges
+  // vs Raise + Call ranges (3-way pots)
+  '25bb-bb-vs-utg-raise-lj-call': range25bbBBVsUtgRaiseLjCall,
+  '25bb-btn-vs-utg-raise-lj-call': range25bbBTNVsUtgRaiseLjCall,
+  '25bb-hj-vs-utg-raise-lj-call': range25bbHJVsUtgRaiseLjCall,
+  '25bb-sb-vs-utg-raise-lj-call': range25bbSBVsUtgRaiseLjCall,
+  '25bb-bb-vs-btn-raise-sb-call': range25bbBBVsBtnRaiseSbCall, 
+  '25bb-bb-vs-co-raise-btn-call': range25bbBBVsCORaiseBtnCall, 
+  '25bb-bb-vs-lj-raise-co-call': range25bbBBVsLJRaiseCoCall, 
+  '25bb-btn-vs-lj-raise-co-call': range25bbBTNVsLJRaiseCoCall, 
+  '25bb-sb-vs-co-raise-btn-call': range25bbSBVsCoRaiseBtnCall, 
+  '25bb-sb-vs-lj-raise-co-call': range25bbSBVsLJRaiseCOCall, 
+
+  ////////////////////////////////////////////////////////////
+  // 15bb ranges
+  ////////////////////////////////////////////////////////////
   '15bb-utg-rfi': range15bbUtgRfi,
   '15bb-utgplus1-rfi': range15bbUtgPlus1Rfi,
   '15bb-lj-rfi': range15bbLjRfi,
