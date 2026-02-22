@@ -81,6 +81,22 @@ import range50SBVsCOVsRaise from './50bb-sb-vs-co-vs-raise';
 import range50SbVsLJVsRaise from './50bb-sb-vs-lj-vs-raise';
 import range50SbVsUTGVsRaise from './50bb-sb-vs-utg-vs-raise';
 import range50UTGPlus1VsUTGVsRaise from './50bb-utgplus1-vs-utg-vs-raise';
+
+// vs 3-bet ranges 
+import range50bbUtgVsUtgPlus1Vs3bet from './50bb-utg-vs-utgplus1-vs-3bet';
+import range50bbUtgVsHjVs3bet from './50bb-utg-vs-hj-vs-3bet';
+import range50bbUtgVsBtnVs3bet from './50bb-utg-vs-btn-vs-3bet';
+import range50bbUtgVsSbVs3bet from './50bb-utg-vs-sb-vs-3bet';
+import range50bbUtgVsBbVs3bet from './50bb-utg-vs-bb-vs-3bet';
+import range50bbLjVsHjVs3bet from './50bb-lj-vs-hj-vs-3bet';
+import range50bbLjVsBtnVs3bet from './50bb-lj-vs-btn-vs-3bet';
+import range50bbLjVsSbVs3bet from './50bb-lj-vs-sb-vs-3bet';
+import range50bbLjVsBbVs3bet from './50bb-lj-vs-bb-vs-3bet';
+import range50bbCoVsBtnVs3bet from './50bb-co-vs-btn-vs-3bet';
+import range50bbCoVsSbVs3bet from './50bb-co-vs-sb-vs-3bet';
+import range50bbCoVsBbVs3bet from './50bb-co-vs-bb-vs-3bet';
+import range50bbBtnVsSbVs3bet from './50bb-btn-vs-sb-vs-3bet';
+import range50bbBtnVsBbVs3bet from './50bb-btn-vs-bb-vs-3bet';
  
 // vs Raise + Call ranges (3-way pots) 
 import range50BBVsUtgRaiseLjCall from './50bb-bb-vs-utg-raise-lj-call'
@@ -247,6 +263,7 @@ const RANGE_REGISTRY: Record<string, PokerRange> = {
   ////////////////////////////////////////////////////////////
   // 50bb+ ranges
   ////////////////////////////////////////////////////////////
+
   // RFI
   '50bb-utg-rfi': range50bbUtgRfi,
   '50bb-utgplus1-rfi': range50bbUtgPlus1Rfi,
@@ -254,6 +271,7 @@ const RANGE_REGISTRY: Record<string, PokerRange> = {
   '50bb-hj-rfi': range50bbHjRfi,
   '50bb-co-rfi': range50bbCoRfi,
   '50bb-btn-rfi': range50bbBtnRfi,
+
   // vs Raise
   '50bb-bb-vs-btn-vs-raise': range50BBVsBTNVsRaise,
   '50bb-bb-vs-co-vs-raise': range50BBVsCOVsRaise,
@@ -269,6 +287,7 @@ const RANGE_REGISTRY: Record<string, PokerRange> = {
   '50bb-sb-vs-lj-vs-raise': range50SbVsLJVsRaise,
   '50bb-sb-vs-utg-vs-raise': range50SbVsUTGVsRaise,
   '50bb-utgplus1-vs-utg-vs-raise': range50UTGPlus1VsUTGVsRaise,
+
   // vs Raise and Call
   '50bb-bb-vs-utg-raise-lj-call': range50BBVsUtgRaiseLjCall,
   '50bb-btn-vs-utg-raise-lj-call': range50BTNVsUtgRaiseLjCall,
@@ -280,6 +299,22 @@ const RANGE_REGISTRY: Record<string, PokerRange> = {
   '50bb-btn-vs-lj-raise-co-call': range50BTNVsLJRaiseCoCall, 
   '50bb-sb-vs-co-raise-btn-call': range50SBVsCoRaiseBtnCall, 
   '50bb-sb-vs-lj-raise-co-call': range50SBVsLJRaiseCOCall, 
+
+  // vs 3-bet ranges 
+  '50bb-utg-vs-utgplus1-vs-3bet': range50bbUtgVsUtgPlus1Vs3bet,
+  '50bb-utg-vs-hj-vs-3bet': range50bbUtgVsHjVs3bet,
+  '50bb-utg-vs-btn-vs-3bet': range50bbUtgVsBtnVs3bet,
+  '50bb-utg-vs-sb-vs-3bet': range50bbUtgVsSbVs3bet,
+  '50bb-utg-vs-bb-vs-3bet': range50bbUtgVsBbVs3bet,
+  '50bb-lj-vs-hj-vs-3bet': range50bbLjVsHjVs3bet,
+  '50bb-lj-vs-btn-vs-3bet': range50bbLjVsBtnVs3bet,
+  '50bb-lj-vs-sb-vs-3bet': range50bbLjVsSbVs3bet,
+  '50bb-lj-vs-bb-vs-3bet': range50bbLjVsBbVs3bet,
+  '50bb-co-vs-btn-vs-3bet': range50bbCoVsBtnVs3bet,
+  '50bb-co-vs-sb-vs-3bet': range50bbCoVsSbVs3bet,
+  '50bb-co-vs-bb-vs-3bet': range50bbCoVsBbVs3bet,
+  '50bb-btn-vs-sb-vs-3bet': range50bbBtnVsSbVs3bet,
+  '50bb-btn-vs-bb-vs-3bet': range50bbBtnVsBbVs3bet,
 
   // 25bb+ ranges
   '25bb-utg-rfi': range25bbUtgRfi,
@@ -304,6 +339,7 @@ const RANGE_REGISTRY: Record<string, PokerRange> = {
   '10bb-hj-rfi': range10bbHjRfi,
   '10bb-co-rfi': range10bbCoRfi,
   '10bb-btn-rfi': range10bbBtnRfi,
+
   // vs Raise ranges 
   '10bb-utgplus1-vs-utg-vs-raise': range10bbUtgPlus1VsUtgVsRaise,
   '10bb-hj-vs-utg-vs-raise': range10bbHjVsUtgVsRaise,
@@ -319,6 +355,7 @@ const RANGE_REGISTRY: Record<string, PokerRange> = {
   '10bb-bb-vs-co-vs-raise': range10bbBbVsCoVsRaise,
   '10bb-sb-vs-btn-vs-raise': range10bbSbVsBtnVsRaise,
   '10bb-bb-vs-btn-vs-raise': range10bbBbVsBtnVsRaise,
+  
   // 5bb+ ranges
   '5bb-utg-rfi': range5bbUtgRfi,
   '5bb-utgplus1-rfi': range5bbUtgPlus1Rfi,
