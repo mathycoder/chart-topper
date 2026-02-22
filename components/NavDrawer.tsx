@@ -188,7 +188,7 @@ export function NavDrawer({
                 >
                   {/* Color swatch */}
                   <div
-                    className="w-8 h-8 rounded-md shrink-0 border border-felt-border shadow-sm"
+                    className="w-8 h-8 shrink-0 border border-felt-border shadow-sm"
                     style={{ backgroundColor: preview }}
                   />
                   <div className="flex flex-col">

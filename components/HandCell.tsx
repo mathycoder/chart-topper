@@ -309,7 +309,7 @@ export function HandCell({
         <>
           {isSimpleAction(overlayAction) ? (
             <div
-              className="absolute inset-0 rounded-sm pointer-events-none"
+              className="absolute inset-0 pointer-events-none"
               style={{
                 backgroundColor: ACTION_COLORS[overlayAction as keyof typeof ACTION_COLORS] ?? ACTION_COLORS.fold,
                 opacity: 0.65,
@@ -318,12 +318,12 @@ export function HandCell({
             />
           ) : (
             <div
-              className="absolute inset-0 rounded-sm pointer-events-none"
+              className="absolute inset-0 pointer-events-none"
               style={{ background: buildBlendedGradient(overlayAction), opacity: 0.65 }}
               aria-hidden
             />
           )}
-          <div className="absolute inset-0 rounded-sm bg-black/35 pointer-events-none" aria-hidden />
+          <div className="absolute inset-0 bg-black/35 pointer-events-none" aria-hidden />
         </>
       )}
       {/* Delta Mode dim overlay: white wash to show start range in lighter colors */}
@@ -333,7 +333,7 @@ export function HandCell({
       {/* Category preview floor: gentle pulsing overlay */}
       {isCategoryPreviewFloor && (
         <div
-          className="absolute inset-0 rounded-sm bg-amber-400/30 pointer-events-none animate-pulse"
+          className="absolute inset-0 bg-amber-400/30 pointer-events-none animate-pulse"
           aria-hidden
         />
       )}
