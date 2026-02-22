@@ -177,6 +177,22 @@ import range15bbHjRfi from './15bb-hj-RFI';
 import range15bbCoRfi from './15bb-co-RFI';
 import range15bbBtnRfi from './15bb-btn-RFI';
 
+// vs Raise ranges 
+import range15bbUtgPlus1VsUtgVsRaise from './15bb-utgplus1-vs-utg-vs-raise';
+import range15bbHjVsUtgVsRaise from './15bb-hj-vs-utg-vs-raise';
+import range15bbBtnVsUtgVsRaise from './15bb-btn-vs-utg-vs-raise';
+import range15bbSbVsUtgVsRaise from './15bb-sb-vs-utg-vs-raise';
+import range15bbBbVsUtgVsRaise from './15bb-bb-vs-utg-vs-raise';
+import range15bbHjVsLjVsRaise from './15bb-hj-vs-lj-vs-raise';
+import range15bbBtnVsLjVsRaise from './15bb-btn-vs-lj-vs-raise';
+import range15bbSbVsLjVsRaise from './15bb-sb-vs-lj-vs-raise';
+import range15bbBbVsLjVsRaise from './15bb-bb-vs-lj-vs-raise';
+import range15bbBtnVsCoVsRaise from './15bb-btn-vs-co-vs-raise';
+import range15bbSbVsCoVsRaise from './15bb-sb-vs-co-vs-raise';
+import range15bbBbVsCoVsRaise from './15bb-bb-vs-co-vs-raise';
+import range15bbSbVsBtnVsRaise from './15bb-sb-vs-btn-vs-raise';
+import range15bbBbVsBtnVsRaise from './15bb-bb-vs-btn-vs-raise';
+
 ////////////////////////////////////////////////////////////
 // 10bb+ ranges
 ////////////////////////////////////////////////////////////
@@ -187,6 +203,7 @@ import range10bbLjRfi from './10bb-lj-RFI';
 import range10bbHjRfi from './10bb-hj-RFI';
 import range10bbCoRfi from './10bb-co-RFI';
 import range10bbBtnRfi from './10bb-btn-RFI';
+
 // vs Raise ranges 
 import range10bbUtgPlus1VsUtgVsRaise from './10bb-utgplus1-vs-utg-vs-raise';
 import range10bbHjVsUtgVsRaise from './10bb-hj-vs-utg-vs-raise';
@@ -400,25 +417,27 @@ const RANGE_REGISTRY: Record<string, PokerRange> = {
   '25bb-sb-vs-co-raise-btn-call': range25bbSBVsCoRaiseBtnCall, 
   '25bb-sb-vs-lj-raise-co-call': range25bbSBVsLJRaiseCOCall, 
 
-    // vs 3-bet ranges 
-    '25bb-utg-vs-utgplus1-vs-3bet': range25bbUtgVsUtgPlus1Vs3bet,
-    '25bb-utg-vs-hj-vs-3bet': range25bbUtgVsHjVs3bet,
-    '25bb-utg-vs-btn-vs-3bet': range25bbUtgVsBtnVs3bet,
-    '25bb-utg-vs-sb-vs-3bet': range25bbUtgVsSbVs3bet,
-    '25bb-utg-vs-bb-vs-3bet': range25bbUtgVsBbVs3bet,
-    '25bb-lj-vs-hj-vs-3bet': range25bbLjVsHjVs3bet,
-    '25bb-lj-vs-btn-vs-3bet': range25bbLjVsBtnVs3bet,
-    '25bb-lj-vs-sb-vs-3bet': range25bbLjVsSbVs3bet,
-    '25bb-lj-vs-bb-vs-3bet': range25bbLjVsBbVs3bet,
-    '25bb-co-vs-btn-vs-3bet': range25bbCoVsBtnVs3bet,
-    '25bb-co-vs-sb-vs-3bet': range25bbCoVsSbVs3bet,
-    '25bb-co-vs-bb-vs-3bet': range25bbCoVsBbVs3bet,
-    '25bb-btn-vs-sb-vs-3bet': range25bbBtnVsSbVs3bet,
-    '25bb-btn-vs-bb-vs-3bet': range25bbBtnVsBbVs3bet,
+  // vs 3-bet ranges 
+  '25bb-utg-vs-utgplus1-vs-3bet': range25bbUtgVsUtgPlus1Vs3bet,
+  '25bb-utg-vs-hj-vs-3bet': range25bbUtgVsHjVs3bet,
+  '25bb-utg-vs-btn-vs-3bet': range25bbUtgVsBtnVs3bet,
+  '25bb-utg-vs-sb-vs-3bet': range25bbUtgVsSbVs3bet,
+  '25bb-utg-vs-bb-vs-3bet': range25bbUtgVsBbVs3bet,
+  '25bb-lj-vs-hj-vs-3bet': range25bbLjVsHjVs3bet,
+  '25bb-lj-vs-btn-vs-3bet': range25bbLjVsBtnVs3bet,
+  '25bb-lj-vs-sb-vs-3bet': range25bbLjVsSbVs3bet,
+  '25bb-lj-vs-bb-vs-3bet': range25bbLjVsBbVs3bet,
+  '25bb-co-vs-btn-vs-3bet': range25bbCoVsBtnVs3bet,
+  '25bb-co-vs-sb-vs-3bet': range25bbCoVsSbVs3bet,
+  '25bb-co-vs-bb-vs-3bet': range25bbCoVsBbVs3bet,
+  '25bb-btn-vs-sb-vs-3bet': range25bbBtnVsSbVs3bet,
+  '25bb-btn-vs-bb-vs-3bet': range25bbBtnVsBbVs3bet,
 
   ////////////////////////////////////////////////////////////
   // 15bb ranges
   ////////////////////////////////////////////////////////////
+
+  // RFI ranges
   '15bb-utg-rfi': range15bbUtgRfi,
   '15bb-utgplus1-rfi': range15bbUtgPlus1Rfi,
   '15bb-lj-rfi': range15bbLjRfi,
@@ -426,7 +445,27 @@ const RANGE_REGISTRY: Record<string, PokerRange> = {
   '15bb-co-rfi': range15bbCoRfi,
   '15bb-btn-rfi': range15bbBtnRfi,
 
-  // 10bb+ ranges
+  // vs Raise ranges
+  '15bb-utgplus1-vs-utg-vs-raise': range15bbUtgPlus1VsUtgVsRaise,
+  '15bb-hj-vs-utg-vs-raise': range15bbHjVsUtgVsRaise,
+  '15bb-hj-vs-lj-vs-raise': range15bbHjVsLjVsRaise,
+  '15bb-btn-vs-utg-vs-raise': range15bbBtnVsUtgVsRaise,
+  '15bb-btn-vs-lj-vs-raise': range15bbBtnVsLjVsRaise,
+  '15bb-btn-vs-co-vs-raise': range15bbBtnVsCoVsRaise,
+  '15bb-sb-vs-utg-vs-raise': range15bbSbVsUtgVsRaise,
+  '15bb-sb-vs-lj-vs-raise': range15bbSbVsLjVsRaise,
+  '15bb-sb-vs-co-vs-raise': range15bbSbVsCoVsRaise,
+  '15bb-bb-vs-utg-vs-raise': range15bbBbVsUtgVsRaise,
+  '15bb-bb-vs-lj-vs-raise': range15bbBbVsLjVsRaise,
+  '15bb-bb-vs-btn-vs-raise': range15bbBbVsBtnVsRaise,
+  '15bb-bb-vs-co-vs-raise': range15bbBbVsCoVsRaise,
+  '15bb-sb-vs-btn-vs-raise': range15bbSbVsBtnVsRaise,
+
+  ////////////////////////////////////////////////////////////
+  // 10bb ranges
+  ////////////////////////////////////////////////////////////
+
+  // RFI ranges
   '10bb-utg-rfi': range10bbUtgRfi,
   '10bb-utgplus1-rfi': range10bbUtgPlus1Rfi,
   '10bb-lj-rfi': range10bbLjRfi,
