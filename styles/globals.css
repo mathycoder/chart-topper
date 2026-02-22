@@ -110,34 +110,6 @@
   --color-cell-empty: #f5f5f5;
 }
 
-/* Watercolor theme overrides — applied when <html data-theme="watercolor"> */
-[data-theme="watercolor"] {
-  --background: #f8f4ee;
-  --foreground: #2e241a;
-
-  --color-felt-bg: #f8f4ee;
-  --color-felt-surface: #f0e8de;
-  --color-felt-elevated: #e4d8ca;
-  --color-felt-border: #cec0ae;
-  --color-felt-muted: #b8a892;
-  --color-gold: #9bbcc8;
-  --color-gold-hover: #88aab8;
-  --color-cream: #2e241a;
-  --color-cream-muted: #8c7a68;
-
-  --color-action-raise: #d48090;
-  --color-action-call: #78b898;
-  --color-action-fold: #7898c8;
-  --color-action-shove: #c05050;
-  --color-action-black: #d8cfc0;
-  --color-action-raise-hover: #c07080;
-  --color-action-call-hover: #60a080;
-  --color-action-fold-hover: #6080b8;
-  --color-action-shove-hover: #a03838;
-  --color-action-black-hover: #c8bfae;
-
-  --color-cell-empty: #ece4d8;
-}
 
 /* Chalk (blackboard) theme overrides — applied when <html data-theme="chalk"> */
 [data-theme="chalk"] {

@@ -53,6 +53,18 @@ data/ranges/   Static range TypeScript files + index.ts registry
 - `HandAction = SimpleAction | BlendedAction` — always handle both cases
 - `QuizAction = SimpleAction | BlendType` — what the user submits in quiz
 
+## Theming
+
+- **Active themes**: `felt` (default) | `lounge` | `midnight` | `chalk` | `marker` | `classic`
+- **Mechanism**: `data-theme` attribute on `<html>`. `felt` = no attribute; all others set `data-theme="<name>"`.
+- **CSS variables**: All themeable colors are defined as CSS custom properties in `@theme` in `styles/globals.css`. Each non-default theme has a `[data-theme="<name>"]` override block in the same file that reassigns those variables.
+- **Token names**: Use the semantic felt-palette tokens (`felt-bg`, `felt-surface`, `felt-elevated`, `felt-border`, `felt-muted`, `gold`, `gold-hover`, `cream`, `cream-muted`) and action tokens (`action-raise`, `action-call`, `action-fold`, `action-shove`, `action-black`) — never hardcode hex values in components.
+- **`useTheme` hook** (`hooks/useTheme.ts`): manages theme state, applies `data-theme` to the DOM, persists to `localStorage`, and syncs a `?theme=` URL param. Call `setTheme(name)` to switch.
+- **FOUC prevention**: A blocking inline `<script>` in `app/layout.tsx` `<head>` reads `?theme=` (then localStorage) and sets `data-theme` before first paint. Add any new theme name to the `valid` array in that script.
+- **Adding a new theme**: (1) add a `[data-theme="<name>"]` block to `globals.css` overriding all tokens, (2) add `'<name>'` to the `Theme` union in `useTheme.ts`, (3) add it to the `isValid` check in `useTheme.ts`, (4) add it to the `valid` array in the blocking script in `layout.tsx`, (5) add an entry to `THEMES` in `NavDrawer.tsx`.
+- **Cache**: Turbopack caches compiled CSS aggressively. After editing `globals.css`, run `npm run clean` (deletes `.next`) then restart the dev server to ensure the new theme CSS is compiled.
+- **Light themes** (classic, chalk, marker): `--color-cream` maps to a dark foreground color and `--color-felt-*` surfaces map to whites/light greys — the token names are semantic, not literal.
+
 ## In an ideal world
 - Look for DRY code opportunities, and maintain in components/shared
 

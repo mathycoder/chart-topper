@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 
-export type Theme = 'felt' | 'classic' | 'lounge' | 'midnight' | 'chalk' | 'watercolor' | 'marker';
+export type Theme = 'felt' | 'classic' | 'lounge' | 'midnight' | 'chalk' | 'marker';
 
 const STORAGE_KEY = 'chart-topper-theme';
 
@@ -16,7 +16,7 @@ export function useTheme() {
 
     // URL param wins over localStorage; both fall back to 'felt'
     const isValid = (v: string | null): v is Theme =>
-      v === 'felt' || v === 'classic' || v === 'lounge' || v === 'midnight' || v === 'chalk' || v === 'watercolor' || v === 'marker';
+      v === 'felt' || v === 'classic' || v === 'lounge' || v === 'midnight' || v === 'chalk' || v === 'marker';
 
     const initial: Theme = isValid(urlTheme) ? urlTheme : isValid(stored) ? stored : 'felt';
 

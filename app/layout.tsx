@@ -55,7 +55,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         {/* Blocking script: applies theme before first paint to prevent flash */}
-        <script dangerouslySetInnerHTML={{ __html: `(function(){try{var p=new URLSearchParams(window.location.search);var t=p.get('theme');var valid=['felt','classic','lounge','midnight','chalk','watercolor','marker'];if(valid.indexOf(t)<0)t=localStorage.getItem('chart-topper-theme');if(t&&t!=='felt'&&valid.indexOf(t)>=0)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();` }} />
+        <script dangerouslySetInnerHTML={{ __html: `(function(){try{var p=new URLSearchParams(window.location.search);var t=p.get('theme');var valid=['felt','classic','lounge','midnight','chalk','marker'];if(valid.indexOf(t)<0)t=localStorage.getItem('chart-topper-theme');if(t&&t!=='felt'&&valid.indexOf(t)>=0)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();` }} />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}

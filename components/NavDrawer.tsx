@@ -46,12 +46,6 @@ const THEMES: { value: Theme; label: string; description: string; preview: strin
     preview: '#ffffff',
   },
   {
-    value: 'watercolor',
-    label: 'Watercolor',
-    description: 'Soft washed parchment',
-    preview: '#f0e8de',
-  },
-  {
     value: 'classic',
     label: 'Classic',
     description: 'Clean & minimal',
