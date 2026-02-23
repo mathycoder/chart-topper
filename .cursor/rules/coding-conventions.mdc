@@ -65,6 +65,10 @@ data/ranges/   Static range TypeScript files + index.ts registry
 - **Cache**: Turbopack caches compiled CSS aggressively. After editing `globals.css`, run `npm run clean` (deletes `.next`) then restart the dev server to ensure the new theme CSS is compiled.
 - **Light themes** (classic, chalk, marker): `--color-cream` maps to a dark foreground color and `--color-felt-*` surfaces map to whites/light greys — the token names are semantic, not literal.
 
+## Mobile Touch Handling
+
+- **`EdgeSwipeBlocker`** (`components/EdgeSwipeBlocker.tsx`): mounted globally in `app/layout.tsx`. It listens for `touchstart` events within 30px of the left or right screen edge and calls `e.preventDefault()` to block iOS Safari's back/forward swipe navigation. **Critical caveat**: `preventDefault()` on `touchstart` also cancels the synthesized `click` event, so any interactive element (button, link, input) whose touch target falls within that 30px edge zone will silently fail to respond. The blocker skips `preventDefault()` when the touch lands on a `button`, `a`, `input`, `select`, `textarea`, or `[role="button"]` element to avoid this. If a mobile tap near the screen edge appears to do nothing, `EdgeSwipeBlocker` is the first place to check.
+
 ## In an ideal world
 - Look for DRY code opportunities, and maintain in components/shared
 

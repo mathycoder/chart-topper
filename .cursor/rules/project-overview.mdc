@@ -45,12 +45,39 @@ Chart Topper is a **poker range training app**. Users study and quiz themselves 
 
 **Builder Mode** (`/builder`): Dev-only tool for creating/editing ranges. Gated from production.
 
+## Strategy Notes
+
+Ranges can carry structured, human-readable strategy notes — one or more sections, each with a heading and bullet points.
+
+**Types** (in `types/index.ts`):
+```ts
+type NoteSection = { heading: string; bullets: string[] }
+type RangeStrategyNotes = NoteSection[]
+// RangeMeta includes:
+//   description?: string          — legacy flat text (backward compat)
+//   strategyNotes?: RangeStrategyNotes  — structured headings + bullets (preferred)
+```
+
+**Authoring** (Builder Mode): The "Strategy Notes" card replaces the old description textarea. Each section has an editable heading and dynamic bullet inputs; sections are drag-to-reorder. A checkbox at save time — "Copy notes to all `[stackSize] [scenario]` ranges" — rewrites all matching range files with the same notes via the save-range API.
+
+**Display** (View Mode): The Range Summary card renders `strategyNotes` as headed sections with bullet lists, falling back to the legacy `description` italic paragraph if no structured notes exist. The notes area has `max-h-64 overflow-y-auto`.
+
+**Hint** (Quiz Mode): A `<Lightbulb> Hint` button appears below the grid (mobile, right-aligned) and at the bottom of the left controls panel (desktop) whenever the active range has `strategyNotes` or `description`. Clicking opens `NotesModal` — a centered overlay with the same structured notes rendering. Dismisses on backdrop click or Escape.
+
+**Serialization**: `app/api/save-range/route.ts` writes `strategyNotes` as a TypeScript array literal inside `meta` in the generated range file. The `copyNotesToMatching` flag causes the API to import `RANGE_REGISTRY`, find all ranges with the same `stackSize` + `scenario`, and regenerate + rewrite each file with the injected notes.
+
+**Key files**:
+- `components/NotesEditor.tsx` — drag-sortable section editor (uses `@dnd-kit`)
+- `components/NotesModal.tsx` — hint overlay modal, reused in Quiz Mode
+
 ## Key Types (`types/index.ts`)
 
 ```ts
 type PokerRange = { meta: RangeMeta; data: RangeData; notes?: RangeNotes }
-type RangeMeta = { stackSize, position, scenario, opponentPosition?, callerPosition?, displayName, description? }
+type RangeMeta = { stackSize, position, scenario, opponentPosition?, callerPosition?, displayName, description?, strategyNotes? }
 type RangeData = Record<HandCombo, HandAction>
+type NoteSection = { heading: string; bullets: string[] }
+type RangeStrategyNotes = NoteSection[]
 type QuizAction = SimpleAction | BlendType  // what the user picks in quiz
 type CheckResult = { correct, incorrect, halfCredit, total, percentage, totalScore, details }
 ```
