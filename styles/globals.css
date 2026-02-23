@@ -24,14 +24,14 @@
   --color-action-raise: #f87171;
   --color-action-call: #34d399;
   --color-action-fold: #4a7ab5;
-  --color-action-shove: #dc2626;
+  --color-action-shove: #a855f7;
   --color-action-black: #1a3a25;
 
   /* Hover variants */
   --color-action-raise-hover: #ef4444;
   --color-action-call-hover: #10b981;
   --color-action-fold-hover: #3d6aa5;
-  --color-action-shove-hover: #b91c1c;
+  --color-action-shove-hover: #9333ea;
   --color-action-black-hover: #243d2e;
 
   /* Cell states */
@@ -70,12 +70,12 @@
   --color-action-raise: #dc2626;
   --color-action-call: #16a34a;
   --color-action-fold: #2563eb;
-  --color-action-shove: #8b0000;
+  --color-action-shove: #7e22ce;
   --color-action-black: #becbd6;
   --color-action-raise-hover: #b91c1c;
   --color-action-call-hover: #15803d;
   --color-action-fold-hover: #1d4ed8;
-  --color-action-shove-hover: #6b0000;
+  --color-action-shove-hover: #581c87;
   --color-action-black-hover: #becbd6;
 
   --color-cell-empty: #f8fafc;
@@ -99,12 +99,12 @@
   --color-action-raise: #ef2020;
   --color-action-call: #16c050;
   --color-action-fold: #2060ef;
-  --color-action-shove: #8b0000;
+  --color-action-shove: #7c3090;
   --color-action-black: #e0e0e0;
   --color-action-raise-hover: #cc1818;
   --color-action-call-hover: #10a040;
   --color-action-fold-hover: #1850d8;
-  --color-action-shove-hover: #6b0000;
+  --color-action-shove-hover: #6a2080;
   --color-action-black-hover: #cccccc;
 
   --color-cell-empty: #f5f5f5;
@@ -157,13 +157,13 @@
 
   --color-action-raise: #f87171;
   --color-action-call: #34d399;
-  --color-action-fold: #818cf8;
-  --color-action-shove: #dc2626;
+  --color-action-fold: #60a5fa;
+  --color-action-shove: #9333ea;
   --color-action-black: #162338;
   --color-action-raise-hover: #ef4444;
   --color-action-call-hover: #10b981;
-  --color-action-fold-hover: #6366f1;
-  --color-action-shove-hover: #b91c1c;
+  --color-action-fold-hover: #3b82f6;
+  --color-action-shove-hover: #7e22ce;
   --color-action-black-hover: #1e3352;
 
   --color-cell-empty: #0f1e32;
@@ -187,12 +187,12 @@
   --color-action-raise: #e07070;
   --color-action-call: #4ec97a;
   --color-action-fold: #5878b0;
-  --color-action-shove: #cc2020;
+  --color-action-shove: #a855f7;
   --color-action-black: #2d1a0c;
   --color-action-raise-hover: #d05060;
   --color-action-call-hover: #38b865;
   --color-action-fold-hover: #4868a0;
-  --color-action-shove-hover: #aa1818;
+  --color-action-shove-hover: #9333ea;
   --color-action-black-hover: #38220f;
 
   --color-cell-empty: #251508;
