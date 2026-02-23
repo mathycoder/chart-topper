@@ -27,7 +27,14 @@ export function EdgeSwipeBlocker() {
       const isNearRightEdge = pageX > viewportWidth - EDGE_THRESHOLD;
 
       if (isNearLeftEdge || isNearRightEdge) {
-        e.preventDefault();
+        // Don't block taps on interactive elements — preventDefault cancels the
+        // synthesized click event, breaking buttons/links near the screen edges.
+        // Navigation swipe gestures can't originate from interactive elements anyway.
+        const target = e.target as Element;
+        const isInteractive = !!target.closest('button, a, input, select, textarea, [role="button"]');
+        if (!isInteractive) {
+          e.preventDefault();
+        }
       }
     };
 

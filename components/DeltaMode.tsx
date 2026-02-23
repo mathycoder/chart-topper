@@ -478,7 +478,7 @@ export function DeltaMode() {
       <main className={`${painting.isPainting ? 'select-none' : ''}`}>
 
         {/* Mobile Layout */}
-        <div className="lg:hidden flex flex-col pb-28">
+        <div className="lg:hidden flex flex-col pb-4">
           {/* Mobile header — CSS grid: labels col | content col */}
           <div className="bg-felt-surface border-b border-felt-border px-3 py-2.5">
             <div className="grid gap-x-2 gap-y-1" style={{ gridTemplateColumns: '3.5rem 1fr' }}>

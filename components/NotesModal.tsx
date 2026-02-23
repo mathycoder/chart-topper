@@ -55,7 +55,7 @@ export function NotesModal({ isOpen, onClose, strategyNotes, description, title 
 
         {/* Content */}
         {hasNotes ? (
-          <div className="flex flex-col gap-3 max-h-80 overflow-y-auto pr-1">
+          <div className="flex flex-col gap-3 max-h-[60vh] overflow-y-auto pr-1">
             {strategyNotes && strategyNotes.length > 0 ? (
               strategyNotes.map((section, i) => (
                 <div key={i}>

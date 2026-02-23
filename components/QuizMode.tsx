@@ -352,7 +352,7 @@ export function QuizMode() {
     <>
       <main className={`${painting.isPainting ? 'select-none' : ''}`}>
         {/* Mobile Layout */}
-        <div className="lg:hidden flex flex-col pb-28">
+        <div className="lg:hidden flex flex-col pb-4">
           {/* Mobile: header with spot bar; Delta button + target row live inside for alignment */}
           <MobileDropdownBar
             position={effectivePosition}
@@ -398,19 +398,6 @@ export function QuizMode() {
           )}
           {/* Mobile Grid */}
           <div className="flex-1 p-1 relative">
-            {/* Hint button row (mobile) */}
-            {rangeExistsForDisplay && (range?.meta.strategyNotes?.length || range?.meta.description) && (
-              <div className="flex justify-end mb-1 px-1">
-                <button
-                  onClick={() => setShowHints(true)}
-                  className="flex items-center gap-1 text-xs text-cream-muted hover:text-cream transition-colors"
-                  title="View strategy notes"
-                >
-                  <Lightbulb className="w-3.5 h-3.5" />
-                  Hint
-                </button>
-              </div>
-            )}
             {/* Toggle between user answers and correct answers */}
             {isSubmitted && rangeExistsForDisplay && (
               <div className="flex justify-center mb-2">
@@ -482,6 +469,20 @@ export function QuizMode() {
                 >
                   Create in Builder
                 </a>
+              </div>
+            )}
+
+            {/* Hint button — below chart, right-aligned */}
+            {rangeExistsForDisplay && (range?.meta.strategyNotes?.length || range?.meta.description) && (
+              <div className="flex justify-end mt-1 px-1">
+                <button
+                  onClick={() => setShowHints(true)}
+                  className="flex items-center gap-1 text-xs text-cream-muted hover:text-cream transition-colors cursor-pointer"
+                  title="View strategy notes"
+                >
+                  <Lightbulb className="w-3.5 h-3.5 pointer-events-none" />
+                  <span className="pointer-events-none">Hint</span>
+                </button>
               </div>
             )}
           </div>
@@ -586,11 +587,11 @@ export function QuizMode() {
               {rangeExistsForDisplay && (range?.meta.strategyNotes?.length || range?.meta.description) && (
                 <button
                   onClick={() => setShowHints(true)}
-                  className="self-start flex items-center gap-1.5 text-xs text-cream-muted hover:text-cream transition-colors mt-1"
+                  className="self-start flex items-center gap-1.5 text-xs text-cream-muted hover:text-cream transition-colors mt-1 cursor-pointer"
                   title="View strategy notes"
                 >
-                  <Lightbulb className="w-3.5 h-3.5" />
-                  Hint
+                  <Lightbulb className="w-3.5 h-3.5 pointer-events-none" />
+                  <span className="pointer-events-none">Hint</span>
                 </button>
               )}
             </div>
