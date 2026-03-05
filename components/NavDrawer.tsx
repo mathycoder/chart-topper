@@ -15,40 +15,16 @@ const NAV_ITEMS = [
 
 const THEMES: { value: Theme; label: string; description: string; preview: string }[] = [
   {
-    value: 'felt',
-    label: 'Felt',
-    description: 'Dark casino table',
-    preview: '#0a1f14',
-  },
-  {
-    value: 'lounge',
-    label: 'Lounge',
-    description: 'Warm bourbon speakeasy',
-    preview: '#1f1208',
+    value: 'chalk',
+    label: 'Chalk',
+    description: 'Warm parchment study session',
+    preview: '#faf6f0',
   },
   {
     value: 'midnight',
     label: 'Midnight',
     description: 'Deep navy high-stakes',
     preview: '#0d1b2e',
-  },
-  {
-    value: 'chalk',
-    label: 'Chalk',
-    description: 'Blackboard study session',
-    preview: '#faf6f0',
-  },
-  {
-    value: 'marker',
-    label: 'Marker',
-    description: 'Bold whiteboard strokes',
-    preview: '#ffffff',
-  },
-  {
-    value: 'classic',
-    label: 'Classic',
-    description: 'Clean & minimal',
-    preview: '#ffffff',
   },
 ];
 

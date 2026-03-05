@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo, useCallback, type ReactNode } from 'react';
+import { Lightbulb } from 'lucide-react';
 import type { PokerRange, RangeData, SpotDescriptor } from '@/types';
 import { useUrlState, useDelta } from '@/hooks';
 import { getRange, getAvailableScenarios, getAvailablePositions, getAvailableOpponents, getAvailableCallers } from '@/data/ranges';
@@ -10,6 +11,7 @@ import { SpotSelector } from './SpotSelector';
 import { DeltaControls } from './DeltaControls';
 import { DiffFilterToggles } from './DiffFilterToggles';
 import { getDiffCategories, buildDimmedFromCategories, ALL_DIFF_CATEGORIES, type DiffCategoryKey } from '@/lib/getDiffCategories';
+import { NotesModal } from './NotesModal';
 
 type RangeStats = { raise: number; call: number; fold: number; shove: number; black: number; playable: number };
 
@@ -87,7 +89,7 @@ function RangeSummaryCard({
       )}
 
       {!hideNotes && (range?.meta.strategyNotes?.length || range?.meta.description) && (
-        <div className="mt-3 pt-3 border-t border-felt-border max-h-64 overflow-y-auto">
+        <div className="mt-3 pt-3 border-t border-felt-border max-h-64 overflow-y-auto pb-4">
           {range?.meta.strategyNotes?.length ? (
             <div className="flex flex-col gap-3">
               {range.meta.strategyNotes.map((section, i) => (
@@ -188,6 +190,8 @@ export function ViewMode() {
     setOpponent(s.opponent);
     setCaller(s.caller);
   }, [setStackSize, setPosition, setScenario, setOpponent, setCaller]);
+
+  const [showHints, setShowHints] = useState(false);
 
   // Delta integration
   const delta = useDelta(currentSpot);
@@ -326,6 +330,20 @@ export function ViewMode() {
                   enabledCategories={enabledCategories}
                   onToggle={handleToggleCategory}
                 />
+              </div>
+            )}
+
+            {/* Hint button — below chart, right-aligned (non-delta only) */}
+            {!deltaActive && rangeExists && (range?.meta.strategyNotes?.length || range?.meta.description) && (
+              <div className="flex justify-end mt-1 px-1">
+                <button
+                  onClick={() => setShowHints(true)}
+                  className="flex items-center gap-1 text-xs text-cream-muted hover:text-cream transition-colors cursor-pointer"
+                  title="View strategy notes"
+                >
+                  <Lightbulb className="w-3.5 h-3.5 pointer-events-none" />
+                  <span className="pointer-events-none">Hint</span>
+                </button>
               </div>
             )}
           </div>
@@ -467,6 +485,13 @@ export function ViewMode() {
           </div>
         </div>
       )}
+
+      <NotesModal
+        isOpen={showHints}
+        onClose={() => setShowHints(false)}
+        strategyNotes={range?.meta.strategyNotes}
+        description={range?.meta.description}
+      />
     </>
   );
 }

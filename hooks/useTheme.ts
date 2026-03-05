@@ -7,18 +7,18 @@ export type Theme = 'felt' | 'classic' | 'lounge' | 'midnight' | 'chalk' | 'mark
 const STORAGE_KEY = 'chart-topper-theme';
 
 export function useTheme() {
-  const [theme, setThemeState] = useState<Theme>('felt');
+  const [theme, setThemeState] = useState<Theme>('chalk');
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const urlTheme = params.get('theme') as Theme | null;
     const stored = localStorage.getItem(STORAGE_KEY) as Theme | null;
 
-    // URL param wins over localStorage; both fall back to 'felt'
+    // URL param wins over localStorage; both fall back to 'chalk'
     const isValid = (v: string | null): v is Theme =>
       v === 'felt' || v === 'classic' || v === 'lounge' || v === 'midnight' || v === 'chalk' || v === 'marker';
 
-    const initial: Theme = isValid(urlTheme) ? urlTheme : isValid(stored) ? stored : 'felt';
+    const initial: Theme = isValid(urlTheme) ? urlTheme : isValid(stored) ? stored : 'chalk';
 
     setThemeState(initial);
     applyTheme(initial);
@@ -37,7 +37,7 @@ export function useTheme() {
 }
 
 function applyTheme(theme: Theme) {
-  if (theme === 'felt') {
+  if (theme === 'chalk') {
     document.documentElement.removeAttribute('data-theme');
   } else {
     document.documentElement.setAttribute('data-theme', theme);
@@ -46,7 +46,7 @@ function applyTheme(theme: Theme) {
 
 function writeUrlParam(theme: Theme) {
   const params = new URLSearchParams(window.location.search);
-  if (theme === 'felt') {
+  if (theme === 'chalk') {
     params.delete('theme');
   } else {
     params.set('theme', theme);
