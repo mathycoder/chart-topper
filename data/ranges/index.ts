@@ -11,6 +11,7 @@ import range80bbHjRfi from './80bb-hj-rfi';
 import range80bbCoRfi from './80bb-co-rfi';
 import range80bbBtnRfi from './80bb-btn-rfi';
 import range80bbSbRfi from './80bb-sb-rfi';
+import range80bbBbRfi from './80bb-bb-rfi';
 
 // vs Raise ranges
 import range80bbUtgPlus1VsUtgVsRaise from './80bb-utgplus1-vs-utg-vs-raise';
@@ -25,6 +26,8 @@ import range80bbSbVsCoVsRaise from './80bb-sb-vs-co-vs-raise';
 import range80bbBbVsUtgVsRaise from './80bb-bb-vs-utg-vs-raise';
 import range80bbBbVsLjVsRaise from './80bb-bb-vs-lj-vs-raise';
 import range80bbBbVsBtnVsRaise from './80bb-bb-vs-btn-vs-raise';
+import range80bbSbVsBbVsRaise from './80bb-sb-vs-bb-vs-raise';
+import range80bbBbVsSbVsRaise from './80bb-bb-vs-sb-vs-raise';
 
 // vs Raise + Call ranges (3-way pots)
 import range80bbHjVsUtgRaiseLjCall from './80bb-hj-vs-utg-raise-lj-call';
@@ -53,6 +56,8 @@ import range80bbCoVsSbVs3bet from './80bb-co-vs-sb-vs-3bet';
 import range80bbCoVsBbVs3bet from './80bb-co-vs-bb-vs-3bet';
 import range80bbBtnVsSbVs3bet from './80bb-btn-vs-sb-vs-3bet';
 import range80bbBtnVsBbVs3bet from './80bb-btn-vs-bb-vs-3bet';
+import range80bbBbVsSbVs3bet from './80bb-bb-vs-sb-vs-3bet';
+import range80bbSbVsBbVs3bet from './80bb-sb-vs-bb-vs-3bet';
 
 ////////////////////////////////////////////////////////////
 // 50bb+ ranges
@@ -277,6 +282,7 @@ const RANGE_REGISTRY: Record<string, PokerRange> = {
   '80bb-co-rfi': range80bbCoRfi,
   '80bb-btn-rfi': range80bbBtnRfi,
   '80bb-sb-rfi': range80bbSbRfi,
+  '80bb-bb-rfi': range80bbBbRfi,
   
   // vs Raise ranges
   '80bb-utgplus1-vs-utg-vs-raise': range80bbUtgPlus1VsUtgVsRaise,
@@ -291,7 +297,9 @@ const RANGE_REGISTRY: Record<string, PokerRange> = {
   '80bb-bb-vs-utg-vs-raise': range80bbBbVsUtgVsRaise,
   '80bb-bb-vs-lj-vs-raise': range80bbBbVsLjVsRaise,
   '80bb-bb-vs-btn-vs-raise': range80bbBbVsBtnVsRaise,
-  
+  '80bb-sb-vs-bb-vs-raise': range80bbSbVsBbVsRaise,
+  '80bb-bb-vs-sb-vs-raise': range80bbBbVsSbVsRaise,
+
   // vs Raise + Call ranges (3-way pots)
   // Key format: {stack}-{position}-vs-{raiser}-raise-{caller}-call
   '80bb-hj-vs-utg-raise-lj-call': range80bbHjVsUtgRaiseLjCall,
@@ -320,6 +328,8 @@ const RANGE_REGISTRY: Record<string, PokerRange> = {
   '80bb-co-vs-bb-vs-3bet': range80bbCoVsBbVs3bet,
   '80bb-btn-vs-sb-vs-3bet': range80bbBtnVsSbVs3bet,
   '80bb-btn-vs-bb-vs-3bet': range80bbBtnVsBbVs3bet,
+  '80bb-bb-vs-sb-vs-3bet': range80bbBbVsSbVs3bet,
+  '80bb-sb-vs-bb-vs-3bet': range80bbSbVsBbVs3bet,
 
   ////////////////////////////////////////////////////////////
   // 50bb+ ranges
