@@ -154,6 +154,7 @@ export type RangeMeta = {
   opponentPosition?: Position; // Raiser for vs-raise, vs-raise-call scenarios
   callerPosition?: Position; // Caller for vs-raise-call (3-way pot) scenarios
   displayName: string; // Human-readable: "80bb UTG - Raise First In"
+  scenarioDisplayLabel?: string; // Overrides SCENARIO_DISPLAY[scenario] in UI (e.g. "vs SB Limp")
   description?: string; // Legacy flat strategy explanation (kept for backward compat)
   strategyNotes?: RangeStrategyNotes; // Structured notes: headings + bullets
 };

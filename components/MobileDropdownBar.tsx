@@ -18,6 +18,8 @@ interface MobileDropdownBarProps {
   disabled?: boolean;
   /** When true, only show options that have range data (for View/Quiz). Default: false (for Builder). */
   filterByAvailability?: boolean;
+  /** Overrides the default scenario label in the SpotSelector (e.g. "vs SB Limp") */
+  scenarioDisplayLabel?: string;
 }
 
 /**
@@ -37,6 +39,7 @@ export function MobileDropdownBar({
   onCallerChange,
   disabled = false,
   filterByAvailability = false,
+  scenarioDisplayLabel,
 }: MobileDropdownBarProps) {
   const spot = useMemo((): SpotDescriptor => ({
     stackSize,
@@ -63,6 +66,7 @@ export function MobileDropdownBar({
           disabled={disabled}
           filterByAvailability={filterByAvailability}
           stackVertical={false}
+          scenarioLabelOverride={scenarioDisplayLabel}
         />
       </div>
     </div>

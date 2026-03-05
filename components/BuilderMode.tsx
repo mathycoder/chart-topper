@@ -363,11 +363,15 @@ export function BuilderMode() {
       <BlendPicker
         isOpen={blendPickerOpen}
         handName={blendPickerHand || undefined}
-        initialValue={
-          blendPickerHand && userSelections[blendPickerHand] && !isSimpleAction(userSelections[blendPickerHand]!)
-            ? userSelections[blendPickerHand] as BlendedAction
-            : undefined
-        }
+        initialValue={(() => {
+          if (!blendPickerHand || !userSelections[blendPickerHand]) return undefined;
+          const action = userSelections[blendPickerHand]!;
+          if (!isSimpleAction(action)) return action as BlendedAction;
+          if (action === 'raise') return { raise: 100 };
+          if (action === 'call') return { call: 100 };
+          if (action === 'fold') return { fold: 100 };
+          return undefined;
+        })()}
         onConfirm={handleBlendConfirm}
         onClose={handleBlendClose}
       />

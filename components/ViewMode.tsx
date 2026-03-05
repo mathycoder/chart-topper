@@ -252,6 +252,7 @@ export function ViewMode() {
               currentSpot={currentSpot}
               syncSpotToUrl={syncSpotToUrl}
               layout="mobile"
+              scenarioDisplayLabel={range?.meta.scenarioDisplayLabel}
             />
           ) : (
             <div className="bg-felt-surface border-b border-felt-border px-3 py-2.5">
@@ -262,6 +263,7 @@ export function ViewMode() {
                     onChange={syncSpotToUrl}
                     filterByAvailability={true}
                     stackVertical={false}
+                    scenarioLabelOverride={range?.meta.scenarioDisplayLabel}
                   />
                 </div>
                 <button
@@ -362,6 +364,7 @@ export function ViewMode() {
                   syncSpotToUrl={syncSpotToUrl}
                   layout="desktop"
                   headerStyle={true}
+                  scenarioDisplayLabel={range?.meta.scenarioDisplayLabel}
                 />
               ) : (
                 <div className="text-lg leading-relaxed">
@@ -373,6 +376,7 @@ export function ViewMode() {
                         onChange={syncSpotToUrl}
                         filterByAvailability={true}
                         headerStyle={true}
+                        scenarioLabelOverride={range?.meta.scenarioDisplayLabel}
                       />
                     </div>
                     <button

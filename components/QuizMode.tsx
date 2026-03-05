@@ -468,6 +468,7 @@ export function QuizMode() {
               syncSpotToUrl={syncSpotToUrl}
               disabled={isSubmitted}
               layout="mobile"
+              scenarioDisplayLabel={range?.meta.scenarioDisplayLabel}
             />
           ) : (
             <>
@@ -487,6 +488,7 @@ export function QuizMode() {
                       onCallerChange={setCaller}
                       disabled={isSubmitted}
                       filterByAvailability={true}
+                      scenarioDisplayLabel={range?.meta.scenarioDisplayLabel}
                     />
                   </div>
                   <button
@@ -650,6 +652,7 @@ export function QuizMode() {
                   disabled={isSubmitted}
                   layout="desktop"
                   headerStyle={true}
+                  scenarioDisplayLabel={range?.meta.scenarioDisplayLabel}
                 />
               ) : (
                 <div className="text-lg leading-relaxed">
@@ -662,6 +665,7 @@ export function QuizMode() {
                         disabled={isSubmitted}
                         filterByAvailability={true}
                         headerStyle={true}
+                        scenarioLabelOverride={range?.meta.scenarioDisplayLabel}
                       />
                     </div>
                     <button

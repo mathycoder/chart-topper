@@ -149,6 +149,8 @@ export interface SpotSelectorProps {
   deltaTargetValue?: string | null;
   deltaTargetOptions?: { value: string; label: string }[];
   onDeltaTargetChange?: (value: string) => void;
+  /** Overrides the default SCENARIO_DISPLAY label for the scenario segment (e.g. "vs SB Limp") */
+  scenarioLabelOverride?: string;
 }
 
 /**
@@ -174,6 +176,7 @@ export function SpotSelector({
   deltaTargetValue,
   deltaTargetOptions,
   onDeltaTargetChange,
+  scenarioLabelOverride,
 }: SpotSelectorProps) {
   const availableScenarios = useMemo(
     () => (filterByAvailability ? getAvailableScenarios(spot.stackSize) : SCENARIOS.map(s => s.value)),
@@ -222,9 +225,10 @@ export function SpotSelector({
     onChange(next);
   };
 
-  const scenarioOptions = filterByAvailability
+  const scenarioOptions = (filterByAvailability
     ? SCENARIOS.filter(s => availableScenarios.includes(s.value))
-    : SCENARIOS;
+    : SCENARIOS
+  ).map(s => (s.value === 'rfi' && scenarioLabelOverride) ? { ...s, label: scenarioLabelOverride } : s);
 
   const getDeltaRole = (axis: DeltaAxis): 'axis' | 'switchable' | 'locked' | undefined => {
     if (!deltaMode) return undefined;
@@ -292,7 +296,7 @@ export function SpotSelector({
 
   const rowClass = stackVertical ? 'flex flex-col gap-1.5' : 'flex flex-wrap items-center gap-1';
   const stackLabel = STACK_SIZES.find(s => s.value === spot.stackSize)?.label ?? spot.stackSize;
-  const scenarioLabel = SCENARIO_DISPLAY[effectiveScenario];
+  const scenarioLabel = scenarioLabelOverride ?? SCENARIO_DISPLAY[effectiveScenario];
 
   return (
     <div className={rowClass}>

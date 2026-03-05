@@ -13,6 +13,8 @@ interface DeltaControlsProps {
   headerStyle?: boolean;
   /** 'desktop' renders labels vertically; 'mobile' uses a CSS grid layout */
   layout: 'desktop' | 'mobile';
+  /** Overrides the default scenario label in the starting range SpotSelector (e.g. "vs SB Limp") */
+  scenarioDisplayLabel?: string;
 }
 
 export function DeltaControls({
@@ -22,6 +24,7 @@ export function DeltaControls({
   disabled = false,
   headerStyle = false,
   layout,
+  scenarioDisplayLabel,
 }: DeltaControlsProps) {
   const {
     deltaAxisPickMode,
@@ -73,6 +76,7 @@ export function DeltaControls({
       deltaMode={deltaAxisPickMode}
       deltaAxis={deltaAxis}
       onSelectDeltaAxis={handleSelectDeltaAxis}
+      scenarioLabelOverride={scenarioDisplayLabel}
     />
   );
 
